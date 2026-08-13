@@ -41,11 +41,6 @@ async function sendResendEmail(to: string, subject: string, html: string) {
   }
 }
 
-// Purement informatif — pas de bouton de paiement : tant que l'accès est
-// encore actif côté Chariow, un nouvel achat du même produit est refusé
-// (already_purchased, cf. memory chariow_repurchase_block.md). Le
-// réabonnement ne redevient possible qu'une fois l'accès réellement retiré
-// (cf. sendExpiredEmail), qui porte alors le vrai bouton "Se réabonner".
 async function sendReminderEmail(to: string, firstName: string, daysLeft: number) {
   const dayLabel = daysLeft === 1 ? "demain" : `dans ${daysLeft} jours`;
   await sendResendEmail(
@@ -59,11 +54,12 @@ async function sendReminderEmail(to: string, firstName: string, daysLeft: number
       recipientFirstName: firstName,
       contentHtml: `
         <p style="margin: 0 0 12px 0;">
-          Ton abonnement Premium Agapeo se termine ${dayLabel}. Sans renouvellement, ton compte repassera
-          automatiquement en version gratuite — on t'enverra un email dès que ce sera le cas, avec la marche
-          à suivre pour te réabonner.
+          Ton abonnement Premium Agapeo se termine ${dayLabel}. Renouvelle-le dès maintenant depuis l'onglet
+          "Mon Plan" pour continuer à profiter de tous tes avantages sans interruption.
         </p>
-      `
+      `,
+      ctaText: "Renouveler mon abonnement",
+      ctaUrl: `${SITE_URL}/premium`
     })
   );
 }
