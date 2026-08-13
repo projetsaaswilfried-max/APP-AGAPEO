@@ -153,6 +153,10 @@ export interface ProfileRestrictedRow {
   subscription_current_period_end: string | null;
   /** Palier de relance déjà envoyé sur le cycle en cours : 5, 3 ou 1 (jours avant échéance) — null si aucun. */
   subscription_reminder_stage: number | null;
+  /** Horodatage du passage à EXPIRED (retrait automatique pour non-paiement) — null si jamais expiré ou déjà réabonné. */
+  subscription_expired_at: string | null;
+  /** true une fois la relance des 24h après expiration envoyée — évite un doublon. */
+  subscription_expiry_followup_sent: boolean;
   latitude: number | null;
   longitude: number | null;
 }

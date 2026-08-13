@@ -142,17 +142,15 @@ export default function PremiumPage() {
 
           {isPremium ? (
             isExpiringSoon ? (
-              <div className="pt-2 border-t border-border/40 space-y-2">
+              <div className="pt-2 border-t border-border/40 space-y-1">
                 <p className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">
                   {daysUntilExpiry !== null && daysUntilExpiry <= 0
                     ? "Ton abonnement expire aujourd'hui"
                     : `Expire dans ${daysUntilExpiry} jour${daysUntilExpiry! > 1 ? "s" : ""}`}
                 </p>
-                <form action={action}>
-                  <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
-                    Se réabonner
-                  </Button>
-                </form>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Sans renouvellement, ton accès repassera en gratuit — tu recevras un email pour te réabonner à ce moment-là.
+                </p>
               </div>
             ) : (
               <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">

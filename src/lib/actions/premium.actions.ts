@@ -50,7 +50,8 @@ export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutStat
   }
 
   let checkoutUrl: string | null;
-  let alreadyHandled = false;
+  let alreadyCompleted = false;
+  let alreadyPurchased = false;
   try {
     const result = await initiateChariowCheckout({
       email: user.email,
@@ -62,16 +63,30 @@ export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutStat
       customMetadata: { agapeo_user_id: user.id }
     });
 
-    alreadyHandled = result.step === "already_purchased" || result.step === "completed";
+    // "completed" = cette session de paiement vient d'aboutir (redirection
+    // légitime). "already_purchased" est différent et PIÉGEUX : Chariow
+    // bloque tout nouvel achat tant qu'un accès précédent au même produit
+    // est encore actif côté Chariow (aucun paiement n'a lieu, checkoutUrl
+    // reste null) — les traiter pareil ferait croire à un paiement réussi
+    // alors qu'aucune charge n'a eu lieu et que l'abonnement ne sera jamais
+    // prolongé. Cf. memory chariow_repurchase_block.md pour le vrai correctif.
+    alreadyCompleted = result.step === "completed";
+    alreadyPurchased = result.step === "already_purchased";
     checkoutUrl = result.checkoutUrl;
   } catch (err) {
     return { message: err instanceof Error ? err.message : "Le paiement n'a pas pu être initié." };
   }
 
+  if (alreadyPurchased) {
+    return {
+      message: "Un souci technique empêche de relancer un nouveau paiement pour l'instant. Contacte le support Agapeo, on va régulariser ton accès manuellement."
+    };
+  }
+
   // `redirect()` lève une exception spéciale que Next.js intercepte plus haut
   // dans la pile — jamais à l'intérieur du try/catch ci-dessus, sous peine
   // d'être avalée et traitée comme une vraie erreur.
-  if (alreadyHandled) redirect("/premium/success");
+  if (alreadyCompleted) redirect("/premium/success");
   if (!checkoutUrl) return { message: "Le paiement n'a pas pu être initié." };
   redirect(checkoutUrl);
 }

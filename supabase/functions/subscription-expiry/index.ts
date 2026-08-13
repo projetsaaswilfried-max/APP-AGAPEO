@@ -23,6 +23,11 @@ interface ProfileRestrictedRow {
   subscription_reminder_stage: number | null;
 }
 
+interface ExpiredProfileRestrictedRow {
+  id: string;
+  subscription_expired_at: string | null;
+}
+
 async function sendResendEmail(to: string, subject: string, html: string) {
   if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY manquant — email non envoyé.");
   const res = await fetch("https://api.resend.com/emails", {
@@ -36,6 +41,11 @@ async function sendResendEmail(to: string, subject: string, html: string) {
   }
 }
 
+// Purement informatif — pas de bouton de paiement : tant que l'accès est
+// encore actif côté Chariow, un nouvel achat du même produit est refusé
+// (already_purchased, cf. memory chariow_repurchase_block.md). Le
+// réabonnement ne redevient possible qu'une fois l'accès réellement retiré
+// (cf. sendExpiredEmail), qui porte alors le vrai bouton "Se réabonner".
 async function sendReminderEmail(to: string, firstName: string, daysLeft: number) {
   const dayLabel = daysLeft === 1 ? "demain" : `dans ${daysLeft} jours`;
   await sendResendEmail(
@@ -49,12 +59,11 @@ async function sendReminderEmail(to: string, firstName: string, daysLeft: number
       recipientFirstName: firstName,
       contentHtml: `
         <p style="margin: 0 0 12px 0;">
-          Ton abonnement Premium Agapeo se termine ${dayLabel}. Renouvelle-le dès maintenant depuis l'onglet
-          "Mon Plan" pour continuer à profiter de tous tes avantages sans interruption.
+          Ton abonnement Premium Agapeo se termine ${dayLabel}. Sans renouvellement, ton compte repassera
+          automatiquement en version gratuite — on t'enverra un email dès que ce sera le cas, avec la marche
+          à suivre pour te réabonner.
         </p>
-      `,
-      ctaText: "Renouveler mon abonnement",
-      ctaUrl: `${SITE_URL}/premium`
+      `
     })
   );
 }
@@ -78,6 +87,27 @@ async function sendExpiredEmail(to: string, firstName: string) {
   );
 }
 
+// Deuxième et dernière relance, 24h après le retrait — même bouton "Se
+// réabonner" que sendExpiredEmail, ton plus insistant.
+async function sendExpiryFollowupEmail(to: string, firstName: string) {
+  await sendResendEmail(
+    to,
+    "On te garde une place — reviens sur Agapeo",
+    buildAgapeoEmailHtml({
+      title: "On te garde une place sur Agapeo",
+      eyebrow: "PREMIUM",
+      headline: "Ton accès Premium t'attend",
+      recipientFirstName: firstName,
+      contentHtml: `
+        <p style="margin:0 0 12px 0;">Depuis hier, ton compte Agapeo est repassé en version gratuite faute de renouvellement.</p>
+        <p style="margin:0;">Réabonne-toi dès maintenant pour retrouver tous tes avantages Premium : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>
+      `,
+      ctaText: "Se réabonner",
+      ctaUrl: `${SITE_URL}/premium`
+    })
+  );
+}
+
 Deno.serve(async () => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -90,7 +120,13 @@ Deno.serve(async () => {
   // 1) Downgrade des abonnements réellement expirés + email de retrait.
   const { data: expired, error: expiredErr } = await admin
     .from("profile_restricted")
-    .update({ subscription_status: "EXPIRED", subscription_plan: null, subscription_reminder_stage: null })
+    .update({
+      subscription_status: "EXPIRED",
+      subscription_plan: null,
+      subscription_reminder_stage: null,
+      subscription_expired_at: nowIso,
+      subscription_expiry_followup_sent: false
+    })
     .eq("subscription_status", "ACTIVE")
     .lt("subscription_current_period_end", nowIso)
     .select("id");
@@ -160,11 +196,46 @@ Deno.serve(async () => {
     }
   }
 
+  // 3) Relance à 24h après le retrait, si toujours pas réabonné — un seul envoi.
+  const followupThresholdIso = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: dueForFollowup, error: followupErr } = await admin
+    .from("profile_restricted")
+    .select("id, subscription_expired_at")
+    .eq("subscription_status", "EXPIRED")
+    .eq("subscription_expiry_followup_sent", false)
+    .lte("subscription_expired_at", followupThresholdIso);
+
+  if (followupErr) {
+    return new Response(JSON.stringify({ error: followupErr.message }), { status: 500 });
+  }
+
+  const followupResults: { userId: string; sent: boolean; reason?: string }[] = [];
+
+  for (const row of (dueForFollowup ?? []) as ExpiredProfileRestrictedRow[]) {
+    const { data: profile } = await admin.from("profiles").select("first_name").eq("id", row.id).single();
+    const { data: authUser } = await admin.auth.admin.getUserById(row.id);
+    const email = authUser?.user?.email;
+
+    if (!email) {
+      followupResults.push({ userId: row.id, sent: false, reason: "Email introuvable" });
+      continue;
+    }
+
+    try {
+      await sendExpiryFollowupEmail(email, profile?.first_name ?? "Membre");
+      await admin.from("profile_restricted").update({ subscription_expiry_followup_sent: true }).eq("id", row.id);
+      followupResults.push({ userId: row.id, sent: true });
+    } catch (err) {
+      followupResults.push({ userId: row.id, sent: false, reason: err instanceof Error ? err.message : "Erreur d'envoi" });
+    }
+  }
+
   return new Response(
     JSON.stringify({
       expiredCount: (expired ?? []).length,
       expiredEmails: expiredResults,
-      reminders: reminderResults
+      reminders: reminderResults,
+      followups: followupResults
     }),
     { headers: { "Content-Type": "application/json" } }
   );

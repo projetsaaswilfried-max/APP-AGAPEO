@@ -140,7 +140,9 @@ export async function POST(request: Request) {
         subscription_status: "ACTIVE",
         subscription_plan: PREMIUM_PLAN,
         subscription_current_period_end: newPeriodEnd.toISOString(),
-        subscription_reminder_stage: null
+        subscription_reminder_stage: null,
+        subscription_expired_at: null,
+        subscription_expiry_followup_sent: false
       })
       .eq("id", userId);
 
