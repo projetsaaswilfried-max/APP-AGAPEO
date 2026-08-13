@@ -151,7 +151,8 @@ export interface ProfileRestrictedRow {
   subscription_status: SubscriptionStatus;
   subscription_plan: string | null;
   subscription_current_period_end: string | null;
-  subscription_reminder_sent_at: string | null;
+  /** Palier de relance déjà envoyé sur le cycle en cours : 5, 3 ou 1 (jours avant échéance) — null si aucun. */
+  subscription_reminder_stage: number | null;
   latitude: number | null;
   longitude: number | null;
 }

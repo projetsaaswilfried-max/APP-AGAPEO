@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSuperAdminSession } from "@/lib/supabase/session";
 import { logAdminAction } from "@/lib/audit-log";
 import { sendVerificationEmail } from "@/lib/actions/verification.actions";
+import { sendPremiumRemovedEmail } from "@/lib/premium-emails";
 import { z } from "zod";
 
 const OfficialPostSchema = z.object({
@@ -146,6 +147,17 @@ export async function toggleUserPremiumAction(userId: string, grant: boolean) {
 
   await logAdminAction(user.id, grant ? "GRANT_PREMIUM" : "REVOKE_PREMIUM", { targetType: "profile", targetId: userId });
   revalidatePath("/admin/users");
+
+  if (!grant) {
+    const [{ data: memberProfile }, { data: authUser }] = await Promise.all([
+      admin.from("profiles").select("first_name").eq("id", userId).maybeSingle(),
+      admin.auth.admin.getUserById(userId)
+    ]);
+    if (memberProfile && authUser?.user?.email) {
+      await sendPremiumRemovedEmail(authUser.user.email, memberProfile.first_name, "admin");
+    }
+  }
+
   return { success: true };
 }
 

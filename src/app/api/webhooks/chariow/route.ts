@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getChariowPulseSecret } from "@/config/env";
+import { sendPremiumActivatedEmail } from "@/lib/premium-emails";
 
 interface ChariowMoney {
   value: number;
@@ -139,13 +140,21 @@ export async function POST(request: Request) {
         subscription_status: "ACTIVE",
         subscription_plan: PREMIUM_PLAN,
         subscription_current_period_end: newPeriodEnd.toISOString(),
-        subscription_reminder_sent_at: null
+        subscription_reminder_stage: null
       })
       .eq("id", userId);
 
     if (subError) {
       console.error(`Transaction ${sale.id} enregistrée mais activation de l'abonnement échouée pour ${userId} :`, subError.message);
       return NextResponse.json({ error: "Échec d'activation." }, { status: 500 });
+    }
+
+    const [{ data: memberProfile }, { data: authUser }] = await Promise.all([
+      admin.from("profiles").select("first_name").eq("id", userId).maybeSingle(),
+      admin.auth.admin.getUserById(userId)
+    ]);
+    if (memberProfile && authUser?.user?.email) {
+      await sendPremiumActivatedEmail(authUser.user.email, memberProfile.first_name, sale.amount, newPeriodEnd);
     }
   }
 

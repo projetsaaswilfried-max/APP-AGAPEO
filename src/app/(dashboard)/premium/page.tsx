@@ -52,6 +52,12 @@ export default function PremiumPage() {
     ? new Date(profile.subscription_current_period_end).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
     : null;
 
+  const daysUntilExpiry = profile.subscription_current_period_end
+    ? Math.ceil((new Date(profile.subscription_current_period_end).getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000))
+    : null;
+  // "5 jours avant jusqu'au jour J" — daysUntilExpiry peut être 0 (jour J) ou négatif si le cron n'est pas encore passé.
+  const isExpiringSoon = isPremium && daysUntilExpiry !== null && daysUntilExpiry <= 5;
+
   return (
     <div className="space-y-6 w-full pb-16 select-none">
       <div className="border-b border-border/60 pb-4">
@@ -135,9 +141,24 @@ export default function PremiumPage() {
           </ul>
 
           {isPremium ? (
-            <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
-              Merci pour ta confiance — profite de tous tes avantages Premium.
-            </p>
+            isExpiringSoon ? (
+              <div className="pt-2 border-t border-border/40 space-y-2">
+                <p className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">
+                  {daysUntilExpiry !== null && daysUntilExpiry <= 0
+                    ? "Ton abonnement expire aujourd'hui"
+                    : `Expire dans ${daysUntilExpiry} jour${daysUntilExpiry! > 1 ? "s" : ""}`}
+                </p>
+                <form action={action}>
+                  <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
+                    Se réabonner
+                  </Button>
+                </form>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
+                Merci pour ta confiance — profite de tous tes avantages Premium.
+              </p>
+            )
           ) : (
             <form action={action} className="pt-2 border-t border-border/40">
               <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
