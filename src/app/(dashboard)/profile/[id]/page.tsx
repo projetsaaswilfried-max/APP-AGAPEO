@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/supabase/session";
 import { createClient } from "@/lib/supabase/server";
@@ -6,8 +7,11 @@ import { mapPostRowToFeedPublication } from "@/domain/mappers/feed.mapper";
 import { computeCompatibility } from "@/domain/matching/compatibility";
 import { PublicProfileClient } from "@/components/features/profile/public-profile-client";
 import { EmptyState } from "@/components/ui/empty-state";
-import { UserX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UserX, Crown } from "lucide-react";
 import type { ProfileRow, PostRow, PostMediaRow } from "@/lib/supabase/database.types";
+
+const MONTHLY_VIEW_LIMIT = 10;
 
 export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,6 +22,41 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   }
 
   const supabase = await createClient();
+
+  const isPremiumViewer = viewerRow.subscription_status === "ACTIVE" || viewerRow.role !== "USER";
+  if (!isPremiumViewer) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { data: viewedRows } = await supabase
+      .from("profile_views")
+      .select("viewed_profile_id")
+      .eq("viewer_id", user.id)
+      .gte("created_at", startOfMonth.toISOString());
+
+    const distinctViewedIds = new Set((viewedRows ?? []).map((r) => r.viewed_profile_id));
+    const alreadyViewedThisProfile = distinctViewedIds.has(id);
+
+    if (!alreadyViewedThisProfile && distinctViewedIds.size >= MONTHLY_VIEW_LIMIT) {
+      return (
+        <div className="max-w-md mx-auto py-16">
+          <EmptyState
+            icon={<Crown size={24} />}
+            title={`Tu as consulté ${MONTHLY_VIEW_LIMIT} profils ce mois-ci`}
+            description="Passe Premium pour consulter des profils sans limite."
+            action={
+              <Link href="/premium">
+                <Button variant="primary" size="sm" leftIcon={<Crown size={15} />}>
+                  Découvrir Premium
+                </Button>
+              </Link>
+            }
+          />
+        </div>
+      );
+    }
+  }
 
   const { data: targetRow } = await supabase.from("profiles").select("*").eq("id", id).single();
 

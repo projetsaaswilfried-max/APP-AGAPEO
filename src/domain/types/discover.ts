@@ -28,4 +28,5 @@ export interface RecommendedProfileItem {
   statusLabel: string;
   justifications: string[];
   isFavorite: boolean;
+  isPremium: boolean;
 }

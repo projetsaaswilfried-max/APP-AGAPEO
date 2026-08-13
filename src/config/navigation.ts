@@ -34,6 +34,12 @@ export const MAIN_NAVIGATION: NavigationItem[] = [
     iconName: "Bell"
   },
   {
+    id: "premium",
+    title: "Premium",
+    href: "/premium",
+    iconName: "Crown"
+  },
+  {
     id: "profile",
     title: "Mon Profil",
     href: "/profile",

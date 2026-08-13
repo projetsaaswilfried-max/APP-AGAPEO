@@ -27,9 +27,12 @@ const ICON_MAP: Record<string, any> = {
 export function BottomNav() {
   const pathname = usePathname();
   const { unreadMessages, unreadNotifications } = useUnreadCounts();
-  // "Mon Profil" reste accessible depuis le menu (avatar du header, tiroir mobile) —
-  // la barre du bas est réservée aux 4 actions principales pour éviter le débordement.
-  const navigation = withUnreadBadges(unreadMessages, unreadNotifications).filter((item) => item.id !== "profile");
+  // "Mon Profil" et "Premium" restent accessibles depuis le menu (avatar du
+  // header, tiroir mobile) — la barre du bas est réservée aux 4 actions
+  // principales pour éviter le débordement.
+  const navigation = withUnreadBadges(unreadMessages, unreadNotifications).filter(
+    (item) => item.id !== "profile" && item.id !== "premium"
+  );
 
   return (
     <div className="md:hidden fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40 bg-card/90 backdrop-blur-xl rounded-full border border-border/40 p-1.5 shadow-soft select-none">

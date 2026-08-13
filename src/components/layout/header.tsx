@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   Search01Icon,
@@ -12,7 +12,8 @@ import {
   Logout01Icon,
   SecurityValidationIcon,
   HelpCircleIcon,
-  ArrowDown01Icon
+  ArrowDown01Icon,
+  Crown02Icon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { MAIN_NAVIGATION } from "@/config/navigation";
@@ -27,10 +28,18 @@ interface HeaderProps {
 
 export function Header({ onOpenMobileMenu }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { user, profile } = useSession();
   const initials = getInitials(profile.first_name, profile.last_name);
   const { unreadNotifications } = useUnreadCounts();
+
+  const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmed = searchQuery.trim();
+    router.push(trimmed ? `/discover?search=${encodeURIComponent(trimmed)}` : "/discover");
+  };
 
   // Titre dynamique selon la route
   const currentNavItem = MAIN_NAVIGATION.find((item) =>
@@ -60,16 +69,19 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         </div>
       </div>
 
-      {/* Zone Centrale : raccourci vers la recherche de profils (Découvrir) */}
-      <div className="hidden sm:flex items-center flex-1 max-w-md mx-6">
-        <Link
-          href="/discover"
-          className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-muted-foreground bg-secondary/60 hover:bg-secondary border border-border/40 rounded-full transition-all duration-200 group"
-        >
-          <HugeIcon icon={Search01Icon} size={15} className="group-hover:text-foreground transition-colors" />
-          <span>Rechercher un membre dans Découvrir…</span>
-        </Link>
-      </div>
+      {/* Zone Centrale : recherche de profils (redirige vers Découvrir avec le filtre appliqué) */}
+      <form onSubmit={handleSearchSubmit} className="hidden sm:flex items-center flex-1 max-w-md mx-6">
+        <div className="w-full flex items-center gap-2.5 px-4 py-2 bg-secondary/60 focus-within:bg-card border border-border/40 focus-within:ring-2 focus-within:ring-ring rounded-full transition-all duration-200">
+          <HugeIcon icon={Search01Icon} size={15} className="text-muted-foreground shrink-0" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un membre dans Découvrir…"
+            className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+          />
+        </div>
+      </form>
 
       {/* Zone Droite : Notifications & Profil Utilisateur */}
       <div className="flex items-center gap-2">
@@ -122,6 +134,14 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
                   >
                     <HugeIcon icon={UserIcon} size={14} className="text-muted-foreground" />
                     <span>Mon Profil</span>
+                  </Link>
+                  <Link
+                    href="/premium"
+                    onClick={() => setIsProfileMenuOpen(false)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-secondary rounded-lg transition-colors"
+                  >
+                    <HugeIcon icon={Crown02Icon} size={14} className="text-primary" />
+                    <span>Mon Plan</span>
                   </Link>
                   <Link
                     href="/profile?tab=privacy"

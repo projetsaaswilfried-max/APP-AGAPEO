@@ -2,39 +2,53 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { UserProfile } from "@/domain/types/user";
 import { RecommendedProfileItem } from "@/domain/types/discover";
 import { discoverService } from "@/domain/services/discover.service";
 import { messageService } from "@/domain/services/message.service";
+import { PremiumRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
-import { PremiumRequiredError } from "@/domain/errors";
-import { SearchInput } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bookmark, Users } from "lucide-react";
+import { Sparkles, Crown } from "lucide-react";
 
-export function AccountFavorites() {
+interface AccountWhoLikesMeProps {
+  profile: UserProfile;
+}
+
+export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
   const router = useRouter();
-  const [favorites, setFavorites] = useState<RecommendedProfileItem[]>([]);
+  const isPremium = profile.subscriptionStatus === "ACTIVE";
+  const [items, setItems] = useState<RecommendedProfileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedProfile, setSelectedProfile] = useState<RecommendedProfileItem | null>(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
-  const [premiumReason, setPremiumReason] = useState("consulter plus de 10 profils ce mois-ci");
+  const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
 
   useEffect(() => {
     discoverService
-      .getFavorites()
-      .then(setFavorites)
+      .getWhoLikesMe()
+      .then(setItems)
       .finally(() => setIsLoading(false));
   }, []);
 
   const handleToggleFavorite = async (profileId: string) => {
-    setFavorites((prev) => prev.filter((item) => item.profile.id !== profileId));
-    await discoverService.toggleFavorite(profileId);
+    setItems((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isFavorite: !item.isFavorite } : item)));
+    try {
+      await discoverService.toggleFavorite(profileId);
+    } catch (err) {
+      setItems((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isFavorite: !item.isFavorite } : item)));
+      if (err instanceof PremiumRequiredError) {
+        setPremiumReason("mettre des profils en favori");
+        setIsPremiumRequiredOpen(true);
+      }
+    }
   };
 
   const handleSendMessage = async (profileId: string) => {
@@ -51,26 +65,13 @@ export function AccountFavorites() {
     }
   };
 
-  const filtered = favorites.filter((item) =>
-    searchQuery ? `${item.profile.firstName} ${item.profile.lastName} ${item.profile.city}`.toLowerCase().includes(searchQuery.toLowerCase()) : true
-  );
-
   return (
     <Card variant="base" className="p-6 space-y-6 border-border/60 shadow-2xs select-none">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
-        <div className="flex items-center gap-2">
-          <Bookmark className="h-5 w-5 text-accent fill-current" />
-          <h2 className="text-base font-display font-semibold text-foreground tracking-tight">
-            Mes Profils Enregistrés dans les Favoris ({filtered.length})
-          </h2>
-        </div>
-        <SearchInput
-          placeholder="Rechercher dans mes favoris..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onClear={() => setSearchQuery("")}
-          className="w-full sm:w-64 text-xs h-9 bg-secondary/50"
-        />
+      <div className="flex items-center gap-2 border-b border-border/60 pb-4">
+        <Sparkles className="h-5 w-5 text-primary" />
+        <h2 className="text-base font-display font-semibold text-foreground tracking-tight">
+          Qui s&apos;intéresse à moi {!isLoading && `(${items.length})`}
+        </h2>
       </div>
 
       {isLoading && (
@@ -81,17 +82,41 @@ export function AccountFavorites() {
         </div>
       )}
 
-      {!isLoading && filtered.length === 0 && (
+      {!isLoading && items.length === 0 && (
         <EmptyState
-          icon={<Users size={24} />}
-          title="Aucun profil enregistré dans tes favoris"
-          description="Tu peux ajouter des profils en favoris depuis l'espace Découvrir pour les retrouver rapidement."
+          icon={<Sparkles size={24} />}
+          title="Personne pour l'instant"
+          description="Dès qu'un membre consulte ou met ton profil en favori, il apparaîtra ici."
         />
       )}
 
-      {!isLoading && filtered.length > 0 && (
+      {!isLoading && items.length > 0 && !isPremium && (
+        <div className="relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 blur-sm pointer-events-none select-none" aria-hidden>
+            {items.slice(0, 3).map((item) => (
+              <DiscoverProfileCard key={item.profile.id} item={item} onInspectProfile={() => {}} onToggleFavorite={() => {}} onSendMessage={() => {}} />
+            ))}
+          </div>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6">
+            <div className="p-3 rounded-full bg-primary/10 text-primary">
+              <Crown size={24} />
+            </div>
+            <p className="text-sm font-semibold text-foreground">
+              {items.length} membre{items.length > 1 ? "s" : ""} s&apos;intéresse{items.length > 1 ? "nt" : ""} à toi
+            </p>
+            <p className="text-xs text-muted-foreground max-w-xs">Passe Premium pour découvrir qui a consulté ou favori ton profil.</p>
+            <Link href="/premium">
+              <Button variant="primary" size="sm" leftIcon={<Crown size={15} />}>
+                Découvrir Premium
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && items.length > 0 && isPremium && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((item) => (
+          {items.map((item) => (
             <DiscoverProfileCard
               key={item.profile.id}
               item={item}

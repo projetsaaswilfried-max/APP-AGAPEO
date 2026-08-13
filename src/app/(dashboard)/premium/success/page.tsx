@@ -75,9 +75,9 @@ export default function PremiumSuccessPage() {
                   Ton accès Premium Agapeo est actif. Profite de tous tes nouveaux avantages dès maintenant.
                 </p>
               </div>
-              <Link href="/profile">
+              <Link href="/discover">
                 <Button variant="primary" size="lg" leftIcon={<Crown size={16} />}>
-                  Voir mon profil
+                  Découvrir des profils
                 </Button>
               </Link>
             </>
@@ -96,9 +96,9 @@ export default function PremiumSuccessPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Link href="/profile">
+                <Link href="/premium">
                   <Button variant="outline" size="sm">
-                    Aller à mon profil
+                    Voir mon plan
                   </Button>
                 </Link>
                 <Link href="/support">

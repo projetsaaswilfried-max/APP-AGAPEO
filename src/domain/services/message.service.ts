@@ -2,6 +2,7 @@ import { ConversationSummary, ChatMessage, MessageAttachment } from "../types/me
 import { createClient } from "@/lib/supabase/client";
 import { uploadMessageFile, getSignedAttachmentUrls, type MessageAttachmentKind } from "@/lib/storage";
 import { mapConversationSummary, mapMessageRow, mapAttachmentRow } from "@/domain/mappers/message.mapper";
+import { PremiumRequiredError, isRlsViolation } from "@/domain/errors";
 import type {
   ConversationParticipantRow,
   MessageRow,
@@ -166,17 +167,13 @@ class MessageServiceSupabase implements IMessageService {
       if (existing) return existing.conversation_id;
     }
 
-    const { data: conversation, error } = await supabase.from("conversations").insert({}).select().single();
-    if (error || !conversation) throw new Error(error?.message ?? "Impossible de créer la conversation.");
+    const { data: newConversationId, error } = await supabase.rpc("create_conversation_with_participant", {
+      other_user_id: otherProfileId
+    });
+    if (isRlsViolation(error)) throw new PremiumRequiredError();
+    if (error || !newConversationId) throw new Error(error?.message ?? "Impossible de créer la conversation.");
 
-    await supabase.from("conversation_participants").insert({ conversation_id: conversation.id, user_id: myId });
-    const { error: otherError } = await supabase
-      .from("conversation_participants")
-      .insert({ conversation_id: conversation.id, user_id: otherProfileId });
-
-    if (otherError) throw new Error("Cette personne ne peut pas être contactée actuellement.");
-
-    return conversation.id;
+    return newConversationId;
   }
 
   async sendMessage(conversationId: string, content: string): Promise<ChatMessage> {
@@ -189,6 +186,7 @@ class MessageServiceSupabase implements IMessageService {
       .select()
       .single();
 
+    if (isRlsViolation(error)) throw new PremiumRequiredError("Passe Premium pour répondre à ce message.");
     if (error || !data) throw new Error(error?.message ?? "Le message n'a pas pu être envoyé.");
     return mapMessageRow(data as MessageRow, myId);
   }
@@ -205,6 +203,7 @@ class MessageServiceSupabase implements IMessageService {
       .select()
       .single();
 
+    if (isRlsViolation(error)) throw new PremiumRequiredError("Passe Premium pour répondre à ce message.");
     if (error || !message) throw new Error(error?.message ?? "L'envoi a échoué.");
 
     await supabase.from("message_attachments").insert({

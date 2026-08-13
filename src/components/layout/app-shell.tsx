@@ -7,7 +7,7 @@ import { BottomNav } from "./bottom-nav";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { TRANSITION_EASE } from "@/core/animations/variants";
-import { X, Home, Users, MessageSquare, Bell, User, LayoutGrid } from "lucide-react";
+import { X, Home, Users, MessageSquare, Bell, User, LayoutGrid, Crown } from "lucide-react";
 import Link from "next/link";
 import { withUnreadBadges, NavigationItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
 import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
 import { IncompleteProfileBanner } from "./incomplete-profile-banner";
+import { PremiumUpsellBanner } from "./premium-upsell-banner";
 import { AgapeoLogo } from "@/components/ui/logo";
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -23,7 +24,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   MessageSquare,
   Bell,
   User,
-  LayoutGrid
+  LayoutGrid,
+  Crown
 };
 
 interface AppShellProps {
@@ -134,6 +136,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen pb-16 md:pb-0">
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
         <IncompleteProfileBanner />
+        <PremiumUpsellBanner />
 
         <main className="flex-1 w-full px-5 py-4 md:py-6 lg:py-8">
           <AnimatePresence mode="wait">

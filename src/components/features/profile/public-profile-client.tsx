@@ -7,6 +7,7 @@ import type { FeedPublication } from "@/domain/types/feed";
 import { createClient } from "@/lib/supabase/client";
 import { discoverService } from "@/domain/services/discover.service";
 import { messageService } from "@/domain/services/message.service";
+import { PremiumRequiredError } from "@/domain/errors";
 import { ProfileHero } from "@/components/features/profile/profile-hero";
 import { CompatibilityExplainedSection } from "@/components/features/profile/compatibility-explained-section";
 import { FaithSection } from "@/components/features/profile/faith-section";
@@ -14,6 +15,7 @@ import { MarriageVisionSection } from "@/components/features/profile/marriage-vi
 import { UserPublicationsSection } from "@/components/features/profile/user-publications-section";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
+import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Flag, Ban } from "lucide-react";
 
@@ -37,6 +39,8 @@ export function PublicProfileClient({
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isBlockOpen, setIsBlockOpen] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
+  const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
 
   useEffect(() => {
     const supabase = createClient();
@@ -47,8 +51,12 @@ export function PublicProfileClient({
     setIsFavorite((prev) => !prev);
     try {
       await discoverService.toggleFavorite(profile.id);
-    } catch {
+    } catch (err) {
       setIsFavorite((prev) => !prev);
+      if (err instanceof PremiumRequiredError) {
+        setPremiumReason("mettre des profils en favori");
+        setIsPremiumRequiredOpen(true);
+      }
     }
   };
 
@@ -57,6 +65,11 @@ export function PublicProfileClient({
       const conversationId = await messageService.getOrCreateConversation(profile.id);
       router.push(`/messages?conversation=${conversationId}`);
     } catch (err) {
+      if (err instanceof PremiumRequiredError) {
+        setPremiumReason("contacter ce membre en premier");
+        setIsPremiumRequiredOpen(true);
+        return;
+      }
       console.error(err);
     }
   };
@@ -114,6 +127,7 @@ export function PublicProfileClient({
           setIsBlocked(true);
         }}
       />
+      <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { UserProfile, UserFaithProfile, UserPrivacySettings, UserNotificationSettings } from "@/domain/types/user";
 import { FeedPublication } from "@/domain/types/feed";
 import { updateProfileAction } from "@/lib/actions/profile.actions";
@@ -15,9 +16,9 @@ import { AccountProfileForm } from "@/components/features/account/account-profil
 import { AccountFaithForm } from "@/components/features/account/account-faith-form";
 import { AccountMyPosts } from "@/components/features/account/account-my-posts";
 import { AccountFavorites } from "@/components/features/account/account-favorites";
+import { AccountWhoLikesMe } from "@/components/features/account/account-who-likes-me";
 import { AccountPrivacySettings } from "@/components/features/account/account-privacy-settings";
 import { AccountSecurity } from "@/components/features/account/account-security";
-import { AccountPremium } from "@/components/features/account/account-premium";
 
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -29,10 +30,14 @@ interface ProfilePageClientProps {
   initialPhotos: ProfilePhotoRow[];
 }
 
-export function ProfilePageClient({ initialProfile, initialPhotos }: ProfilePageClientProps) {
+const VALID_TABS = ["profile-edit", "faith-edit", "my-posts", "favorites", "who-likes-me", "privacy", "account"];
+
+function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageClientProps) {
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("tab");
   const [profile, setProfile] = useState(initialProfile);
   const [mode, setMode] = useState<"PUBLIC_PREVIEW" | "ACCOUNT_SETTINGS">("ACCOUNT_SETTINGS");
-  const [activeTab, setActiveTab] = useState("profile-edit");
+  const [activeTab, setActiveTab] = useState(requestedTab && VALID_TABS.includes(requestedTab) ? requestedTab : "profile-edit");
   const [personalPosts, setPersonalPosts] = useState<FeedPublication[]>([]);
 
   useEffect(() => {
@@ -119,8 +124,8 @@ export function ProfilePageClient({ initialProfile, initialPhotos }: ProfilePage
                 { id: "faith-edit", label: "Ma Foi" },
                 { id: "my-posts", label: "Mes Publications", count: personalPosts.length },
                 { id: "favorites", label: "Mes Favoris" },
+                { id: "who-likes-me", label: "Qui s'intéresse à moi" },
                 { id: "privacy", label: "Confidentialité" },
-                { id: "premium", label: "Premium" },
                 { id: "account", label: "Mon Compte & Sécurité" }
               ]}
               activeTabId={activeTab}
@@ -134,6 +139,7 @@ export function ProfilePageClient({ initialProfile, initialPhotos }: ProfilePage
           {activeTab === "faith-edit" && <AccountFaithForm faith={profile.faith} onSave={handleUpdateFaith} />}
           {activeTab === "my-posts" && <AccountMyPosts publications={personalPosts} />}
           {activeTab === "favorites" && <AccountFavorites />}
+          {activeTab === "who-likes-me" && <AccountWhoLikesMe profile={profile} />}
           {activeTab === "privacy" && (
             <AccountPrivacySettings
               privacy={profile.privacySettings}
@@ -141,7 +147,6 @@ export function ProfilePageClient({ initialProfile, initialPhotos }: ProfilePage
               onSave={handleUpdatePrivacyAndNotifications}
             />
           )}
-          {activeTab === "premium" && <AccountPremium profile={profile} />}
           {activeTab === "account" && <AccountSecurity profile={profile} />}
         </div>
       )}
@@ -155,5 +160,13 @@ export function ProfilePageClient({ initialProfile, initialPhotos }: ProfilePage
         </div>
       )}
     </div>
+  );
+}
+
+export function ProfilePageClient(props: ProfilePageClientProps) {
+  return (
+    <Suspense fallback={null}>
+      <ProfilePageClientInner {...props} />
+    </Suspense>
   );
 }

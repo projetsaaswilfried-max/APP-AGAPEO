@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RecommendedProfileItem, DiscoverFilterCriteria } from "@/domain/types/discover";
 import { discoverService } from "@/domain/services/discover.service";
 import { messageService } from "@/domain/services/message.service";
+import { PremiumRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { CompatibilityCard } from "@/components/features/discover/compatibility-card";
 import { FilterPanel } from "@/components/features/discover/filter-panel";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
+import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,18 +22,24 @@ import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, 
 
 const DEFAULT_FILTERS: DiscoverFilterCriteria = { ageMin: 20, ageMax: 50, status: "ALL" };
 
-export default function DiscoverPage() {
+function DiscoverPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { profile } = useSession();
   const scoringGaps = getScoringGaps(profile);
   const [profiles, setProfiles] = useState<RecommendedProfileItem[]>([]);
-  const [filters, setFilters] = useState<DiscoverFilterCriteria>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<DiscoverFilterCriteria>(() => {
+    const search = searchParams.get("search");
+    return search ? { ...DEFAULT_FILTERS, searchQuery: search } : DEFAULT_FILTERS;
+  });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<RecommendedProfileItem | null>(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
+  const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
 
   const fetchProfiles = async () => {
     setIsLoading(true);
@@ -57,6 +65,12 @@ export default function DiscoverPage() {
     try {
       await discoverService.toggleFavorite(profileId);
     } catch (err) {
+      setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isFavorite: !item.isFavorite } : item)));
+      if (err instanceof PremiumRequiredError) {
+        setPremiumReason("mettre des profils en favori");
+        setIsPremiumRequiredOpen(true);
+        return;
+      }
       console.error(err);
     }
   };
@@ -66,6 +80,11 @@ export default function DiscoverPage() {
       const conversationId = await messageService.getOrCreateConversation(profileId);
       router.push(`/messages?conversation=${conversationId}`);
     } catch (err) {
+      if (err instanceof PremiumRequiredError) {
+        setPremiumReason("contacter ce membre en premier");
+        setIsPremiumRequiredOpen(true);
+        return;
+      }
       setToastMessage(err instanceof Error ? err.message : "Impossible de démarrer la conversation.");
       setTimeout(() => setToastMessage(null), 4000);
     }
@@ -116,7 +135,16 @@ export default function DiscoverPage() {
 
       {isFilterOpen && (
         <div className="animate-in fade-in duration-150">
-          <FilterPanel filters={filters} onChangeFilters={setFilters} onResetFilters={() => setFilters(DEFAULT_FILTERS)} />
+          <FilterPanel
+            filters={filters}
+            onChangeFilters={setFilters}
+            onResetFilters={() => setFilters(DEFAULT_FILTERS)}
+            isPremium={profile.subscription_status === "ACTIVE"}
+            onRequirePremium={() => {
+              setPremiumReason("débloquer les filtres avancés");
+              setIsPremiumRequiredOpen(true);
+            }}
+          />
         </div>
       )}
 
@@ -215,7 +243,21 @@ export default function DiscoverPage() {
         onClose={() => setIsInspectorOpen(false)}
         onToggleFavorite={handleToggleFavorite}
         onSendMessage={handleSendMessage}
+        onViewLimitReached={() => {
+          setPremiumReason("consulter plus de 10 profils ce mois-ci");
+          setIsPremiumRequiredOpen(true);
+        }}
       />
+
+      <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
     </div>
+  );
+}
+
+export default function DiscoverPage() {
+  return (
+    <Suspense fallback={null}>
+      <DiscoverPageContent />
+    </Suspense>
   );
 }

@@ -24,6 +24,7 @@ export default async function AdminUsersPage() {
       role: r?.role ?? "USER",
       isTestAccount: p.is_test_account,
       isSuspended: r?.is_suspended ?? false,
+      isPremium: r?.subscription_status === "ACTIVE",
       photoVerificationStatus: p.photo_verification_status,
       country: p.country,
       createdAt: p.created_at,

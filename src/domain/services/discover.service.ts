@@ -2,12 +2,14 @@ import { RecommendedProfileItem, DiscoverFilterCriteria } from "../types/discove
 import { createClient } from "@/lib/supabase/client";
 import { mapProfileRowToUserProfile } from "@/domain/mappers/profile.mapper";
 import { computeCompatibility } from "@/domain/matching/compatibility";
+import { PremiumRequiredError, isRlsViolation } from "@/domain/errors";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
 export interface IDiscoverService {
   getProfiles(filters?: DiscoverFilterCriteria): Promise<RecommendedProfileItem[]>;
   getRecommendations(): Promise<RecommendedProfileItem[]>;
   getFavorites(): Promise<RecommendedProfileItem[]>;
+  getWhoLikesMe(): Promise<RecommendedProfileItem[]>;
   toggleFavorite(profileId: string): Promise<boolean>;
 }
 
@@ -98,11 +100,13 @@ class DiscoverServiceSupabase implements IDiscoverService {
         status: candidate.status,
         statusLabel: profile.statusLabel,
         justifications: reasons,
-        isFavorite: favoriteIds.has(candidate.id)
+        isFavorite: favoriteIds.has(candidate.id),
+        isPremium: candidate.is_premium
       };
     });
 
-    return items.sort((a, b) => b.compatibilityPercentage - a.compatibilityPercentage);
+    // Les membres Premium sont mis en avant — priorisés avant le tri par compatibilité.
+    return items.sort((a, b) => Number(b.isPremium) - Number(a.isPremium) || b.compatibilityPercentage - a.compatibilityPercentage);
   }
 
   async getRecommendations(): Promise<RecommendedProfileItem[]> {
@@ -183,9 +187,67 @@ class DiscoverServiceSupabase implements IDiscoverService {
         status: candidate.status,
         statusLabel: profile.statusLabel,
         justifications: reasons,
-        isFavorite: true
+        isFavorite: true,
+        isPremium: candidate.is_premium
       };
     });
+  }
+
+  /** Membres ayant consulté ou mis en favori mon profil — fonctionnalité Premium (le décompte reste visible, le détail est filtré côté UI). */
+  async getWhoLikesMe(): Promise<RecommendedProfileItem[]> {
+    const supabase = createClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    if (!viewerRow) return [];
+    const viewer = viewerRow as ProfileRow;
+
+    const [{ data: favoritedByRows }, { data: viewedByRows }, { data: myFavoriteRows }] = await Promise.all([
+      supabase.from("favorites").select("user_id").eq("favorite_profile_id", user.id),
+      supabase.from("profile_views").select("viewer_id").eq("viewed_profile_id", user.id),
+      supabase.from("favorites").select("favorite_profile_id").eq("user_id", user.id)
+    ]);
+
+    const candidateIds = [
+      ...new Set([...(favoritedByRows ?? []).map((r) => r.user_id), ...(viewedByRows ?? []).map((r) => r.viewer_id)])
+    ];
+    if (candidateIds.length === 0) return [];
+
+    const { data: candidates } = await supabase.from("profiles").select("*").in("id", candidateIds);
+    if (!candidates || candidates.length === 0) return [];
+
+    const { data: photos } = await supabase.from("profile_photos").select("*").in("profile_id", candidateIds);
+    const photosByProfile = new Map<string, ProfilePhotoRow[]>();
+    (photos ?? []).forEach((p) => {
+      const list = photosByProfile.get(p.profile_id) ?? [];
+      list.push(p);
+      photosByProfile.set(p.profile_id, list);
+    });
+
+    const myFavoriteIds = new Set((myFavoriteRows ?? []).map((r) => r.favorite_profile_id));
+
+    return candidates
+      .map((row) => {
+        const candidate = row as ProfileRow;
+        const { score, reasons } = computeCompatibility(viewer, candidate);
+        const profile = mapProfileRowToUserProfile(candidate, photosByProfile.get(candidate.id) ?? [], {
+          compatibilityPercentage: score,
+          compatibilityReasons: reasons
+        });
+        return {
+          profile,
+          compatibilityPercentage: score,
+          status: candidate.status,
+          statusLabel: profile.statusLabel,
+          justifications: reasons,
+          isFavorite: myFavoriteIds.has(candidate.id),
+          isPremium: candidate.is_premium
+        };
+      })
+      .sort((a, b) => b.compatibilityPercentage - a.compatibilityPercentage);
   }
 
   async toggleFavorite(profileId: string): Promise<boolean> {
@@ -207,7 +269,9 @@ class DiscoverServiceSupabase implements IDiscoverService {
       return false;
     }
 
-    await supabase.from("favorites").insert({ user_id: user.id, favorite_profile_id: profileId });
+    const { error } = await supabase.from("favorites").insert({ user_id: user.id, favorite_profile_id: profileId });
+    if (isRlsViolation(error)) throw new PremiumRequiredError("Passe Premium pour mettre des profils en favori.");
+    if (error) throw new Error(error.message);
     return true;
   }
 }

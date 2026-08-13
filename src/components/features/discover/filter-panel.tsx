@@ -6,20 +6,48 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SUPPORTED_COUNTRIES } from "@/config/countries";
 import { FAITH_ENGAGEMENT_LEVELS } from "@/config/faith-options";
-import { SlidersHorizontal, RefreshCw, X } from "lucide-react";
+import { SlidersHorizontal, RefreshCw, X, Lock } from "lucide-react";
 
 interface FilterPanelProps {
   filters: DiscoverFilterCriteria;
   onChangeFilters: (filters: DiscoverFilterCriteria) => void;
   onResetFilters: () => void;
   onClose?: () => void;
+  /** Âge, pays et statut restent gratuits — le reste des filtres est réservé Premium. */
+  isPremium: boolean;
+  onRequirePremium: () => void;
 }
 
 const selectClass =
   "w-full h-9 rounded-xl border border-border/60 bg-secondary/40 px-3 text-xs text-foreground focus:outline-none cursor-pointer";
 const inputClass = "w-full h-9 rounded-xl border border-border/60 bg-secondary/40 px-3 text-xs text-foreground focus:outline-none";
 
-export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose }: FilterPanelProps) {
+interface AdvancedFieldProps {
+  isPremium: boolean;
+  onRequirePremium: () => void;
+  children: React.ReactNode;
+}
+
+function AdvancedField({ isPremium, onRequirePremium, children }: AdvancedFieldProps) {
+  if (isPremium) return <>{children}</>;
+  return (
+    <div className="relative">
+      <div className="opacity-40 pointer-events-none select-none" aria-hidden>
+        {children}
+      </div>
+      <button
+        type="button"
+        onClick={onRequirePremium}
+        className="absolute inset-0 flex items-center justify-end pr-2.5 rounded-xl"
+        title="Filtre réservé aux membres Premium"
+      >
+        <Lock size={13} className="text-primary" />
+      </button>
+    </div>
+  );
+}
+
+export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose, isPremium, onRequirePremium }: FilterPanelProps) {
   const update = (patch: Partial<DiscoverFilterCriteria>) => onChangeFilters({ ...filters, ...patch });
 
   return (
@@ -28,7 +56,7 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose 
         <div className="flex items-center gap-2">
           <SlidersHorizontal size={16} className="text-primary" />
           <h3 className="text-sm font-display font-semibold text-foreground tracking-tight">
-            Filtres de Recherche Avancés
+            Filtres de Recherche
           </h3>
         </div>
 
@@ -86,61 +114,71 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose 
           </select>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Ville</label>
-          <input
-            placeholder="Ex : Paris, Montréal..."
-            value={filters.city ?? ""}
-            onChange={(e) => update({ city: e.target.value || undefined })}
-            className={inputClass}
-          />
-        </div>
+        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Ville</label>
+            <input
+              placeholder="Ex : Paris, Montréal..."
+              value={filters.city ?? ""}
+              onChange={(e) => update({ city: e.target.value || undefined })}
+              className={inputClass}
+            />
+          </div>
+        </AdvancedField>
 
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Confession chrétienne</label>
-          <input
-            placeholder="Ex : Évangélique, Catholique..."
-            value={filters.denomination ?? ""}
-            onChange={(e) => update({ denomination: e.target.value || undefined })}
-            className={inputClass}
-          />
-        </div>
+        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Confession chrétienne</label>
+            <input
+              placeholder="Ex : Évangélique, Catholique..."
+              value={filters.denomination ?? ""}
+              onChange={(e) => update({ denomination: e.target.value || undefined })}
+              className={inputClass}
+            />
+          </div>
+        </AdvancedField>
 
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Engagement dans la foi</label>
-          <select
-            value={filters.faithEngagementLevel ?? ""}
-            onChange={(e) => update({ faithEngagementLevel: e.target.value || undefined })}
-            className={selectClass}
-          >
-            <option value="">Tous niveaux</option>
-            {FAITH_ENGAGEMENT_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
-        </div>
+        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Engagement dans la foi</label>
+            <select
+              value={filters.faithEngagementLevel ?? ""}
+              onChange={(e) => update({ faithEngagementLevel: e.target.value || undefined })}
+              className={selectClass}
+            >
+              <option value="">Tous niveaux</option>
+              {FAITH_ENGAGEMENT_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </div>
+        </AdvancedField>
 
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Profession</label>
-          <input
-            placeholder="Ex : Infirmier(ère), Ingénieur..."
-            value={filters.profession ?? ""}
-            onChange={(e) => update({ profession: e.target.value || undefined })}
-            className={inputClass}
-          />
-        </div>
+        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Profession</label>
+            <input
+              placeholder="Ex : Infirmier(ère), Ingénieur..."
+              value={filters.profession ?? ""}
+              onChange={(e) => update({ profession: e.target.value || undefined })}
+              className={inputClass}
+            />
+          </div>
+        </AdvancedField>
 
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Centre d&apos;intérêt</label>
-          <input
-            placeholder="Ex : Musique, Voyage..."
-            value={filters.passion ?? ""}
-            onChange={(e) => update({ passion: e.target.value || undefined })}
-            className={inputClass}
-          />
-        </div>
+        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Centre d&apos;intérêt</label>
+            <input
+              placeholder="Ex : Musique, Voyage..."
+              value={filters.passion ?? ""}
+              onChange={(e) => update({ passion: e.target.value || undefined })}
+              className={inputClass}
+            />
+          </div>
+        </AdvancedField>
 
         <div className="space-y-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Statut</label>
@@ -153,21 +191,27 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose 
       </div>
 
       <div className="pt-2 border-t border-border/40 flex flex-wrap gap-x-8 gap-y-3">
-        <Checkbox
-          checked={filters.verifiedOnly ?? false}
-          onCheckedChange={(checked) => update({ verifiedOnly: checked })}
-          label="Photo vérifiée uniquement"
-        />
-        <Checkbox
-          checked={filters.relocationReady ?? false}
-          onCheckedChange={(checked) => update({ relocationReady: checked || undefined })}
-          label="Disponible à déménager"
-        />
-        <Checkbox
-          checked={filters.wantsChildren ?? false}
-          onCheckedChange={(checked) => update({ wantsChildren: checked || undefined })}
-          label="Souhaite des enfants"
-        />
+        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
+          <Checkbox
+            checked={filters.verifiedOnly ?? false}
+            onCheckedChange={(checked) => update({ verifiedOnly: checked })}
+            label="Photo vérifiée uniquement"
+          />
+        </AdvancedField>
+        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
+          <Checkbox
+            checked={filters.relocationReady ?? false}
+            onCheckedChange={(checked) => update({ relocationReady: checked || undefined })}
+            label="Disponible à déménager"
+          />
+        </AdvancedField>
+        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
+          <Checkbox
+            checked={filters.wantsChildren ?? false}
+            onCheckedChange={(checked) => update({ wantsChildren: checked || undefined })}
+            label="Souhaite des enfants"
+          />
+        </AdvancedField>
       </div>
     </Card>
   );

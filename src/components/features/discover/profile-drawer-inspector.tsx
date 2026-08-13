@@ -17,6 +17,8 @@ interface ProfileDrawerInspectorProps {
   onClose: () => void;
   onToggleFavorite: (id: string) => void;
   onSendMessage: (profileId: string) => void;
+  /** Appelé (et le drawer refermé) si la limite mensuelle de consultation gratuite est atteinte. */
+  onViewLimitReached?: () => void;
 }
 
 export function ProfileDrawerInspector({
@@ -24,15 +26,20 @@ export function ProfileDrawerInspector({
   isOpen,
   onClose,
   onToggleFavorite,
-  onSendMessage
+  onSendMessage,
+  onViewLimitReached
 }: ProfileDrawerInspectorProps) {
   const [isReportOpen, setIsReportOpen] = useState(false);
 
   useEffect(() => {
-    if (isOpen && item) {
-      const supabase = createClient();
-      void supabase.rpc("record_profile_view", { viewed_profile_id: item.profile.id });
-    }
+    if (!isOpen || !item) return;
+    const supabase = createClient();
+    supabase.rpc("record_profile_view", { viewed_profile_id: item.profile.id }).then(({ error }) => {
+      if (error?.message?.includes("MONTHLY_VIEW_LIMIT_REACHED")) {
+        onClose();
+        onViewLimitReached?.();
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, item?.profile.id]);
 

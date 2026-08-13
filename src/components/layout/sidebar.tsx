@@ -11,7 +11,8 @@ import {
   Notification01Icon,
   UserIcon,
   ArrowLeft01Icon,
-  ArrowRight01Icon
+  ArrowRight01Icon,
+  Crown02Icon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { withUnreadBadges, NavigationItem } from "@/config/navigation";
@@ -29,7 +30,8 @@ const ICON_MAP: Record<string, any> = {
   UserPlus: UserAdd01Icon,
   MessageSquare: Message01Icon,
   Bell: Notification01Icon,
-  User: UserIcon
+  User: UserIcon,
+  Crown: Crown02Icon
 };
 
 interface SidebarProps {

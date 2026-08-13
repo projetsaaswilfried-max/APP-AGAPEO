@@ -115,6 +115,40 @@ export async function toggleSuspendUserAction(userId: string, suspend: boolean, 
   return { success: true };
 }
 
+const PREMIUM_GRANT_PLAN = "admin_grant";
+const PREMIUM_GRANT_DAYS = 30;
+
+/**
+ * Accorde ou retire manuellement l'accès Premium depuis l'espace admin (ex :
+ * geste commercial, remboursement, test). N'écrit jamais dans `transactions`
+ * — aucun paiement réel n'a eu lieu, ce serait fabriquer une preuve de vente.
+ * `subscription_plan = 'admin_grant'` distingue clairement ces octrois des
+ * abonnements payés via Chariow (`premium_monthly`) dans l'historique.
+ */
+export async function toggleUserPremiumAction(userId: string, grant: boolean) {
+  const { user } = await requireSuperAdminSession();
+  if (userId === user.id) return { error: "Impossible de modifier ton propre abonnement depuis cet espace." };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("profile_restricted")
+    .update(
+      grant
+        ? {
+            subscription_status: "ACTIVE",
+            subscription_plan: PREMIUM_GRANT_PLAN,
+            subscription_current_period_end: new Date(Date.now() + PREMIUM_GRANT_DAYS * 24 * 60 * 60 * 1000).toISOString()
+          }
+        : { subscription_status: "FREE", subscription_plan: null, subscription_current_period_end: null }
+    )
+    .eq("id", userId);
+  if (error) return { error: error.message };
+
+  await logAdminAction(user.id, grant ? "GRANT_PREMIUM" : "REVOKE_PREMIUM", { targetType: "profile", targetId: userId });
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
 /**
  * Valide une demande de vérification : bascule le badge public (`profiles`),
  * clôt le dossier (`verification_requests`), notifie le membre par email.

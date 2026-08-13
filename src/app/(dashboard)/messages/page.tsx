@@ -16,11 +16,14 @@ import { ArrowLeft, MessageSquare, AlertCircle, MoreVertical, Flag, Ban, Bookmar
 import { cn } from "@/lib/utils";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
+import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { PremiumRequiredError } from "@/domain/errors";
 
 function MessagesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user } = useSession();
+  const { user, profile } = useSession();
+  const canSendMessages = profile.subscription_status === "ACTIVE" || profile.role !== "USER";
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(searchParams.get("conversation"));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -33,6 +36,7 @@ function MessagesPageContent() {
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isBlockOpen, setIsBlockOpen] = useState(false);
+  const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -140,6 +144,10 @@ function MessagesPageContent() {
       setMessages((prev) => [...prev, newMsg]);
       setConversations((prev) => prev.map((c) => (c.id === activeConvId ? { ...c, lastMessage: newMsg, updatedAt: newMsg.createdAt } : c)));
     } catch (err) {
+      if (err instanceof PremiumRequiredError) {
+        setIsPremiumRequiredOpen(true);
+        return;
+      }
       setSendError(err instanceof Error ? err.message : "L'envoi a échoué.");
       setTimeout(() => setSendError(null), 4000);
     }
@@ -323,6 +331,19 @@ function MessagesPageContent() {
                 </div>
               )}
 
+              {!canSendMessages && (
+                <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                  <span>Passe Premium pour répondre à tes messages.</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsPremiumRequiredOpen(true)}
+                    className="shrink-0 text-xs font-semibold text-primary hover:underline"
+                  >
+                    Découvrir
+                  </button>
+                </div>
+              )}
+
               <ChatInputBar
                 onSendMessage={handleSendMessage}
                 onSendFileAttachment={handleSendFileAttachment}
@@ -353,6 +374,11 @@ function MessagesPageContent() {
           />
         </>
       )}
+      <PremiumRequiredModal
+        isOpen={isPremiumRequiredOpen}
+        onClose={() => setIsPremiumRequiredOpen(false)}
+        reason="répondre à ce message"
+      />
     </div>
   );
 }

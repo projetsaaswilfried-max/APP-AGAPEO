@@ -5,9 +5,9 @@ import Link from "next/link";
 import { SearchInput } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { updateUserRoleAction, toggleSuspendUserAction } from "@/lib/actions/admin.actions";
+import { updateUserRoleAction, toggleSuspendUserAction, toggleUserPremiumAction } from "@/lib/actions/admin.actions";
 import type { AppRole, VerificationStatus } from "@/lib/supabase/database.types";
-import { ExternalLink, ShieldOff, ShieldCheck, Download } from "lucide-react";
+import { ExternalLink, ShieldOff, ShieldCheck, Download, Crown } from "lucide-react";
 
 export interface AdminUserRow {
   id: string;
@@ -17,6 +17,7 @@ export interface AdminUserRow {
   role: AppRole;
   isTestAccount: boolean;
   isSuspended: boolean;
+  isPremium: boolean;
   photoVerificationStatus: VerificationStatus;
   country: string;
   createdAt: string;
@@ -35,7 +36,7 @@ const ASSIGNABLE_ROLES: AppRole[] = ["USER", "MODERATOR", "ADMIN"];
 type StatusFilter = "ALL" | "ACTIVE" | "SUSPENDED";
 
 function toCsv(rows: AdminUserRow[]): string {
-  const header = ["Prénom", "Nom", "Email", "Rôle", "Statut", "Pays", "Vérification photo", "Inscrit le"];
+  const header = ["Prénom", "Nom", "Email", "Rôle", "Statut", "Premium", "Pays", "Vérification photo", "Inscrit le"];
   const lines = rows.map((u) =>
     [
       u.firstName,
@@ -43,6 +44,7 @@ function toCsv(rows: AdminUserRow[]): string {
       u.email,
       u.role,
       u.isSuspended ? "Suspendu" : "Actif",
+      u.isPremium ? "Oui" : "Non",
       u.country,
       u.photoVerificationStatus,
       new Date(u.createdAt).toISOString().slice(0, 10)
@@ -58,6 +60,8 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<AppRole | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -68,9 +72,11 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
       if (roleFilter !== "ALL" && u.role !== roleFilter) return false;
       if (statusFilter === "ACTIVE" && u.isSuspended) return false;
       if (statusFilter === "SUSPENDED" && !u.isSuspended) return false;
+      if (dateFrom && u.createdAt < dateFrom) return false;
+      if (dateTo && u.createdAt.slice(0, 10) > dateTo) return false;
       return true;
     });
-  }, [users, query, roleFilter, statusFilter]);
+  }, [users, query, roleFilter, statusFilter, dateFrom, dateTo]);
 
   const handleExportCsv = () => {
     const csv = toCsv(filtered);
@@ -112,6 +118,18 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
     });
   };
 
+  const handleTogglePremium = (userId: string, grant: boolean) => {
+    setError(null);
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isPremium: grant } : u)));
+    startTransition(async () => {
+      const result = await toggleUserPremiumAction(userId, grant);
+      if (result?.error) {
+        setError(result.error);
+        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isPremium: !grant } : u)));
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -143,6 +161,34 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
           <option value="ACTIVE">Actifs</option>
           <option value="SUSPENDED">Suspendus</option>
         </select>
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-muted-foreground">Inscrits entre</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="text-xs h-9 bg-card border border-border/60 rounded-xl px-2.5 text-foreground"
+          />
+          <label className="text-xs text-muted-foreground">et</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="text-xs h-9 bg-card border border-border/60 rounded-xl px-2.5 text-foreground"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
         <span className="text-xs text-muted-foreground">{filtered.length} membre(s)</span>
         <Button variant="outline" size="sm" onClick={handleExportCsv} leftIcon={<Download size={13} />} className="ml-auto">
           Exporter en CSV
@@ -160,6 +206,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                 <th className="px-4 py-2.5 font-medium">Email</th>
                 <th className="px-4 py-2.5 font-medium">Rôle</th>
                 <th className="px-4 py-2.5 font-medium">Statut</th>
+                <th className="px-4 py-2.5 font-medium">Premium</th>
                 <th className="px-4 py-2.5 font-medium">Inscrit le</th>
                 <th className="px-4 py-2.5 font-medium text-right">Actions</th>
               </tr>
@@ -207,6 +254,15 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                       </Badge>
                     )}
                   </td>
+                  <td className="px-4 py-2.5">
+                    {u.isPremium ? (
+                      <Badge variant="premium" className="text-[10px] px-2 py-0.5">
+                        <Crown size={10} className="mr-1" /> Premium
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">Gratuit</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
                     {new Date(u.createdAt).toLocaleDateString("fr-FR")}
                   </td>
@@ -215,6 +271,20 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                       <Link href={`/profile/${u.id}`} target="_blank" className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary" title="Voir le profil">
                         <ExternalLink size={14} />
                       </Link>
+                      {u.role !== "SUPER_ADMIN" && (
+                        <button
+                          onClick={() => handleTogglePremium(u.id, !u.isPremium)}
+                          disabled={isPending}
+                          className={`p-1.5 rounded-lg disabled:opacity-60 ${
+                            u.isPremium
+                              ? "text-primary hover:text-destructive hover:bg-destructive/10"
+                              : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          }`}
+                          title={u.isPremium ? "Retirer l'accès Premium" : "Accorder l'accès Premium"}
+                        >
+                          <Crown size={14} className={u.isPremium ? "fill-current" : ""} />
+                        </button>
+                      )}
                       {u.role !== "SUPER_ADMIN" && (
                         <button
                           onClick={() => handleToggleSuspend(u.id, !u.isSuspended)}
@@ -231,7 +301,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                     Aucun membre ne correspond à cette recherche.
                   </td>
                 </tr>

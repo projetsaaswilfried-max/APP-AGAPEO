@@ -116,6 +116,8 @@ export interface ProfileRow {
   is_test_account: boolean;
   /** Dérivé de `profile_restricted.role <> 'USER'` — badge public "équipe", jamais le rôle exact (cf. migration lock_down_restricted_profile_fields). */
   is_staff: boolean;
+  /** Dérivé de `profile_restricted.subscription_status = 'ACTIVE'` — booléen public utilisé pour prioriser Découvrir, jamais le détail de l'abonnement. */
+  is_premium: boolean;
 
   created_at: string;
   updated_at: string;
@@ -438,6 +440,7 @@ export interface Database {
     Functions: {
       record_profile_view: { Args: { viewed_profile_id: string }; Returns: void };
       is_admin_or_moderator: { Args: { uid: string }; Returns: boolean };
+      create_conversation_with_participant: { Args: { other_user_id: string }; Returns: string };
     };
   };
 }
