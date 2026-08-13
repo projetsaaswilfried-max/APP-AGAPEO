@@ -70,6 +70,8 @@ export function buildAgapeoEmailHtml({
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
   <title>${title}</title>
   <!--[if mso]>
   <style type="text/css">
@@ -77,6 +79,9 @@ export function buildAgapeoEmailHtml({
   </style>
   <![endif]-->
   <style type="text/css">
+    /* Empêche Gmail/Outlook mobile d'inverser le cercle blanc du logo en noir en mode sombre. */
+    :root { color-scheme: light only; supported-color-schemes: light only; }
+    [data-ogsc] .logo-circle, [data-ogsb] .logo-circle { background-color: #FFFFFF !important; }
     body { margin: 0; padding: 0; width: 100% !important; background-color: #F1F3F5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     a { color: #FE70B2; }
     @media only screen and (max-width: 600px) {
@@ -102,8 +107,8 @@ export function buildAgapeoEmailHtml({
             <td class="header-banner" style="background: linear-gradient(135deg, #FF8FC7 0%, #FE70B2 55%, #DE4A97 100%); padding: 28px 28px 32px 28px;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="width: 40px; height: 40px; background-color: #FFFFFF; border-radius: 50%; text-align: center; vertical-align: middle;">
-                    <img src="${EMAIL_LOGO_URL}" alt="AGAPEO" width="26" style="display: block; width: 26px; height: auto; margin: 7px auto; border: 0; border-radius: 50%;" />
+                  <td class="logo-circle" bgcolor="#FFFFFF" style="width: 40px; height: 40px; background-color: #FFFFFF; border-radius: 50%; text-align: center; vertical-align: middle;">
+                    <img src="${EMAIL_LOGO_URL}" alt="AGAPEO" width="26" style="display: block; width: 26px; height: auto; margin: 7px auto; border: 0; border-radius: 50%; background-color: #FFFFFF;" />
                   </td>
                   <td style="padding-left: 10px; vertical-align: middle;">
                     <span style="color: #FFFFFF; font-weight: 700; font-size: 15px; letter-spacing: -0.01em;">Agapeo</span>
