@@ -1,0 +1,64 @@
+import type { MessageRow, MessageAttachmentRow, ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
+import type { ChatMessage, MessageAttachment, ConversationSummary } from "@/domain/types/message";
+import { mapProfileRowToUserProfile } from "@/domain/mappers/profile.mapper";
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+export function mapAttachmentRow(row: MessageAttachmentRow, signedUrl?: string): MessageAttachment {
+  return {
+    id: row.id,
+    type: row.type,
+    url: signedUrl ?? row.url ?? "",
+    name: row.file_name ?? undefined,
+    sizeBytes: row.size_bytes ?? undefined,
+    durationSeconds: row.duration_seconds ?? undefined
+  };
+}
+
+export function mapMessageRow(
+  row: MessageRow,
+  recipientId: string,
+  attachments: MessageAttachment[] = []
+): ChatMessage {
+  return {
+    id: row.id,
+    conversationId: row.conversation_id,
+    senderId: row.sender_id,
+    recipientId,
+    content: row.content ?? "",
+    type: row.type,
+    attachments: attachments.length > 0 ? attachments : undefined,
+    status: row.status,
+    isRead: row.status === "READ",
+    createdAt: formatTime(row.created_at),
+    deletedAt: row.deleted_at ?? undefined,
+    readAt: row.read_at ?? undefined
+  };
+}
+
+const ONLINE_THRESHOLD_MS = 5 * 60 * 1000;
+
+export function mapConversationSummary(
+  conversationId: string,
+  participant: ProfileRow,
+  participantPhotos: ProfilePhotoRow[],
+  lastMessage: ChatMessage | undefined,
+  unreadCount: number,
+  isFavorite: boolean,
+  updatedAt: string
+): ConversationSummary {
+  const isOnline = Date.now() - new Date(participant.last_active_at).getTime() < ONLINE_THRESHOLD_MS;
+
+  return {
+    id: conversationId,
+    participant: mapProfileRowToUserProfile(participant, participantPhotos),
+    lastMessage,
+    unreadCount,
+    isOnline,
+    lastSeen: isOnline ? undefined : new Date(participant.last_active_at).toLocaleDateString("fr-FR"),
+    isFavorite,
+    updatedAt: formatTime(updatedAt)
+  };
+}

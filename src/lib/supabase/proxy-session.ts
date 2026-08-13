@@ -1,0 +1,51 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { env } from "@/config/env";
+
+const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"];
+
+function isPublicRoute(pathname: string) {
+  return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+/**
+ * Rafraîchit la session Supabase sur chaque requête et applique les
+ * redirections "optimistes" (lecture du cookie de session uniquement — pas
+ * de requête base de données ici, cf. doc Next.js sur l'authentification :
+ * les vérifications lentes/métier vivent dans les layouts serveur).
+ */
+export async function updateSession(request: NextRequest) {
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      }
+    }
+  });
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+  const publicRoute = isPublicRoute(pathname);
+
+  if (!user && !publicRoute) {
+    const redirectUrl = new URL("/login", request.url);
+    redirectUrl.searchParams.set("redirectTo", pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (user && (pathname === "/login" || pathname === "/register")) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  return response;
+}

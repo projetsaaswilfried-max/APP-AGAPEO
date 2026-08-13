@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Palette Nouvelle Identité Visuelle (Inspiration Airbnb / Modern SaaS) */
+    --background: 220 16% 96.5%;        /* #F5F6F8 - Off-white / Gris clair très doux */
+    --foreground: 216 12% 12%;         /* #1A1D21 - Sombre Profond Neutre */
+
+    --card: 0 0% 100%;                  /* #FFFFFF - Carte Blanc Pur */
+    --card-foreground: 216 12% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 216 12% 12%;
+
+    --primary: 332 98% 72%;            /* #FE70B2 - Couleur Principale Rose Vif */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 95%;           /* #F0F2F5 - Fond d'élément secondaire neutre */
+    --secondary-foreground: 216 12% 12%;
+
+    --muted: 220 14% 95%;
+    --muted-foreground: 220 9% 54%;     /* #7E8594 - Texte secondaire & icônes inactives */
+
+    --accent: 332 98% 72%;             /* #FE70B2 - Couleur Accentuation */
+    --accent-foreground: 0 0% 100%;
+    --accent-subtle: 331 100% 94%;      /* #FFE2F0 - Couleur Secondaire Rose Pastel */
+
+    --dark-control: 216 12% 12%;        /* #1A1D21 - Sombre neutre pour toggles / progress */
+    --dark-control-foreground: 0 0% 100%;
+
+    --destructive: 344 90% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 14% 92%;              /* #E8ECEF - Bordure très fine et discrète */
+    --input: 220 14% 95%;               /* #F0F2F5 - Fond des champs d'entrée */
+    --ring: 332 98% 72%;               /* Focus Ring Rose #FE70B2 */
+
+    --radius: 1.5rem;                   /* 24px Radius Standard (Cartes arrondies) */
+  }
+
+  .dark {
+    --background: 224 20% 8%;           /* #0F1115 - Fond sombre moderne */
+    --foreground: 210 20% 98%;
+
+    --card: 222 18% 12%;                /* #181B20 - Carte sombre */
+    --card-foreground: 210 20% 98%;
+
+    --popover: 222 18% 12%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 332 98% 72%;            /* #FE70B2 - Préservé en mode sombre */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 18% 18%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 217 18% 18%;
+    --muted-foreground: 215 15% 65%;
+
+    --accent: 332 98% 72%;
+    --accent-foreground: 0 0% 100%;
+    --accent-subtle: 332 45% 18%;
+
+    --dark-control: 0 0% 100%;
+    --dark-control-foreground: 216 12% 12%;
+
+    --destructive: 344 90% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 18% 18%;
+    --input: 217 18% 18%;
+    --ring: 332 98% 72%;
+  }
+
+  /* Sélection de texte : fond teinté rose fuchsia doux */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.25);
+    color: hsl(var(--foreground));
+  }
+}
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --text-xs: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
+  --text-xs--line-height: 1.4;
+  --text-sm: clamp(0.9rem, 0.87rem + 0.12vw, 0.9375rem);
+  --text-sm--line-height: 1.5;
+  --text-base: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem);
+  --text-base--line-height: 1.6;
+  --text-lg: clamp(1.125rem, 1.09rem + 0.18vw, 1.1875rem);
+  --text-lg--line-height: 1.5;
+  --text-xl: clamp(1.25rem, 1.21rem + 0.22vw, 1.3125rem);
+  --text-xl--line-height: 1.4;
+  --text-2xl: clamp(1.5rem, 1.44rem + 0.3vw, 1.625rem);
+  --text-2xl--line-height: 1.3;
+  --text-3xl: clamp(1.875rem, 1.78rem + 0.45vw, 2.0625rem);
+  --text-3xl--line-height: 1.25;
+
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-subtle: hsl(var(--accent-subtle));
+  --color-dark-control: hsl(var(--dark-control));
+  --color-dark-control-foreground: hsl(var(--dark-control-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-sm: calc(var(--radius) - 10px);
+  --radius-md: calc(var(--radius) - 6px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: 1.75rem;
+  --radius-full: 9999px;
+
+  --shadow-soft: 0 12px 32px -4px rgba(26, 29, 33, 0.05), 0 4px 12px -2px rgba(26, 29, 33, 0.03);
+  --shadow-accent-glow: 0 8px 20px -4px rgba(254, 112, 178, 0.45);
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Beaucoup de composants utilisent des tailles arbitraires (text-[10px]...)
+   qui ne passent pas par l'échelle --text-* ci-dessus. On relève ici les
+   plus petites pour rester cohérent avec la lecture "medium" demandée,
+   sans avoir à modifier chaque composant un par un. */
+.text-\[9px\],
+.text-\[10px\] {
+  font-size: 0.75rem !important;
+}
+.text-\[11px\] {
+  font-size: 0.8125rem !important;
+}
+
+/* Custom Scrollbars Discrètes SaaS */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}

@@ -1,0 +1,42 @@
+import type { ProfileRow } from "@/lib/supabase/database.types";
+
+/**
+ * Barre minimale pour qu'un profil soit "actif" et proposé aux autres
+ * membres dans Découvrir. L'onboarding ne bloque plus rien (il est
+ * différable via "Terminer plus tard") — c'est cette fonction qui décide
+ * seule de la visibilité, aussi bien côté UI (bannière de rappel) que côté
+ * requête Découvrir (cf. discover.service.ts).
+ */
+export function isProfileComplete(profile: Pick<ProfileRow, "avatar_url" | "church_denomination" | "why_marriage">): boolean {
+  return Boolean(profile.avatar_url && profile.church_denomination && profile.why_marriage);
+}
+
+export function getMissingProfileFields(
+  profile: Pick<ProfileRow, "avatar_url" | "church_denomination" | "why_marriage">
+): string[] {
+  const missing: string[] = [];
+  if (!profile.avatar_url) missing.push("une photo de profil");
+  if (!profile.church_denomination) missing.push("ta confession chrétienne");
+  if (!profile.why_marriage) missing.push("ta vision du mariage");
+  return missing;
+}
+
+type ScoringProfile = Pick<
+  ProfileRow,
+  "faith_engagement_level" | "marriage_timeline" | "desired_children_count" | "core_values" | "passions" | "hobbies"
+>;
+
+/**
+ * Champs qui alimentent le moteur de compatibilité (cf. compatibility.ts) mais
+ * ne sont pas requis pour être visible dans Découvrir — utilisé pour
+ * expliquer pourquoi un score peut sembler bas plutôt que de le laisser
+ * paraître arbitraire.
+ */
+export function getScoringGaps(profile: ScoringProfile): string[] {
+  const gaps: string[] = [];
+  if (!profile.faith_engagement_level) gaps.push("ton engagement dans la foi");
+  if (!profile.marriage_timeline || !profile.desired_children_count) gaps.push("ta vision du mariage");
+  if (profile.core_values.length === 0) gaps.push("tes valeurs");
+  if (profile.passions.length === 0 && profile.hobbies.length === 0) gaps.push("tes centres d'intérêt");
+  return gaps;
+}
