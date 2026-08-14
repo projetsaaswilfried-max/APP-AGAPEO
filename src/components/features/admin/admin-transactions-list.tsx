@@ -36,16 +36,51 @@ function formatAmount(cents: number, currency: string) {
   return `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${currency}`;
 }
 
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
 export function AdminTransactionsList({ transactions }: { transactions: AdminTransactionRow[] }) {
   const [rangeId, setRangeId] = useState("30d");
+  const [dateFrom, setDateFrom] = useState(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    return toDateInputValue(cutoff);
+  });
+  const [dateTo, setDateTo] = useState("");
 
-  const filtered = useMemo(() => {
-    const preset = RANGE_PRESETS.find((r) => r.id === rangeId);
-    if (!preset?.days) return transactions;
+  const handlePreset = (id: string) => {
+    setRangeId(id);
+    const preset = RANGE_PRESETS.find((r) => r.id === id);
+    if (!preset?.days) {
+      setDateFrom("");
+      setDateTo("");
+      return;
+    }
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - preset.days);
-    return transactions.filter((t) => new Date(t.createdAt) >= cutoff);
-  }, [transactions, rangeId]);
+    setDateFrom(toDateInputValue(cutoff));
+    setDateTo("");
+  };
+
+  const handleCustomDateChange = (field: "from" | "to", value: string) => {
+    setRangeId("custom");
+    if (field === "from") setDateFrom(value);
+    else setDateTo(value);
+  };
+
+  const handleReset = () => {
+    setRangeId("30d");
+    handlePreset("30d");
+  };
+
+  const filtered = useMemo(() => {
+    return transactions.filter((t) => {
+      if (dateFrom && t.createdAt.slice(0, 10) < dateFrom) return false;
+      if (dateTo && t.createdAt.slice(0, 10) > dateTo) return false;
+      return true;
+    });
+  }, [transactions, dateFrom, dateTo]);
 
   const totalRevenue = filtered.filter((t) => t.status === "SUCCEEDED").reduce((sum, t) => sum + t.amountCents, 0);
   const currency = filtered[0]?.currency ?? "XOF";
@@ -55,18 +90,42 @@ export function AdminTransactionsList({ transactions }: { transactions: AdminTra
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 w-fit overflow-x-auto no-scrollbar">
-        {RANGE_PRESETS.map((r) => (
-          <button
-            key={r.id}
-            onClick={() => setRangeId(r.id)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
-              rangeId === r.id ? "bg-card text-foreground font-semibold shadow-2xs" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {r.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 w-fit overflow-x-auto no-scrollbar">
+          {RANGE_PRESETS.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => handlePreset(r.id)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
+                rangeId === r.id ? "bg-card text-foreground font-semibold shadow-2xs" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-muted-foreground">Du</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => handleCustomDateChange("from", e.target.value)}
+            className="text-xs h-9 bg-card border border-border/60 rounded-xl px-2.5 text-foreground"
+          />
+          <label className="text-xs text-muted-foreground">au</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => handleCustomDateChange("to", e.target.value)}
+            className="text-xs h-9 bg-card border border-border/60 rounded-xl px-2.5 text-foreground"
+          />
+          {(dateFrom || dateTo) && (
+            <button type="button" onClick={handleReset} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2">
+              Réinitialiser
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
