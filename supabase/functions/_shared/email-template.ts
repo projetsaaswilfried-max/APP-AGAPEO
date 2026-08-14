@@ -7,7 +7,10 @@
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 // Hébergé sur Supabase Storage (bucket public `avatars`) : accessible même
 // si l'app Next.js elle-même n'est pas encore déployée sur un domaine public.
-const LOGO_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/v1/object/public/avatars/platform/agapeo-logo-email.png";
+// Logo + cercle blanc pré-fusionnés en une seule image (au lieu d'un fond CSS
+// background-color) — Gmail mobile en mode sombre force certains fonds blancs
+// en noir/gris, mais n'altère jamais les pixels d'une image.
+const LOGO_BADGE_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/v1/object/public/avatars/platform/agapeo-logo-email-badge.png";
 
 export interface EmailInfoRow {
   label: string;
@@ -66,9 +69,7 @@ export function buildAgapeoEmailHtml({
   <meta name="supported-color-schemes" content="light" />
   <title>${title}</title>
   <style type="text/css">
-    /* Empêche Gmail/Outlook mobile d'inverser le cercle blanc du logo en noir en mode sombre. */
     :root { color-scheme: light only; supported-color-schemes: light only; }
-    [data-ogsc] .logo-circle, [data-ogsb] .logo-circle { background-color: #FFFFFF !important; }
     body { margin: 0; padding: 0; width: 100% !important; background-color: #F1F3F5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
     a { color: #FE70B2; }
     @media only screen and (max-width: 600px) {
@@ -90,8 +91,8 @@ export function buildAgapeoEmailHtml({
             <td class="header-banner" style="background: linear-gradient(135deg, #FF8FC7 0%, #FE70B2 55%, #DE4A97 100%); padding: 28px 28px 32px 28px;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td class="logo-circle" bgcolor="#FFFFFF" style="width: 40px; height: 40px; background-color: #FFFFFF; border-radius: 50%; text-align: center; vertical-align: middle;">
-                    <img src="${LOGO_URL}" alt="AGAPEO" width="26" style="display: block; width: 26px; height: auto; margin: 7px auto; border: 0; border-radius: 50%; background-color: #FFFFFF;" />
+                  <td style="width: 40px; height: 40px; text-align: center; vertical-align: middle;">
+                    <img src="${LOGO_BADGE_URL}" alt="AGAPEO" width="40" height="40" style="display: block; width: 40px; height: 40px; border: 0; border-radius: 50%;" />
                   </td>
                   <td style="padding-left: 10px; vertical-align: middle;">
                     <span style="color: #FFFFFF; font-weight: 700; font-size: 15px; letter-spacing: -0.01em;">Agapeo</span>
