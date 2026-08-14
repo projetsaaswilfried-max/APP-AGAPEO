@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { SearchInput } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { updateUserRoleAction, toggleSuspendUserAction, toggleUserPremiumAction } from "@/lib/actions/admin.actions";
@@ -138,30 +139,22 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onClear={() => setQuery("")}
-          className="max-w-sm text-xs h-9 bg-card"
+          className="w-full sm:max-w-sm text-xs h-9 bg-card"
         />
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value as AppRole | "ALL")}
-          className="text-xs h-9 bg-card border border-border/60 rounded-xl px-2.5"
-        >
+        <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as AppRole | "ALL")}>
           <option value="ALL">Tous les rôles</option>
           {(["USER", "MODERATOR", "ADMIN", "SUPER_ADMIN"] as AppRole[]).map((r) => (
             <option key={r} value={r}>
               {ROLE_LABELS[r]}
             </option>
           ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-          className="text-xs h-9 bg-card border border-border/60 rounded-xl px-2.5"
-        >
+        </Select>
+        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
           <option value="ALL">Tous les statuts</option>
           <option value="ACTIVE">Actifs</option>
           <option value="SUSPENDED">Suspendus</option>
-        </select>
-        <div className="flex items-center gap-1.5">
+        </Select>
+        <div className="flex flex-wrap items-center gap-1.5">
           <label className="text-xs text-muted-foreground">Inscrits entre</label>
           <input
             type="date"
@@ -190,7 +183,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
           )}
         </div>
         <span className="text-xs text-muted-foreground">{filtered.length} membre(s)</span>
-        <Button variant="outline" size="sm" onClick={handleExportCsv} leftIcon={<Download size={13} />} className="ml-auto">
+        <Button variant="outline" size="sm" onClick={handleExportCsv} leftIcon={<Download size={13} />} className="w-full sm:w-auto sm:ml-auto">
           Exporter en CSV
         </Button>
       </div>
@@ -229,11 +222,11 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground">{u.email}</td>
                   <td className="px-4 py-2.5">
-                    <select
+                    <Select
                       value={u.role}
                       disabled={u.role === "SUPER_ADMIN" || isPending}
                       onChange={(e) => handleRoleChange(u.id, e.target.value as AppRole)}
-                      className="text-xs bg-secondary/60 border border-border/60 rounded-lg px-2 py-1 disabled:opacity-60"
+                      className="h-auto bg-secondary/60 rounded-lg py-1"
                     >
                       {u.role === "SUPER_ADMIN" && <option value="SUPER_ADMIN">Super Admin</option>}
                       {ASSIGNABLE_ROLES.map((r) => (
@@ -241,7 +234,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                           {ROLE_LABELS[r]}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </td>
                   <td className="px-4 py-2.5">
                     {u.isSuspended ? (

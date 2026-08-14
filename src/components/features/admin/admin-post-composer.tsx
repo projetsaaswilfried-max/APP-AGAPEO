@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { createOfficialPostAction, deleteOfficialPostAction } from "@/lib/actions/admin.actions";
@@ -136,17 +137,18 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
             <Input label="Titre (optionnel)" value={title} onChange={(e) => setTitle(e.target.value)} />
             <div className="space-y-1">
               <label className="text-xs font-medium text-foreground">Catégorie</label>
-              <select
+              <Select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground focus:outline-none"
+                wrapperWidth="full"
+                className="h-11 rounded-xl border-border pl-3.5 pr-9 text-sm focus:outline-none"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
                     {c.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 

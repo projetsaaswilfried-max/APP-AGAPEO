@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ScrollableRow } from "@/components/ui/scrollable-row";
 import type { TransactionStatus } from "@/lib/supabase/database.types";
 import { Receipt, TrendingUp } from "lucide-react";
 
@@ -91,7 +92,7 @@ export function AdminTransactionsList({ transactions }: { transactions: AdminTra
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 w-fit overflow-x-auto no-scrollbar">
+        <ScrollableRow className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 w-full sm:w-fit">
           {RANGE_PRESETS.map((r) => (
             <button
               key={r.id}
@@ -103,9 +104,9 @@ export function AdminTransactionsList({ transactions }: { transactions: AdminTra
               {r.label}
             </button>
           ))}
-        </div>
+        </ScrollableRow>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <label className="text-xs text-muted-foreground">Du</label>
           <input
             type="date"

@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <SessionProvider user={user} profile={profile}>
       <AppShell>
-        <div className="space-y-6 w-full pb-16 select-none">
+        <div className="space-y-6 w-full pb-16 select-none overflow-x-hidden">
           <div className="border-b border-border/60 pb-4">
             <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Espace Administrateur</h1>
             <p className="text-xs text-muted-foreground mt-0.5">Pilotage de la plateforme — réservé au super administrateur.</p>

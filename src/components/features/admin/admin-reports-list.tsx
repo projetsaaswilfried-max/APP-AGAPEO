@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ScrollableRow } from "@/components/ui/scrollable-row";
 import { updateReportStatusAction } from "@/lib/actions/admin.actions";
 import type { ReportStatus, ReportTargetType } from "@/lib/supabase/database.types";
 import { Flag } from "lucide-react";
@@ -49,7 +51,7 @@ export function AdminReportsList({ initialReports }: { initialReports: AdminRepo
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 w-fit overflow-x-auto no-scrollbar">
+      <ScrollableRow className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 w-full sm:w-fit">
         {(["PENDING", "REVIEWED", "ACTION_TAKEN", "DISMISSED", "ALL"] as const).map((s) => (
           <button
             key={s}
@@ -61,7 +63,7 @@ export function AdminReportsList({ initialReports }: { initialReports: AdminRepo
             {s === "ALL" ? "Tous" : STATUS_LABELS[s]}
           </button>
         ))}
-      </div>
+      </ScrollableRow>
 
       {filtered.length === 0 ? (
         <EmptyState icon={<Flag size={22} />} title="Aucun signalement" description="Rien à traiter dans cette catégorie pour le moment." />
@@ -94,18 +96,18 @@ export function AdminReportsList({ initialReports }: { initialReports: AdminRepo
                     </>
                   )}
                 </div>
-                <select
+                <Select
                   value={r.status}
                   disabled={isPending}
                   onChange={(e) => handleStatusChange(r.id, e.target.value as ReportStatus)}
-                  className="text-xs bg-secondary/60 border border-border/60 rounded-lg px-2 py-1 disabled:opacity-60"
+                  className="h-auto bg-secondary/60 rounded-lg py-1"
                 >
                   {(Object.keys(STATUS_LABELS) as ReportStatus[]).map((s) => (
                     <option key={s} value={s}>
                       {STATUS_LABELS[s]}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
           ))}

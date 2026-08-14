@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { ScrollableRow } from "@/components/ui/scrollable-row";
 
 const TABS = [
   { href: "/admin", label: "Vue d'ensemble" },
@@ -27,7 +28,7 @@ export function AdminTabsNav({ badgeCounts = {} }: { badgeCounts?: AdminTabBadge
   const pathname = usePathname();
 
   return (
-    <div className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 select-none overflow-x-auto no-scrollbar">
+    <ScrollableRow className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 select-none">
       {TABS.map((tab) => {
         const isActive = tab.href === "/admin" ? pathname === "/admin" : pathname.startsWith(tab.href);
         const count = "badgeKey" in tab ? badgeCounts[tab.badgeKey] : undefined;
@@ -58,6 +59,6 @@ export function AdminTabsNav({ badgeCounts = {} }: { badgeCounts?: AdminTabBadge
           </Link>
         );
       })}
-    </div>
+    </ScrollableRow>
   );
 }

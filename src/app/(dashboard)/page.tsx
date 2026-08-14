@@ -91,7 +91,7 @@ export default function HomePage() {
               CERCLE AGAPE
             </span>
             <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">
-              Fil de Réflexion & Inspirations
+              Fil d&apos;actualité
             </h1>
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 text-primary text-xs font-medium border border-accent/20">
@@ -100,14 +100,12 @@ export default function HomePage() {
         </div>
 
         {/* Filtres par Catégorie */}
-        <div className="overflow-x-auto pb-1 no-scrollbar">
-          <Tabs
-            variant="pill"
-            tabs={CATEGORY_TABS}
-            activeTabId={activeCategory}
-            onChange={(id) => setActiveCategory(id as FeedCategory)}
-          />
-        </div>
+        <Tabs
+          variant="pill"
+          tabs={CATEGORY_TABS}
+          activeTabId={activeCategory}
+          onChange={(id) => setActiveCategory(id as FeedCategory)}
+        />
       </div>
 
       {/* État d'Erreur Simulé */}
