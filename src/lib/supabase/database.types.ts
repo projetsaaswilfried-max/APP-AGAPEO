@@ -12,7 +12,7 @@ export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECT
 
 export type PostType = "OFFICIAL" | "PERSONAL";
 export type PostCategory = "TEACHING" | "TESTIMONY" | "ADVICE" | "ANNOUNCEMENT" | "QUOTE" | "VERSE" | "NEWS";
-export type PostMediaTypeDb = "IMAGE" | "GALLERY" | "VIDEO" | "QUOTE_CARD" | "TEXT_ONLY";
+export type PostMediaTypeDb = "IMAGE" | "GALLERY" | "VIDEO" | "YOUTUBE" | "QUOTE_CARD" | "TEXT_ONLY";
 
 export type MessageTypeDb = "TEXT" | "IMAGE" | "VIDEO" | "DOCUMENT" | "VOICE" | "SYSTEM";
 export type MessageStatusDb = "SENT" | "DELIVERED" | "READ";

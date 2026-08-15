@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { createOfficialPostAction, deleteOfficialPostAction } from "@/lib/actions/admin.actions";
 import { uploadPostMedia, FileValidationError, PLATFORM_MAX_UPLOAD_BYTES } from "@/lib/storage";
+import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { useSession } from "@/core/providers/session-provider";
-import { Camera, Video, AlertCircle, Trash2, X } from "lucide-react";
+import { Camera, Video, SquarePlay, AlertCircle, Trash2, X } from "lucide-react";
 import type { PostRow } from "@/lib/supabase/database.types";
 
 const PLATFORM_MAX_UPLOAD_MB = Math.round(PLATFORM_MAX_UPLOAD_BYTES / 1024 / 1024);
@@ -38,6 +39,9 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [isAddingYoutube, setIsAddingYoutube] = useState(false);
+  const [youtubeInput, setYoutubeInput] = useState("");
+  const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +77,17 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
     setVideoPreview(URL.createObjectURL(file));
   };
 
+  const handleYoutubeInputChange = (value: string) => {
+    setYoutubeInput(value);
+    setYoutubeVideoId(value.trim() ? extractYouTubeVideoId(value) : null);
+  };
+
+  const handleRemoveYoutube = () => {
+    setIsAddingYoutube(false);
+    setYoutubeInput("");
+    setYoutubeVideoId(null);
+  };
+
   const handlePublish = async () => {
     if (!content.trim()) return;
     setIsSaving(true);
@@ -81,7 +96,7 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
     try {
       let mediaUrl: string | undefined;
       let mediaStoragePath: string | undefined;
-      let mediaKind: "IMAGE" | "VIDEO" | undefined;
+      let mediaKind: "IMAGE" | "VIDEO" | "YOUTUBE" | undefined;
 
       if (imageFile) {
         const uploaded = await uploadPostMedia(profile.id, `official-${Date.now()}`, imageFile, undefined, setUploadProgress);
@@ -100,6 +115,9 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
         mediaUrl = uploaded.url;
         mediaStoragePath = uploaded.path;
         mediaKind = "VIDEO";
+      } else if (youtubeVideoId) {
+        mediaUrl = `https://www.youtube.com/watch?v=${youtubeVideoId}`;
+        mediaKind = "YOUTUBE";
       }
 
       const result = await createOfficialPostAction({ title: title || undefined, content, category, mediaKind, mediaUrl, mediaStoragePath });
@@ -111,6 +129,7 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
       setImagePreview(null);
       setVideoFile(null);
       setVideoPreview(null);
+      handleRemoveYoutube();
       window.location.reload();
     } catch (err) {
       setError(err instanceof FileValidationError || err instanceof Error ? err.message : "La publication a échoué.");
@@ -198,13 +217,49 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
             </div>
           )}
 
-          {!imagePreview && !videoPreview && (
+          {isAddingYoutube && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  value={youtubeInput}
+                  onChange={(e) => handleYoutubeInputChange(e.target.value)}
+                  className="text-sm h-10"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveYoutube}
+                  className="shrink-0 p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              {youtubeInput.trim() && !youtubeVideoId && (
+                <p className="text-[11px] text-destructive">Lien YouTube non reconnu — vérifie l&apos;URL.</p>
+              )}
+              {youtubeVideoId && (
+                <div className="relative w-full max-w-sm rounded-xl overflow-hidden border border-border bg-black aspect-video">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={getYouTubeThumbnailUrl(youtubeVideoId)}
+                    alt="Aperçu YouTube"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {!imagePreview && !videoPreview && !isAddingYoutube && (
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} leftIcon={<Camera size={15} />}>
                 Ajouter une image
               </Button>
               <Button variant="outline" size="sm" onClick={() => videoInputRef.current?.click()} leftIcon={<Video size={15} />}>
                 Ajouter une vidéo
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setIsAddingYoutube(true)} leftIcon={<SquarePlay size={15} />}>
+                Ajouter une vidéo YouTube
               </Button>
             </div>
           )}
@@ -232,7 +287,12 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
           )}
 
           <div className="flex justify-end">
-            <Button variant="primary" onClick={handlePublish} isLoading={isSaving} disabled={!content.trim()}>
+            <Button
+              variant="primary"
+              onClick={handlePublish}
+              isLoading={isSaving}
+              disabled={!content.trim() || Boolean(youtubeInput.trim() && !youtubeVideoId)}
+            >
               Publier
             </Button>
           </div>

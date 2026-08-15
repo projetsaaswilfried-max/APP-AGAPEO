@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MediaGallery } from "@/components/ui/media-gallery";
+import { YouTubePlayer } from "@/components/ui/youtube-player";
 import { CommentSection } from "./comment-section";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { feedService } from "@/domain/services/feed.service";
@@ -188,6 +189,12 @@ export function PublicationCard({
               preload="metadata"
               className="w-full max-h-[32rem]"
             />
+          </div>
+        )}
+
+        {publication.mediaType === "YOUTUBE" && publication.videoUrl && (
+          <div className="rounded-2xl overflow-hidden border border-border/60 shadow-2xs">
+            <YouTubePlayer videoId={publication.videoUrl} thumbnailUrl={publication.videoThumbnail} />
           </div>
         )}
       </CardContent>

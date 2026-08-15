@@ -7,13 +7,14 @@ import { requireSuperAdminSession } from "@/lib/supabase/session";
 import { logAdminAction } from "@/lib/audit-log";
 import { sendVerificationEmail } from "@/lib/actions/verification.actions";
 import { sendPremiumRemovedEmail } from "@/lib/premium-emails";
+import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { z } from "zod";
 
 const OfficialPostSchema = z.object({
   title: z.string().trim().max(140).optional(),
   content: z.string().trim().min(3).max(3000),
   category: z.enum(["TEACHING", "TESTIMONY", "ADVICE", "ANNOUNCEMENT", "QUOTE", "VERSE", "NEWS"]),
-  mediaKind: z.enum(["IMAGE", "VIDEO"]).optional(),
+  mediaKind: z.enum(["IMAGE", "VIDEO", "YOUTUBE"]).optional(),
   mediaUrl: z.string().url().optional(),
   mediaStoragePath: z.string().optional()
 });
@@ -36,6 +37,15 @@ export async function createOfficialPostAction(input: unknown) {
   const isVideo = parsed.data.mediaKind === "VIDEO" && Boolean(parsed.data.mediaUrl);
   const isImage = parsed.data.mediaKind === "IMAGE" && Boolean(parsed.data.mediaUrl);
 
+  // Ré-extraction côté serveur, jamais confiance dans l'ID déjà résolu côté
+  // client — mediaUrl transporte le lien YouTube complet pour passer la
+  // validation .url(), video_url en base ne stocke que l'identifiant.
+  const youtubeVideoId =
+    parsed.data.mediaKind === "YOUTUBE" && parsed.data.mediaUrl ? extractYouTubeVideoId(parsed.data.mediaUrl) : null;
+  if (parsed.data.mediaKind === "YOUTUBE" && parsed.data.mediaUrl && !youtubeVideoId) {
+    return { error: "Lien YouTube invalide." };
+  }
+
   const { data: post, error } = await supabase
     .from("posts")
     .insert({
@@ -44,8 +54,9 @@ export async function createOfficialPostAction(input: unknown) {
       category: parsed.data.category,
       title: parsed.data.title || null,
       content: parsed.data.content,
-      media_type: isVideo ? "VIDEO" : isImage ? "IMAGE" : "TEXT_ONLY",
-      video_url: isVideo ? parsed.data.mediaUrl : null
+      media_type: isVideo ? "VIDEO" : isImage ? "IMAGE" : youtubeVideoId ? "YOUTUBE" : "TEXT_ONLY",
+      video_url: isVideo ? parsed.data.mediaUrl : youtubeVideoId,
+      video_thumbnail: youtubeVideoId ? getYouTubeThumbnailUrl(youtubeVideoId) : null
     })
     .select()
     .single();

@@ -10,7 +10,7 @@ export type FeedCategory =
   | "VERSE"
   | "NEWS";
 
-export type FeedMediaType = "IMAGE" | "GALLERY" | "VIDEO" | "QUOTE_CARD";
+export type FeedMediaType = "IMAGE" | "GALLERY" | "VIDEO" | "YOUTUBE" | "QUOTE_CARD";
 
 export interface FeedAuthor {
   id: string;
