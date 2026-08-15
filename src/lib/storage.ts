@@ -7,14 +7,15 @@ export class FileValidationError extends Error {}
  * Plafond RÉEL des fichiers uploadés sur ce projet Supabase — pas une limite
  * de bucket ou de code, mais celle configurée au niveau du projet Supabase
  * (`fileSizeLimit` dans `config/storage`, aucun bucket n'a de limite propre).
- * Relevé à 500 Mo le 2026-08-14 après passage au plan Pro (vérifié via l'API
- * Management : `GET /v1/projects/{ref}/config/storage`) — sur le plan Free
- * précédent, Supabase plafonnait à 50 Mo quelle que soit cette constante.
- * Si ce chiffre est modifié ici, il doit d'abord être relevé côté Supabase
- * (Dashboard → Storage → Settings, ou API Management), sinon les uploads
- * échoueront quand même en 413 au-delà de l'ancien plafond.
+ * Relevé à 1 Go le 2026-08-14 après passage au plan Pro (vérifié via l'API
+ * Management, puis confirmé par un vrai upload de 900 Mo réussi sur le
+ * bucket `post-media`) — sur le plan Free précédent, Supabase plafonnait à
+ * 50 Mo quelle que soit cette constante. Si ce chiffre est modifié ici, il
+ * doit d'abord être relevé côté Supabase (Dashboard → Storage → Settings,
+ * ou API Management), sinon les uploads échoueront quand même en 413
+ * au-delà de l'ancien plafond.
  */
-export const PLATFORM_MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
+export const PLATFORM_MAX_UPLOAD_BYTES = 1024 * 1024 * 1024;
 
 /**
  * Upload direct (XHR) avec suivi de progression réelle — supabase-js
