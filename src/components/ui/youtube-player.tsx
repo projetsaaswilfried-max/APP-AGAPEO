@@ -20,12 +20,14 @@ function formatTime(seconds: number): string {
 
 /**
  * Lecteur YouTube intégré (pas de rehébergement du fichier), avec des
- * contrôles maison plutôt que ceux natifs de YouTube : impossible d'avancer
- * la vidéo (pas de barre de progression cliquable, clavier désactivé), et
- * aucun bouton natif ne peut renvoyer vers YouTube (menu "...", logo,
- * suggestions) puisque leur barre de contrôle est entièrement masquée
- * (`controls: 0`). Une fois la vidéo terminée, un écran maison recouvre le
- * lecteur pour la même raison.
+ * contrôles maison plutôt que ceux natifs de YouTube : la barre de
+ * progression permet d'avancer/reculer (clic ou glisser), mais aucun bouton
+ * natif ne peut renvoyer vers YouTube (menu "...", logo, suggestions)
+ * puisque leur barre de contrôle est entièrement masquée (`controls: 0`).
+ * Une fois la vidéo terminée, un écran maison recouvre le lecteur pour la
+ * même raison. En pause, YouTube affiche son propre titre/nom de chaîne
+ * par-dessus la vidéo (impossible à désactiver côté YouTube) — accepté tel
+ * quel, pas de recouvrement pour ce cas-là.
  */
 export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlayerProps) {
   const elementId = `yt-player-${useId().replace(/:/g, "")}`;
@@ -33,6 +35,7 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
@@ -41,6 +44,8 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPercent, setDragPercent] = useState(0);
 
   useEffect(() => {
     if (!isPlaying || playerRef.current) return;
@@ -141,6 +146,34 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
     }
   };
 
+  const percentFromPointer = (clientX: number) => {
+    const bar = progressBarRef.current;
+    if (!bar) return 0;
+    const rect = bar.getBoundingClientRect();
+    return Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+  };
+
+  const handleSeekPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (duration <= 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setIsDragging(true);
+    setDragPercent(percentFromPointer(e.clientX));
+  };
+
+  const handleSeekPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setDragPercent(percentFromPointer(e.clientX));
+  };
+
+  const handleSeekPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const percent = percentFromPointer(e.clientX);
+    const seekTime = (percent / 100) * duration;
+    playerRef.current?.seekTo(seekTime, true);
+    setCurrentTime(seekTime);
+  };
+
   const handleToggleFullscreen = () => {
     if (document.fullscreenElement) {
       document.exitFullscreen();
@@ -149,7 +182,8 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
     }
   };
 
-  const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const progressPercent = isDragging ? dragPercent : duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const displayTime = isDragging ? (dragPercent / 100) * duration : currentTime;
 
   return (
     <div ref={wrapperRef} className={cn("relative w-full aspect-video bg-black", className)}>
@@ -174,28 +208,26 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
         </button>
       )}
 
-      {/* Recouvre l'iframe en pause : YouTube affiche son propre titre/nom de
-          chaîne par-dessus la vidéo dès qu'elle est en pause, même avec
-          controls: 0 — impossible à désactiver côté YouTube, donc on cache
-          l'iframe entièrement plutôt que de le laisser transparaître. */}
-      {isPlaying && isPaused && !hasEnded && (
-        <button
-          type="button"
-          onClick={handleTogglePlayPause}
-          aria-label="Lecture"
-          className="absolute inset-0 z-10 bg-black flex items-center justify-center"
-        >
-          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-white/90 hover:bg-white transition-colors">
-            <Play size={22} className="text-black fill-current ml-0.5" />
-          </div>
-        </button>
-      )}
-
       {isPlaying && !hasEnded && (
         <div className="absolute inset-x-0 bottom-0 z-20 px-3 pb-2 pt-6 bg-gradient-to-t from-black/80 to-transparent flex flex-col gap-1.5">
-          {/* Barre de progression purement visuelle — aucun pointer-events, impossible de cliquer ou glisser pour avancer. */}
-          <div className="h-1 w-full rounded-full bg-white/25 pointer-events-none overflow-hidden">
-            <div className="h-full bg-white rounded-full transition-[width] duration-200" style={{ width: `${progressPercent}%` }} />
+          {/* Barre de progression interactive — clic ou glisser pour avancer/reculer. */}
+          <div
+            ref={progressBarRef}
+            onPointerDown={handleSeekPointerDown}
+            onPointerMove={handleSeekPointerMove}
+            onPointerUp={handleSeekPointerUp}
+            className="group/bar relative h-1 w-full rounded-full bg-white/25 overflow-visible cursor-pointer touch-none py-1.5 -my-1.5"
+          >
+            <div className="h-1 w-full rounded-full bg-white/25 overflow-hidden">
+              <div
+                className={cn("h-full bg-white rounded-full", !isDragging && "transition-[width] duration-200")}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <div
+              className="absolute top-1/2 w-3 h-3 rounded-full bg-white shadow -translate-y-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100"
+              style={{ left: `${progressPercent}%`, opacity: isDragging ? 1 : undefined }}
+            />
           </div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -216,7 +248,7 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
                 {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
               </button>
               <span className="text-[11px] font-medium text-white/90 tabular-nums">
-                {formatTime(currentTime)} / {formatTime(duration)}
+                {formatTime(displayTime)} / {formatTime(duration)}
               </span>
             </div>
             <button

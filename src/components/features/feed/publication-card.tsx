@@ -133,7 +133,7 @@ export function PublicationCard({
       {/* Contenu Textuel de la Publication */}
       <CardContent className="px-5 py-2 space-y-4">
         {publication.title && (
-          <h2 className="text-lg font-display font-semibold tracking-tight text-foreground leading-snug">
+          <h2 className="text-lg font-display font-bold tracking-tight text-foreground leading-snug">
             {publication.title}
           </h2>
         )}

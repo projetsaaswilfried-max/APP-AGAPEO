@@ -2,6 +2,9 @@ import type { PostRow, PostCommentRow, PostMediaRow, ProfileRow } from "@/lib/su
 import type { FeedPublication, FeedComment, FeedCategory } from "@/domain/types/feed";
 import { getProfileBadges } from "@/domain/badges";
 
+/** Logo + cercle blanc pré-fusionnés (même image que le badge email) — avatar fixe de l'équipe, indépendant de qui a publié le post officiel. */
+const AGAPE_TEAM_AVATAR_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/v1/object/public/avatars/platform/agapeo-logo-email-badge.png";
+
 const CATEGORY_LABELS: Record<string, string> = {
   TEACHING: "Enseignement",
   TESTIMONY: "Témoignage",
@@ -58,7 +61,7 @@ export function mapPostRowToFeedPublication(row: PostRow, opts: MapPostOptions =
       id: row.author_id,
       name: authorName,
       role: row.post_type === "OFFICIAL" ? "Équipe éditoriale" : author?.profession || "Membre",
-      avatarUrl: author?.avatar_url ?? "",
+      avatarUrl: row.post_type === "OFFICIAL" ? AGAPE_TEAM_AVATAR_URL : (author?.avatar_url ?? ""),
       isOfficialTeam: row.post_type === "OFFICIAL",
       isVerified,
       badgeLabel: row.post_type === "OFFICIAL" ? "Officiel" : "Membre"
