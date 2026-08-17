@@ -55,7 +55,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
     >
       {/* Header Branding */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-border/40">
-        <AgapeoLogo href="/" size="sm" symbolOnly={isCollapsed} />
+        <AgapeoLogo href="/feed" size="sm" symbolOnly={isCollapsed} />
 
         {onToggleCollapse && (
           <button

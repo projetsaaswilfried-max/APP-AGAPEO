@@ -68,7 +68,7 @@ export function AppShell({ children }: AppShellProps) {
               className="fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border flex flex-col md:hidden select-none"
             >
               <div className="flex items-center justify-between h-16 px-4 border-b border-border/60">
-                <AgapeoLogo href="/" size="sm" />
+                <AgapeoLogo href="/feed" size="sm" />
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary"

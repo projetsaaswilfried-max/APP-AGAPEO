@@ -11,7 +11,7 @@ export const MAIN_NAVIGATION: NavigationItem[] = [
   {
     id: "feed",
     title: "Accueil",
-    href: "/",
+    href: "/feed",
     iconName: "Home",
     isExact: true
   },

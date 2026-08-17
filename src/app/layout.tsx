@@ -1,7 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/core/providers/app-provider";
 import { SITE_CONFIG } from "@/config/site";
+
+/** Serif d'accent réservée à la landing publique (titres) — le reste de l'app garde la pile sans-serif système. */
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-landing-serif",
+  display: "swap",
+  axes: ["opsz", "SOFT"]
+});
 
 export const metadata: Metadata = {
   title: {
@@ -25,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className="h-full antialiased">
+    <html lang="fr" className={`h-full antialiased ${fraunces.variable}`}>
       <body className="min-h-full bg-background text-foreground font-sans">
         <AppProvider>
           {children}

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/config/env";
 
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"];
+const PUBLIC_ROUTES = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"];
 
 function isPublicRoute(pathname: string) {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
@@ -43,8 +43,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && (pathname === "/login" || pathname === "/register")) {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (user && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
+    return NextResponse.redirect(new URL("/feed", request.url));
   }
 
   return response;
