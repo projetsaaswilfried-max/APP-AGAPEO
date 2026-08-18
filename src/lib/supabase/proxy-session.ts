@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/config/env";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/auth/callback"];
+const PUBLIC_ROUTES = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/auth/callback", "/cgv", "/politique-de-confidentialite", "/mentions-legales"];
 
 function isPublicRoute(pathname: string) {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));

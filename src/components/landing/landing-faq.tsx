@@ -1,74 +1,67 @@
-"use client";
-
-import { useState } from "react";
-import { ChevronDownIcon } from "@hugeicons/core-free-icons";
-import { HugeIcon } from "@/components/ui/hugeicon";
-import { motion, AnimatePresence } from "framer-motion";
-import { ScrollReveal } from "./scroll-reveal";
+import { Icon } from "@iconify/react";
 
 const FAQ_ITEMS = [
-  { q: "Qu'est-ce qu'AGAPEO ?", a: "Une plateforme sociale chrétienne qui aide les célibataires à découvrir des personnes compatibles en vue du mariage, tout en proposant des contenus pour mieux comprendre les relations et la vie à deux." },
-  { q: "À qui s'adresse la plateforme ?", a: "Aux célibataires chrétiens qui recherchent sérieusement un conjoint, dans une démarche orientée vers le mariage." },
-  { q: "Comment fonctionne la compatibilité ?", a: "Elle se base sur ce que vous partagez avec l'autre personne : vision du mariage, valeurs, foi, personnalité, projets de vie et centres d'intérêt." },
-  { q: "Puis-je discuter avec quelqu'un ?", a: "Oui, une messagerie privée moderne permet d'échanger du texte, des photos, des notes vocales et des documents." },
-  { q: "Comment protégez-vous les utilisateurs ?", a: "Profils vérifiés, signalement, blocage, modération et réglages de confidentialité sont intégrés à la plateforme." },
-  { q: "AGAPEO est-elle gratuite ?", a: "La création de profil et la découverte de base sont gratuites. Un abonnement Premium débloque des fonctionnalités supplémentaires." }
+  {
+    q: "AGAPEO est-il exclusivement réservé aux chrétiens ?",
+    a: "Oui. AGAPEO a été pensé pour permettre aux célibataires chrétiens de rencontrer des personnes qui partagent leur foi et souhaitent construire une relation sérieuse."
+  },
+  {
+    q: "Quelles confessions chrétiennes sont présentes ?",
+    a: "AGAPEO peut accueillir différentes sensibilités chrétiennes. Chaque membre peut préciser sa confession, son parcours et ses préférences directement dans son profil."
+  },
+  {
+    q: "AGAPEO est-il uniquement destiné au mariage ?",
+    a: "AGAPEO est destiné aux personnes ouvertes à une relation sérieuse et engagée. Il ne s'agit pas de précipiter un mariage, mais de favoriser des rencontres avec des intentions claires."
+  },
+  {
+    q: "Pourquoi renseigner des informations sur ma foi ?",
+    a: "Parce que « chrétien » peut représenter des réalités différentes pour chacun. Ces informations permettent de mieux comprendre les convictions et la manière de vivre la foi de chaque personne."
+  },
+  {
+    q: "Comment fonctionne la compatibilité ?",
+    a: "AGAPEO tient compte de plusieurs dimensions : foi, valeurs, personnalité, vision du couple, projet familial, centres d'intérêt et préférences personnelles."
+  },
+  {
+    q: "Est-ce gratuit ?",
+    a: "Tu peux créer ton profil et commencer à découvrir AGAPEO gratuitement. Certaines fonctionnalités supplémentaires sont accessibles avec AGAPEO+."
+  },
+  {
+    q: "Comment AGAPEO protège-t-il sa communauté ?",
+    a: "AGAPEO combine vérification, outils de confidentialité, signalement, blocage et modération afin de favoriser un environnement plus sain."
+  }
 ];
 
-function FaqItem({ question, answer, isOpen, onToggle }: { question: string; answer: string; isOpen: boolean; onToggle: () => void }) {
-  return (
-    <div className={`rounded-3xl border transition-all duration-300 ${isOpen ? "bg-card border-border/60 shadow-sm" : "bg-transparent border-transparent hover:bg-card/50"}`}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
-      >
-        <span className="text-sm sm:text-base font-medium text-foreground">{question}</span>
-        <div className={`flex items-center justify-center w-8 h-8 rounded-full transition-colors duration-300 ${isOpen ? "bg-primary text-primary-foreground" : "bg-accent-subtle text-primary"}`}>
-          <HugeIcon icon={ChevronDownIcon} size={16} className={`shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
-        </div>
-      </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden"
-          >
-            <p className="px-6 pb-6 pt-1 text-sm text-muted-foreground leading-relaxed">{answer}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
 export function LandingFaq() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
   return (
-    <section id="faq" className="py-20 sm:py-28">
-      <div className="max-w-2xl mx-auto px-5 sm:px-8">
-        <ScrollReveal className="text-center mb-12">
-          <span className="text-sm font-medium text-primary">FAQ</span>
-          <h2 className="mt-2 font-landing text-3xl sm:text-4xl font-medium tracking-tight text-foreground">
-            Questions fréquentes
+    <section id="faq" className="py-24 bg-white">
+      <div className="max-w-3xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <span className="text-xs font-light text-[#E83E75] tracking-widest uppercase mb-4 block">Questions fréquentes</span>
+          <h2 className="text-3xl md:text-4xl tracking-tight text-zinc-900 font-bricolage font-semibold">
+            Avant de rejoindre AGAPEO
           </h2>
-        </ScrollReveal>
+        </div>
 
-        <ScrollReveal delay={0.1} className="space-y-3">
+        <div className="space-y-4">
           {FAQ_ITEMS.map((item, i) => (
-            <FaqItem
+            <details
               key={item.q}
-              question={item.q}
-              answer={item.a}
-              isOpen={openIndex === i}
-              onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-            />
+              className="group bg-zinc-50 rounded-2xl border border-zinc-100 open:bg-white open:border-[#E83E75]/20 transition-colors"
+              open={i === 5}
+            >
+              <summary className="flex justify-between items-center font-light cursor-pointer p-6 text-zinc-900 group-open:text-[#E83E75] list-none [&::-webkit-details-marker]:hidden">
+                <span className="text-lg font-bricolage">{item.q}</span>
+                <Icon
+                  icon="solar:alt-arrow-down-linear"
+                  className="text-xl transition-transform group-open:rotate-180 shrink-0 ml-4"
+                  width={20}
+                  height={20}
+                />
+              </summary>
+              <div className="px-6 pb-6 text-zinc-500 font-light text-sm leading-relaxed">{item.a}</div>
+            </details>
           ))}
-        </ScrollReveal>
+        </div>
       </div>
     </section>
   );

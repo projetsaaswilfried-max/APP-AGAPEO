@@ -31,10 +31,20 @@ export function AccountMyPosts({ publications }: AccountMyPostsProps) {
     await feedService.toggleLike(id);
   };
 
-  const handleAddComment = async (publicationId: string, text: string) => {
-    const newComment = await feedService.addComment(publicationId, text);
+  const handleAddComment = async (publicationId: string, text: string, parentCommentId?: string) => {
+    const newComment = await feedService.addComment(publicationId, text, parentCommentId);
     setPosts((prev) =>
-      prev.map((p) => (p.id === publicationId ? { ...p, commentsCount: p.commentsCount + 1, comments: [newComment, ...p.comments] } : p))
+      prev.map((p) => {
+        if (p.id !== publicationId) return p;
+        if (!parentCommentId) {
+          return { ...p, commentsCount: p.commentsCount + 1, comments: [newComment, ...p.comments] };
+        }
+        return {
+          ...p,
+          commentsCount: p.commentsCount + 1,
+          comments: p.comments.map((c) => (c.id === parentCommentId ? { ...c, replies: [...(c.replies ?? []), newComment] } : c))
+        };
+      })
     );
   };
 

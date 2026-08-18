@@ -235,6 +235,7 @@ export interface PostCommentRow {
   id: string;
   post_id: string;
   author_id: string;
+  parent_comment_id: string | null;
   content: string;
   created_at: string;
 }
@@ -421,7 +422,11 @@ export interface Database {
       posts: Rel<PostRow, PostInsert, Partial<PostRow>>;
       post_media: Rel<PostMediaRow, Omit<PostMediaRow, "id">, Partial<PostMediaRow>>;
       post_likes: Rel<PostLikeRow, PostLikeRow, Partial<PostLikeRow>>;
-      post_comments: Rel<PostCommentRow, Pick<PostCommentRow, "post_id" | "author_id" | "content">, Partial<PostCommentRow>>;
+      post_comments: Rel<
+        PostCommentRow,
+        Pick<PostCommentRow, "post_id" | "author_id" | "content"> & Partial<Pick<PostCommentRow, "parent_comment_id">>,
+        Partial<PostCommentRow>
+      >;
       post_bookmarks: Rel<PostBookmarkRow, PostBookmarkRow, Partial<PostBookmarkRow>>;
       post_shares: Rel<{ id: string; post_id: string; user_id: string; created_at: string }, { post_id: string; user_id: string }, never>;
       conversations: Rel<ConversationRow, Partial<ConversationRow>, Partial<ConversationRow>>;

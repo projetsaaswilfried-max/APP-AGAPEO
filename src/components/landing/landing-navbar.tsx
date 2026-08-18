@@ -1,132 +1,106 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
-import { HugeIcon } from "@/components/ui/hugeicon";
-import { AgapeoLogo } from "@/components/ui/logo";
-import { Button } from "@/components/ui/button";
-import { TRANSITION_EASE } from "@/core/animations/variants";
+import { Icon } from "@iconify/react";
 
 const NAV_LINKS = [
-  { href: "#decouvrir", label: "Découvrir" },
-  { href: "#enseignements", label: "Enseignements" },
-  { href: "#securite", label: "Sécurité" },
-  { href: "#faq", label: "FAQ" }
+  { href: "/", label: "Accueil" },
+  { href: "#decouvrir", label: "Découvrir AGAPEO" },
+  { href: "#comment-ca-marche", label: "Comment ça marche" },
+  { href: "#tarifs", label: "Tarifs" }
 ];
 
 export function LandingNavbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 8);
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background/85 backdrop-blur-md border-b border-border/60" : "bg-transparent border-b border-transparent"
-      }`}
-    >
-      <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
-        <AgapeoLogo href="/" size="sm" />
+    <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-zinc-100/50">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between relative z-10">
+        {/* GAUCHE : Logo */}
+        <div className="flex items-center">
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/images/agapeo-logo-official.png" alt="Agapeo Logo" className="h-8 md:h-10 w-auto object-contain" />
+            <span className="text-xl tracking-tighter text-[#E83E75] font-bricolage font-semibold">AGAPEO</span>
+          </Link>
+        </div>
 
-        <nav className="hidden lg:flex items-center gap-1">
+        {/* CENTRE : Menu (centré entre le logo et les boutons) */}
+        <nav className="hidden lg:flex items-center justify-center gap-10">
           {NAV_LINKS.map((link) => (
             <a
-              key={link.href}
+              key={link.label}
               href={link.href}
-              className="px-3.5 py-2 text-sm font-medium text-foreground/70 hover:text-foreground rounded-full hover:bg-secondary/60 transition-colors"
+              className="text-sm font-light text-zinc-500 hover:text-zinc-900 transition-colors"
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden lg:flex items-center gap-2">
-          <Link href="/login">
-            <Button variant="ghost" size="sm">
-              Se connecter
-            </Button>
+        {/* DROITE : Boutons & Menu Mobile Toggle */}
+        <div className="flex items-center justify-end gap-6">
+          <Link href="/login" className="hidden lg:block text-sm font-light text-zinc-600 hover:text-zinc-900 transition-colors">
+            Se connecter
           </Link>
-          <Link href="/register">
-            <Button variant="primary" size="sm">
-              Créer mon profil
-            </Button>
+          <Link
+            href="/register"
+            className="hidden lg:flex bg-[#E83E75] text-white text-sm font-light px-5 py-2.5 rounded-full hover:bg-[#d42d62] transition-all shadow-sm shadow-[#E83E75]/20 items-center gap-2"
+          >
+            Rejoindre AGAPEO
+            <Icon icon="hugeicons:arrow-right-01" width={14} height={14} />
           </Link>
-        </div>
 
-        <button
-          type="button"
-          onClick={() => setIsMenuOpen(true)}
-          className="lg:hidden p-2 -mr-2 text-foreground rounded-full hover:bg-secondary/60"
-          aria-label="Ouvrir le menu"
-        >
-          <HugeIcon icon={Menu01Icon} size={22} />
-        </button>
+          {/* Hamburger Icon for Mobile */}
+          <button 
+            className="lg:hidden text-zinc-900 p-2 -mr-2"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle Menu"
+          >
+            <Icon icon={isMobileMenuOpen ? "solar:close-circle-linear" : "solar:hamburger-menu-linear"} width={28} height={28} />
+          </button>
+        </div>
       </div>
 
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-xs lg:hidden"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.25, ease: TRANSITION_EASE }}
-              className="fixed inset-x-3 top-3 z-50 bg-card border border-border/60 rounded-3xl shadow-soft p-5 lg:hidden"
+      {/* MOBILE MENU DROPDOWN OVERLAY */}
+      <div 
+        className={`lg:hidden absolute top-20 left-0 w-full bg-white border-b border-zinc-100 shadow-xl transition-all duration-300 ease-in-out origin-top ${
+          isMobileMenuOpen ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 pointer-events-none"
+        }`}
+      >
+        <div className="px-6 py-8 flex flex-col gap-6">
+          <nav className="flex flex-col gap-4">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className="text-lg font-medium text-zinc-800"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+          
+          <div className="flex flex-col gap-4 pt-6 border-t border-zinc-100">
+            <Link 
+              href="/login" 
+              className="text-center py-3.5 text-zinc-700 font-medium border border-zinc-200 rounded-full hover:bg-zinc-50"
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              <div className="flex items-center justify-between mb-5">
-                <AgapeoLogo href="/" size="sm" />
-                <button
-                  type="button"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-secondary"
-                  aria-label="Fermer"
-                >
-                  <HugeIcon icon={Cancel01Icon} size={20} />
-                </button>
-              </div>
-              <nav className="flex flex-col gap-1 mb-5">
-                {NAV_LINKS.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="px-3.5 py-3 text-sm font-medium text-foreground rounded-xl hover:bg-secondary/60 transition-colors"
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </nav>
-              <div className="flex flex-col gap-2">
-                <Link href="/register" className="w-full">
-                  <Button variant="primary" size="md" className="w-full">
-                    Créer mon profil
-                  </Button>
-                </Link>
-                <Link href="/login" className="w-full">
-                  <Button variant="ghost" size="md" className="w-full">
-                    Se connecter
-                  </Button>
-                </Link>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              Se connecter
+            </Link>
+            <Link 
+              href="/register" 
+              className="text-center py-3.5 bg-[#E83E75] text-white rounded-full font-medium shadow-sm shadow-[#E83E75]/30 flex items-center justify-center gap-2"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Rejoindre AGAPEO
+              <Icon icon="hugeicons:arrow-right-01" width={16} height={16} />
+            </Link>
+          </div>
+        </div>
+      </div>
     </header>
   );
 }

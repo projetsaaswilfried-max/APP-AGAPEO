@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { createOfficialPostAction, deleteOfficialPostAction } from "@/lib/actions/admin.actions";
+import { createOfficialPostAction, updateOfficialPostAction, deleteOfficialPostAction } from "@/lib/actions/admin.actions";
 import { uploadPostMedia, FileValidationError, PLATFORM_MAX_UPLOAD_BYTES } from "@/lib/storage";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { useSession } from "@/core/providers/session-provider";
-import { Camera, Video, SquarePlay, AlertCircle, Trash2, X } from "lucide-react";
+import { Camera, Video, SquarePlay, AlertCircle, Trash2, X, Pencil } from "lucide-react";
 import type { PostRow } from "@/lib/supabase/database.types";
 
 const PLATFORM_MAX_UPLOAD_MB = Math.round(PLATFORM_MAX_UPLOAD_BYTES / 1024 / 1024);
@@ -27,11 +27,13 @@ const CATEGORIES = [
 
 interface AdminPostComposerProps {
   initialPosts: PostRow[];
+  imageUrlByPost: Record<string, string>;
 }
 
-export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
+export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostComposerProps) {
   const { profile } = useSession();
   const [posts, setPosts] = useState(initialPosts);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("TEACHING");
@@ -42,11 +44,47 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
   const [isAddingYoutube, setIsAddingYoutube] = useState(false);
   const [youtubeInput, setYoutubeInput] = useState("");
   const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+  const [removeMedia, setRemoveMedia] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const resetForm = () => {
+    setEditingPostId(null);
+    setTitle("");
+    setContent("");
+    setCategory("TEACHING");
+    setImageFile(null);
+    setImagePreview(null);
+    setVideoFile(null);
+    setVideoPreview(null);
+    setRemoveMedia(false);
+    handleRemoveYoutube();
+  };
+
+  const handleEdit = (post: PostRow) => {
+    setError(null);
+    setEditingPostId(post.id);
+    setTitle(post.title ?? "");
+    setContent(post.content);
+    setCategory(post.category ?? "TEACHING");
+    setImageFile(null);
+    setVideoFile(null);
+    setRemoveMedia(false);
+    setIsAddingYoutube(false);
+    setYoutubeInput("");
+    setYoutubeVideoId(null);
+    setImagePreview(post.media_type === "IMAGE" ? imageUrlByPost[post.id] ?? null : null);
+    setVideoPreview(post.media_type === "VIDEO" ? post.video_url : null);
+    if (post.media_type === "YOUTUBE" && post.video_url) {
+      setIsAddingYoutube(true);
+      setYoutubeInput(`https://www.youtube.com/watch?v=${post.video_url}`);
+      setYoutubeVideoId(post.video_url);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,6 +126,11 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
     setYoutubeVideoId(null);
   };
 
+  const handleRemoveYoutubeMedia = () => {
+    handleRemoveYoutube();
+    setRemoveMedia(true);
+  };
+
   const handlePublish = async () => {
     if (!content.trim()) return;
     setIsSaving(true);
@@ -120,16 +163,21 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
         mediaKind = "YOUTUBE";
       }
 
-      const result = await createOfficialPostAction({ title: title || undefined, content, category, mediaKind, mediaUrl, mediaStoragePath });
+      const result = editingPostId
+        ? await updateOfficialPostAction({
+            postId: editingPostId,
+            title: title || undefined,
+            content,
+            category,
+            mediaKind,
+            mediaUrl,
+            mediaStoragePath,
+            removeMedia
+          })
+        : await createOfficialPostAction({ title: title || undefined, content, category, mediaKind, mediaUrl, mediaStoragePath });
       if (result.error) throw new Error(result.error);
 
-      setTitle("");
-      setContent("");
-      setImageFile(null);
-      setImagePreview(null);
-      setVideoFile(null);
-      setVideoPreview(null);
-      handleRemoveYoutube();
+      resetForm();
       window.location.reload();
     } catch (err) {
       setError(err instanceof FileValidationError || err instanceof Error ? err.message : "La publication a échoué.");
@@ -141,6 +189,7 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
 
   const handleDelete = async (postId: string) => {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
+    if (editingPostId === postId) resetForm();
     await deleteOfficialPostAction(postId);
   };
 
@@ -148,7 +197,7 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
     <div className="space-y-6">
       <Card variant="base">
         <CardHeader>
-          <CardTitle>Publier dans le fil officiel</CardTitle>
+          <CardTitle>{editingPostId ? "Modifier la publication" : "Publier dans le fil officiel"}</CardTitle>
           <CardDescription>Visible par tous les membres dans Accueil. Réservé à l&apos;équipe éditoriale.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -188,6 +237,7 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
                 onClick={() => {
                   setImageFile(null);
                   setImagePreview(null);
+                  setRemoveMedia(true);
                 }}
                 className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full"
               >
@@ -204,6 +254,7 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
                 onClick={() => {
                   setVideoFile(null);
                   setVideoPreview(null);
+                  setRemoveMedia(true);
                 }}
                 className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full"
               >
@@ -228,7 +279,7 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
                 />
                 <button
                   type="button"
-                  onClick={handleRemoveYoutube}
+                  onClick={handleRemoveYoutubeMedia}
                   className="shrink-0 p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary"
                 >
                   <X size={16} />
@@ -286,14 +337,19 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
             </div>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {editingPostId && (
+              <Button variant="outline" onClick={resetForm} disabled={isSaving}>
+                Annuler
+              </Button>
+            )}
             <Button
               variant="primary"
               onClick={handlePublish}
               isLoading={isSaving}
               disabled={!content.trim() || Boolean(youtubeInput.trim() && !youtubeVideoId)}
             >
-              Publier
+              {editingPostId ? "Enregistrer les modifications" : "Publier"}
             </Button>
           </div>
         </CardContent>
@@ -311,9 +367,14 @@ export function AdminPostComposer({ initialPosts }: AdminPostComposerProps) {
                 {post.title && <p className="text-sm font-semibold text-foreground">{post.title}</p>}
                 <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
               </div>
-              <Button variant="destructive" size="sm" onClick={() => handleDelete(post.id)} leftIcon={<Trash2 size={13} />}>
-                Supprimer
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleEdit(post)} leftIcon={<Pencil size={13} />}>
+                  Modifier
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => handleDelete(post.id)} leftIcon={<Trash2 size={13} />}>
+                  Supprimer
+                </Button>
+              </div>
             </div>
           ))}
         </CardContent>

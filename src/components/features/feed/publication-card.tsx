@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FeedPublication } from "@/domain/types/feed";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
@@ -12,6 +12,7 @@ import { CommentSection } from "./comment-section";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { feedService } from "@/domain/services/feed.service";
 import { linkifyText } from "@/lib/linkify";
+import { FacebookIcon, WhatsappIcon, TelegramIcon } from "@/components/ui/social-icons";
 import {
   Heart,
   MessageSquare,
@@ -28,7 +29,137 @@ interface PublicationCardProps {
   publication: FeedPublication;
   onLikeToggle: (id: string) => void;
   onBookmarkToggle: (id: string) => void;
-  onAddComment: (id: string, content: string) => void;
+  onAddComment: (id: string, content: string, parentCommentId?: string) => void;
+}
+
+interface OptionsMenuProps {
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onCopyLink: () => void;
+  onReport: () => void;
+}
+
+function OptionsMenu({ isOpen, onToggle, onClose, onCopyLink, onReport }: OptionsMenuProps) {
+  return (
+    <div className="relative">
+      <button
+        onClick={onToggle}
+        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
+        title="Options"
+      >
+        <MoreHorizontal size={18} />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={onClose} />
+          <div className="absolute right-0 mt-1 w-48 p-1 bg-card border border-border rounded-xl shadow-xl z-40 text-xs animate-in fade-in duration-150">
+            <button
+              onClick={onCopyLink}
+              className="w-full flex items-center gap-2 px-3 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors"
+            >
+              <Copy size={14} className="text-muted-foreground" />
+              <span>Copier le lien</span>
+            </button>
+            <button
+              onClick={onReport}
+              className="w-full flex items-center gap-2 px-3 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+            >
+              <Flag size={14} />
+              <span>Signaler le contenu</span>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+interface ShareMenuProps {
+  shareText: string;
+  sharesCount: number;
+  onCopyLink: () => void;
+  onPlatformShare: () => void;
+}
+
+function ShareMenu({ shareText, sharesCount, onCopyLink, onPlatformShare }: ShareMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openShareWindow = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer,width=600,height=600");
+    onPlatformShare();
+    setIsOpen(false);
+  };
+
+  const shareOnFacebook = () => {
+    const pageUrl = window.location.href;
+    openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`);
+  };
+
+  const shareOnWhatsapp = () => {
+    const pageUrl = window.location.href;
+    openShareWindow(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${pageUrl}`)}`);
+  };
+
+  const shareOnTelegram = () => {
+    const pageUrl = window.location.href;
+    openShareWindow(`https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(shareText)}`);
+  };
+
+  return (
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsOpen((open) => !open)}
+        className="gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+      >
+        <Share2 size={16} />
+        <span className="hidden sm:inline">{sharesCount}</span>
+      </Button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setIsOpen(false)} />
+          <div className="absolute left-0 bottom-full mb-1 w-56 p-1 bg-card border border-border rounded-xl shadow-xl z-40 text-xs animate-in fade-in duration-150">
+            <button
+              onClick={shareOnFacebook}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors"
+            >
+              <FacebookIcon size={15} className="text-[#1877F2] shrink-0" />
+              <span>Partager sur Facebook</span>
+            </button>
+            <button
+              onClick={shareOnWhatsapp}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors"
+            >
+              <WhatsappIcon size={15} className="text-[#25D366] shrink-0" />
+              <span>Partager sur WhatsApp</span>
+            </button>
+            <button
+              onClick={shareOnTelegram}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors"
+            >
+              <TelegramIcon size={15} className="text-[#26A5E4] shrink-0" />
+              <span>Partager sur Telegram</span>
+            </button>
+            <div className="my-1 border-t border-border/60" />
+            <button
+              onClick={() => {
+                onCopyLink();
+                setIsOpen(false);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors"
+            >
+              <Copy size={14} className="text-muted-foreground shrink-0" />
+              <span>Copier le lien</span>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function PublicationCard({
@@ -41,6 +172,26 @@ export function PublicationCard({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [isTextExpanded, setIsTextExpanded] = useState(false);
+  const [isTextTruncated, setIsTextTruncated] = useState(false);
+  const contentRef = useRef<HTMLParagraphElement>(null);
+
+  // Détecte si le texte dépasse 2 lignes pour n'afficher "Voir plus" que
+  // lorsque c'est réellement nécessaire (comme sur Facebook). Remesuré une
+  // fois la police du corps de texte chargée : tant qu'elle ne l'est pas,
+  // le navigateur affiche une police de secours aux métriques différentes,
+  // ce qui peut fausser le calcul du nombre de lignes réellement visibles.
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+
+    const measure = () => setIsTextTruncated(el.scrollHeight > el.clientHeight + 1);
+    measure();
+
+    if (typeof document !== "undefined" && document.fonts) {
+      document.fonts.ready.then(measure);
+    }
+  }, [publication.content]);
 
   const handleShare = () => {
     if (navigator.clipboard) {
@@ -51,8 +202,22 @@ export function PublicationCard({
     void feedService.recordShare(publication.id);
   };
 
+  const optionsMenuProps: OptionsMenuProps = {
+    isOpen: isMenuOpen,
+    onToggle: () => setIsMenuOpen((open) => !open),
+    onClose: () => setIsMenuOpen(false),
+    onCopyLink: () => {
+      handleShare();
+      setIsMenuOpen(false);
+    },
+    onReport: () => {
+      setIsReportOpen(true);
+      setIsMenuOpen(false);
+    }
+  };
+
   return (
-    <Card variant="base" className="overflow-hidden select-none transition-all">
+    <Card variant="base" className="select-none transition-all">
       {/* En-tête de publication : Auteur officiel, Badge, Date, Menu */}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 p-5 pb-4">
         <div className="flex items-center gap-3">
@@ -81,47 +246,7 @@ export function PublicationCard({
           </div>
         </div>
 
-        {/* Dropdown Menu Contextuel */}
-        <div className="relative">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-            title="Options"
-          >
-            <MoreHorizontal size={18} />
-          </button>
-
-          {isMenuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-30"
-                onClick={() => setIsMenuOpen(false)}
-              />
-              <div className="absolute right-0 mt-1 w-48 p-1 bg-card border border-border rounded-xl shadow-xl z-40 text-xs animate-in fade-in duration-150">
-                <button
-                  onClick={() => {
-                    handleShare();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors"
-                >
-                  <Copy size={14} className="text-muted-foreground" />
-                  <span>Copier le lien</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setIsReportOpen(true);
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                >
-                  <Flag size={14} />
-                  <span>Signaler le contenu</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <OptionsMenu {...optionsMenuProps} />
       </CardHeader>
 
       {shareCopied && (
@@ -130,8 +255,8 @@ export function PublicationCard({
         </div>
       )}
 
-      {/* Contenu Textuel de la Publication */}
-      <CardContent className="px-5 py-2 space-y-4">
+      {/* Titre + texte de la publication, tronqué avec "Voir plus" façon Facebook */}
+      <CardContent className="px-5 pt-1 pb-3 space-y-2">
         {publication.title && (
           <h2 className="text-lg font-display font-bold tracking-tight text-foreground leading-snug">
             {publication.title}
@@ -152,52 +277,69 @@ export function PublicationCard({
             )}
           </div>
         ) : (
-          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
-            {linkifyText(publication.content)}
-          </p>
-        )}
-
-        {/* Médias : Image unique, Galerie Photo, ou Vidéo */}
-        {publication.mediaType === "IMAGE" && publication.images && publication.images[0] && (
-          <div className="rounded-2xl overflow-hidden border border-border/60 shadow-2xs bg-secondary flex items-center justify-center max-h-[32rem]">
-            <img
-              src={publication.images[0].url}
-              alt="Illustration"
-              className="w-full h-auto max-h-[32rem] object-contain"
-            />
-          </div>
-        )}
-
-        {publication.mediaType === "GALLERY" && publication.images && (
-          <MediaGallery photos={publication.images} />
-        )}
-
-        {publication.mediaType === "VIDEO" && publication.videoUrl && (
-          <div className="rounded-2xl overflow-hidden border border-border/60 shadow-2xs bg-black">
-            {/* controlsList="nodownload" + blocage du clic droit retirent le
-                bouton de téléchargement natif et le "Enregistrer la vidéo
-                sous..." du menu contextuel — un frein pour un visiteur
-                occasionnel, pas une protection DRM réelle : l'URL du fichier
-                reste publique (bucket post-media public en lecture). */}
-            <video
-              src={publication.videoUrl}
-              poster={publication.videoThumbnail}
-              controls
-              controlsList="nodownload noremoteplayback"
-              disablePictureInPicture
-              onContextMenu={(e) => e.preventDefault()}
-              preload="metadata"
-              className="w-full max-h-[32rem]"
-            />
-          </div>
-        )}
-
-        {publication.mediaType === "YOUTUBE" && publication.videoUrl && (
-          <div className="rounded-2xl overflow-hidden border border-border/60 shadow-2xs">
-            <YouTubePlayer videoId={publication.videoUrl} thumbnailUrl={publication.videoThumbnail} />
+          <div>
+            <p
+              ref={contentRef}
+              className={cn(
+                "text-sm text-foreground/90 leading-relaxed whitespace-pre-line",
+                !isTextExpanded && "line-clamp-2"
+              )}
+            >
+              {linkifyText(publication.content)}
+            </p>
+            {isTextTruncated && (
+              <button
+                type="button"
+                onClick={() => setIsTextExpanded((expanded) => !expanded)}
+                className="mt-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+              >
+                {isTextExpanded ? "Voir moins" : "Voir plus"}
+              </button>
+            )}
           </div>
         )}
       </CardContent>
+
+      {/* Média : image, galerie, vidéo ou YouTube — pleine largeur façon Facebook */}
+      {publication.mediaType === "IMAGE" && publication.images && publication.images[0] && (
+        <div className="bg-secondary flex items-center justify-center max-h-[32rem] overflow-hidden">
+          <img
+            src={publication.images[0].url}
+            alt="Illustration"
+            className="w-full h-auto max-h-[32rem] object-contain"
+          />
+        </div>
+      )}
+
+      {publication.mediaType === "GALLERY" && publication.images && (
+        <div className="px-3 pb-3">
+          <MediaGallery photos={publication.images} />
+        </div>
+      )}
+
+      {publication.mediaType === "VIDEO" && publication.videoUrl && (
+        <div className="bg-black">
+          {/* controlsList="nodownload" + blocage du clic droit retirent le
+              bouton de téléchargement natif et le "Enregistrer la vidéo
+              sous..." du menu contextuel — un frein pour un visiteur
+              occasionnel, pas une protection DRM réelle : l'URL du fichier
+              reste publique (bucket post-media public en lecture). */}
+          <video
+            src={publication.videoUrl}
+            poster={publication.videoThumbnail}
+            controls
+            controlsList="nodownload noremoteplayback"
+            disablePictureInPicture
+            onContextMenu={(e) => e.preventDefault()}
+            preload="metadata"
+            className="w-full max-h-[32rem]"
+          />
+        </div>
+      )}
+
+      {publication.mediaType === "YOUTUBE" && publication.videoUrl && (
+        <YouTubePlayer videoId={publication.videoUrl} thumbnailUrl={publication.videoThumbnail} />
+      )}
 
       {/* Barre d'Actions & Compteurs */}
       <CardFooter className="px-5 py-3 border-t border-border/40 flex flex-col space-y-3">
@@ -234,15 +376,12 @@ export function PublicationCard({
             </Button>
 
             {/* Bouton Partager */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleShare}
-              className="gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              <Share2 size={16} />
-              <span className="hidden sm:inline">{publication.sharesCount}</span>
-            </Button>
+            <ShareMenu
+              shareText={publication.title || publication.content.slice(0, 100)}
+              sharesCount={publication.sharesCount}
+              onCopyLink={handleShare}
+              onPlatformShare={() => void feedService.recordShare(publication.id)}
+            />
           </div>
 
           {/* Bouton Enregistrer (Bookmark) */}
@@ -265,13 +404,15 @@ export function PublicationCard({
           </Button>
         </div>
 
-        {/* Section Commentaires dépliante */}
+        {/* Section Commentaires dépliante — marge horizontale du footer annulée pour lui laisser plus de largeur */}
         {showComments && (
-          <CommentSection
-            publicationId={publication.id}
-            comments={publication.comments}
-            onAddComment={(content) => onAddComment(publication.id, content)}
-          />
+          <div className="w-full -mx-5">
+            <CommentSection
+              publicationId={publication.id}
+              comments={publication.comments}
+              onAddComment={(content, parentCommentId) => onAddComment(publication.id, content, parentCommentId)}
+            />
+          </div>
         )}
       </CardFooter>
 

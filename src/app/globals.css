@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Product Sans';
+  src: url('/fonts/ProductSans-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     /* Palette Nouvelle Identité Visuelle (Inspiration Airbnb / Modern SaaS) */
@@ -80,10 +88,11 @@
 }
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* Réservée à la landing publique (titres) — cf. layout.tsx (next/font). */
+  --font-sans: "Product Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Product Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Réservées à la landing publique (titres) — cf. layout.tsx (next/font). */
   --font-landing: var(--font-landing-serif), Georgia, serif;
+  --font-bricolage: var(--font-landing-heading), -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
 
   --text-xs: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
   --text-xs--line-height: 1.4;
@@ -138,6 +147,8 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  font-weight: 300;
   font-feature-settings: "rlig" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -153,6 +164,56 @@ body {
 }
 .text-\[11px\] {
   font-size: 0.8125rem !important;
+}
+
+/* Ouverture douce du contenu d'une question FAQ (landing publique). */
+@keyframes landing-faq-sweep {
+  0% { opacity: 0; margin-top: -10px; }
+  100% { opacity: 1; margin-top: 0; }
+}
+details[open] summary ~ div {
+  animation: landing-faq-sweep 0.3s ease-in-out;
+}
+
+/* Animations de flottement pour les éléments décoratifs (bulles de coeur) */
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-20px) scale(1.05); opacity: 0.9; }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.5; }
+  50% { transform: translateY(-15px) scale(1.1) rotate(5deg); opacity: 0.8; }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float-delayed 7s ease-in-out infinite 2s;
+}
+.animate-float-slow {
+  animation: float 8s ease-in-out infinite 1s;
+}
+
+/* Défilement horizontal infini du bandeau de témoignages (landing publique). */
+@keyframes landing-slide-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes landing-slide-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+.landing-marquee-left {
+  animation: landing-slide-left 40s linear infinite;
+  width: max-content;
+}
+.landing-marquee-right {
+  animation: landing-slide-right 40s linear infinite;
+  width: max-content;
+}
+.landing-marquee-group:hover .landing-marquee-left,
+.landing-marquee-group:hover .landing-marquee-right {
+  animation-play-state: paused;
 }
 
 /* Custom Scrollbars Discrètes SaaS */

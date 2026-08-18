@@ -72,6 +72,65 @@ export async function createOfficialPostAction(input: unknown) {
   return { success: true };
 }
 
+const UpdateOfficialPostSchema = OfficialPostSchema.extend({
+  postId: z.string().uuid(),
+  removeMedia: z.boolean().optional()
+});
+
+/**
+ * Modification d'une publication officielle existante. Même barrière de
+ * sécurité que la création (`posts_update` exige ADMIN/MODERATOR/SUPER_ADMIN
+ * côté RLS). Si `mediaKind`/`mediaUrl` sont absents et `removeMedia` est
+ * faux, le média existant n'est pas touché (édition texte seule).
+ */
+export async function updateOfficialPostAction(input: unknown) {
+  const parsed = UpdateOfficialPostSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  const { postId, title, content, category, mediaKind, mediaUrl, mediaStoragePath, removeMedia } = parsed.data;
+
+  const isVideo = mediaKind === "VIDEO" && Boolean(mediaUrl);
+  const isImage = mediaKind === "IMAGE" && Boolean(mediaUrl);
+
+  const youtubeVideoId = mediaKind === "YOUTUBE" && mediaUrl ? extractYouTubeVideoId(mediaUrl) : null;
+  if (mediaKind === "YOUTUBE" && mediaUrl && !youtubeVideoId) {
+    return { error: "Lien YouTube invalide." };
+  }
+
+  const updatePayload: Record<string, unknown> = { title: title || null, content, category };
+
+  const mediaChanged = isVideo || isImage || Boolean(youtubeVideoId) || removeMedia;
+  if (isVideo || isImage || youtubeVideoId) {
+    updatePayload.media_type = isVideo ? "VIDEO" : isImage ? "IMAGE" : "YOUTUBE";
+    updatePayload.video_url = isVideo ? mediaUrl : youtubeVideoId;
+    updatePayload.video_thumbnail = youtubeVideoId ? getYouTubeThumbnailUrl(youtubeVideoId) : null;
+  } else if (removeMedia) {
+    updatePayload.media_type = "TEXT_ONLY";
+    updatePayload.video_url = null;
+    updatePayload.video_thumbnail = null;
+  }
+
+  const { error } = await supabase.from("posts").update(updatePayload).eq("id", postId).eq("post_type", "OFFICIAL");
+  if (error) return { error: error.message };
+
+  if (mediaChanged) {
+    await supabase.from("post_media").delete().eq("post_id", postId);
+  }
+  if (isImage && mediaUrl && mediaStoragePath) {
+    await supabase.from("post_media").insert({ post_id: postId, url: mediaUrl, storage_path: mediaStoragePath, position: 0 });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/posts");
+  return { success: true };
+}
+
 export async function deleteOfficialPostAction(postId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("posts").delete().eq("id", postId).eq("post_type", "OFFICIAL");

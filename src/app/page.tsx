@@ -1,31 +1,35 @@
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { LandingHero } from "@/components/landing/landing-hero";
-import { LandingServices } from "@/components/landing/landing-services";
-import { LandingDiscoverShowcase } from "@/components/landing/landing-discover-showcase";
-import { LandingStats } from "@/components/landing/landing-stats";
+import { LandingDiscoverIntro } from "@/components/landing/landing-discover-intro";
+import { LandingWhyAgapeo } from "@/components/landing/landing-why-agapeo";
+import { LandingCompatibility } from "@/components/landing/landing-compatibility";
+import { LandingProfileShowcase } from "@/components/landing/landing-profile-showcase";
 import { LandingHowItWorks } from "@/components/landing/landing-how-it-works";
-import { LandingTeachings } from "@/components/landing/landing-teachings";
-import { LandingTrustSecurity } from "@/components/landing/landing-trust-security";
+import { LandingEmotional } from "@/components/landing/landing-emotional";
+import { LandingSecurity } from "@/components/landing/landing-security";
+import { LandingPricing } from "@/components/landing/landing-pricing";
 import { LandingTestimonials } from "@/components/landing/landing-testimonials";
+import { LandingVerse } from "@/components/landing/landing-verse";
 import { LandingFaq } from "@/components/landing/landing-faq";
-import { LandingFinalCta } from "@/components/landing/landing-final-cta";
 import { LandingFooter } from "@/components/landing/landing-footer";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-white text-zinc-800 antialiased selection:bg-[#E83E75]/20 selection:text-[#E83E75] overflow-x-hidden">
       <LandingNavbar />
       <main>
         <LandingHero />
-        <LandingServices />
-        <LandingDiscoverShowcase />
-        <LandingStats />
+        <LandingDiscoverIntro />
+        <LandingWhyAgapeo />
+        <LandingCompatibility />
+        <LandingProfileShowcase />
         <LandingHowItWorks />
-        <LandingTeachings />
-        <LandingTrustSecurity />
+        <LandingEmotional />
+        <LandingSecurity />
+        <LandingPricing />
         <LandingTestimonials />
+        <LandingVerse />
         <LandingFaq />
-        <LandingFinalCta />
       </main>
       <LandingFooter />
     </div>

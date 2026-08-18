@@ -1,6 +1,6 @@
 import { FeedPublication, FeedCategory, FeedComment } from "../types/feed";
 import { createClient } from "@/lib/supabase/client";
-import { mapPostRowToFeedPublication, mapCommentRow } from "@/domain/mappers/feed.mapper";
+import { mapPostRowToFeedPublication, mapCommentRow, buildCommentTree } from "@/domain/mappers/feed.mapper";
 import { uploadPostMedia, PLATFORM_MAX_UPLOAD_BYTES } from "@/lib/storage";
 import type { PostRow, ProfileRow, PostCommentRow, PostMediaRow } from "@/lib/supabase/database.types";
 
@@ -18,7 +18,7 @@ export interface IFeedService {
   deletePublication(id: string): Promise<void>;
   toggleLike(id: string): Promise<FeedPublication>;
   toggleBookmark(id: string): Promise<FeedPublication>;
-  addComment(publicationId: string, content: string): Promise<FeedComment>;
+  addComment(publicationId: string, content: string, parentCommentId?: string): Promise<FeedComment>;
   recordShare(id: string): Promise<void>;
 }
 
@@ -44,17 +44,28 @@ class FeedServiceSupabase implements IFeedService {
     ]);
 
     const authorsById = new Map<string, ProfileRow>((authors ?? []).map((a: ProfileRow) => [a.id, a]));
+
+    // Les commentaires peuvent être écrits par n'importe quel membre, pas seulement les
+    // auteurs des posts déjà chargés ci-dessus — on complète la map avec les profils manquants.
+    const missingCommentAuthorIds = [...new Set((comments ?? []).map((c: PostCommentRow) => c.author_id))].filter(
+      (id) => !authorsById.has(id)
+    );
+    if (missingCommentAuthorIds.length > 0) {
+      const { data: commentAuthors } = await supabase.from("profiles").select("*").in("id", missingCommentAuthorIds);
+      (commentAuthors ?? []).forEach((a: ProfileRow) => authorsById.set(a.id, a));
+    }
+
     const mediaByPost = new Map<string, PostMediaRow[]>();
     (media ?? []).forEach((m: PostMediaRow) => {
       const list = mediaByPost.get(m.post_id) ?? [];
       list.push(m);
       mediaByPost.set(m.post_id, list);
     });
-    const commentsByPost = new Map<string, FeedComment[]>();
+    const commentRowsByPost = new Map<string, PostCommentRow[]>();
     (comments ?? []).forEach((c: PostCommentRow) => {
-      const list = commentsByPost.get(c.post_id) ?? [];
-      list.push(mapCommentRow(c, authorsById.get(c.author_id)));
-      commentsByPost.set(c.post_id, list);
+      const list = commentRowsByPost.get(c.post_id) ?? [];
+      list.push(c);
+      commentRowsByPost.set(c.post_id, list);
     });
     const likedSet = new Set((likes ?? []).map((l: { post_id: string }) => l.post_id));
     const bookmarkedSet = new Set((bookmarks ?? []).map((b: { post_id: string }) => b.post_id));
@@ -63,7 +74,7 @@ class FeedServiceSupabase implements IFeedService {
       mapPostRowToFeedPublication(row, {
         author: authorsById.get(row.author_id),
         media: mediaByPost.get(row.id),
-        comments: commentsByPost.get(row.id),
+        comments: buildCommentTree(commentRowsByPost.get(row.id) ?? [], authorsById),
         hasLiked: likedSet.has(row.id),
         isBookmarked: bookmarkedSet.has(row.id)
       })
@@ -218,7 +229,7 @@ class FeedServiceSupabase implements IFeedService {
     return hydrated;
   }
 
-  async addComment(publicationId: string, content: string): Promise<FeedComment> {
+  async addComment(publicationId: string, content: string, parentCommentId?: string): Promise<FeedComment> {
     const supabase = createClient();
     const {
       data: { user }
@@ -227,7 +238,7 @@ class FeedServiceSupabase implements IFeedService {
 
     const { data, error } = await supabase
       .from("post_comments")
-      .insert({ post_id: publicationId, author_id: user.id, content })
+      .insert({ post_id: publicationId, author_id: user.id, content, parent_comment_id: parentCommentId ?? null })
       .select()
       .single();
 

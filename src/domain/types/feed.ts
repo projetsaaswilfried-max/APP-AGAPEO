@@ -34,6 +34,7 @@ export interface FeedComment {
   createdAt: string;
   likesCount: number;
   isLiked?: boolean;
+  parentCommentId?: string;
   replies?: FeedComment[];
 }
 

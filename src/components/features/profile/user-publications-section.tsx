@@ -47,10 +47,20 @@ export function UserPublicationsSection({ userName, publications, isOwner = fals
     await feedService.toggleBookmark(id);
   };
 
-  const handleAddComment = async (publicationId: string, text: string) => {
-    const newComment = await feedService.addComment(publicationId, text);
+  const handleAddComment = async (publicationId: string, text: string, parentCommentId?: string) => {
+    const newComment = await feedService.addComment(publicationId, text, parentCommentId);
     setItems((prev) =>
-      prev.map((pub) => (pub.id === publicationId ? { ...pub, commentsCount: pub.commentsCount + 1, comments: [newComment, ...pub.comments] } : pub))
+      prev.map((pub) => {
+        if (pub.id !== publicationId) return pub;
+        if (!parentCommentId) {
+          return { ...pub, commentsCount: pub.commentsCount + 1, comments: [newComment, ...pub.comments] };
+        }
+        return {
+          ...pub,
+          commentsCount: pub.commentsCount + 1,
+          comments: pub.comments.map((c) => (c.id === parentCommentId ? { ...c, replies: [...(c.replies ?? []), newComment] } : c))
+        };
+      })
     );
   };
 

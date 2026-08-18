@@ -1,49 +1,46 @@
-"use client";
-
-import { ScrollReveal } from "./scroll-reveal";
+import Link from "next/link";
 
 const STEPS = [
-  { number: "01", title: "Créez votre profil", description: "Foi, valeurs, personnalité et vision du mariage." },
-  { number: "02", title: "Définissez ce que vous recherchez", description: "Des critères clairs pour de bonnes recommandations." },
-  { number: "03", title: "Découvrez des profils compatibles", description: "Une sélection basée sur ce qui compte vraiment." },
-  { number: "04", title: "Commencez une conversation", description: "À votre rythme, sans pression." }
+  { number: "01", title: "Présente qui tu es vraiment", description: "Parle de toi, de tes passions, de ton parcours avec Dieu, de tes valeurs et de la personne que tu aimerais rencontrer." },
+  { number: "02", title: "Découvre des célibataires", description: "Explore des profils qui correspondent à tes préférences, tes convictions et ta manière d'envisager une relation." },
+  { number: "03", title: "Fais connaissance", description: "Une personne retient ton attention ? Découvre vos points communs et engage une conversation sincère." },
+  { number: "04", title: "Avance avec intention", description: "Prenez le temps de vous découvrir, de prier, de parler de vos projets et de discerner si vos chemins continuent ensemble." }
 ];
 
 export function LandingHowItWorks() {
   return (
-    <section id="comment-ca-marche" className="py-20 sm:py-28 bg-accent-subtle/30">
-      <div className="max-w-4xl mx-auto px-5 sm:px-8">
-        <ScrollReveal className="text-center max-w-xl mx-auto mb-16">
-          <span className="text-sm font-medium text-primary">Comment ça marche</span>
-          <h2 className="mt-2 font-landing text-3xl sm:text-4xl font-medium tracking-tight text-foreground">
-            Quatre étapes, un vrai départ
+    <section id="comment-ca-marche" className="py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <span className="text-xs font-light text-[#E83E75] tracking-widest uppercase mb-4 block">
+            Une rencontre peut commencer ici
+          </span>
+          <h2 className="text-3xl md:text-5xl tracking-tight text-zinc-900 leading-tight font-bricolage font-semibold">
+            Fais le premier pas. Laisse Dieu écrire la suite.
           </h2>
-        </ScrollReveal>
+        </div>
 
-        <div className="relative">
-          {/* Vertical Line */}
-          <div className="absolute left-8 sm:left-1/2 top-4 bottom-4 w-px bg-border/80 -translate-x-1/2" />
-          
-          <div className="space-y-12">
-            {STEPS.map((step, i) => (
-              <ScrollReveal key={step.number} delay={i * 0.1} className="relative flex flex-col sm:flex-row items-start sm:items-center gap-8">
-                {/* Timeline Number Circle */}
-                <div className={`absolute left-8 sm:left-1/2 top-0 -translate-x-1/2 flex items-center justify-center w-12 h-12 rounded-full bg-card border-2 border-primary/20 text-primary font-landing text-lg font-medium shadow-sm z-10`}>
-                  {step.number}
-                </div>
-                
-                <div className={`w-full pl-20 sm:pl-0 sm:w-1/2 ${i % 2 === 0 ? "sm:pr-16 sm:text-right" : "sm:pl-16 sm:order-last"}`}>
-                  <div className="p-6 rounded-3xl bg-card border border-border/40 hover:border-primary/20 transition-colors shadow-sm">
-                    <h3 className="text-base font-semibold text-foreground leading-snug">{step.title}</h3>
-                    <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">{step.description}</p>
-                  </div>
-                </div>
-                
-                {/* Empty space for alternating layout */}
-                <div className="hidden sm:block sm:w-1/2" />
-              </ScrollReveal>
-            ))}
-          </div>
+        <div className="grid md:grid-cols-4 gap-8 relative">
+          <div className="hidden md:block absolute top-8 left-12 right-12 h-px bg-zinc-200 -z-10" />
+
+          {STEPS.map((step) => (
+            <div key={step.number} className="relative group">
+              <div className="w-16 h-16 rounded-full bg-white border border-zinc-100 shadow-sm flex items-center justify-center text-[#E83E75] group-hover:bg-[#E83E75] group-hover:text-white group-hover:border-[#E83E75] transition-colors duration-300 text-xl leading-none mb-6 mx-auto md:mx-0 font-bricolage font-light">
+                {step.number}
+              </div>
+              <h3 className="font-medium text-lg text-zinc-900 mb-3 text-center md:text-left">{step.title}</h3>
+              <p className="text-sm text-zinc-500 font-light text-center md:text-left">{step.description}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-16 text-center">
+          <Link
+            href="/register"
+            className="inline-flex bg-[#E83E75] text-white text-base font-light px-8 py-4 rounded-full hover:bg-[#d42d62] transition-all shadow-md shadow-[#E83E75]/20"
+          >
+            Créer mon profil
+          </Link>
         </div>
       </div>
     </section>

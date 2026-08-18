@@ -38,8 +38,36 @@ export function mapCommentRow(row: PostCommentRow, author: ProfileRow | undefine
     isOfficialResponse: author?.is_staff === true,
     content: row.content,
     createdAt: formatRelativeDate(row.created_at),
-    likesCount: 0
+    likesCount: 0,
+    parentCommentId: row.parent_comment_id ?? undefined
   };
+}
+
+/** Reconstruit l'arbre commentaires/réponses à partir des lignes brutes d'un post : les
+ * commentaires racine gardent l'ordre de la requête (récents d'abord), leurs réponses sont
+ * re-triées chronologiquement (plus anciennes d'abord) pour lire comme une conversation. */
+export function buildCommentTree(rows: PostCommentRow[], authorsById: Map<string, ProfileRow>): FeedComment[] {
+  const repliesByParent = new Map<string, PostCommentRow[]>();
+  const topLevelRows: PostCommentRow[] = [];
+
+  rows.forEach((row) => {
+    if (row.parent_comment_id) {
+      const list = repliesByParent.get(row.parent_comment_id) ?? [];
+      list.push(row);
+      repliesByParent.set(row.parent_comment_id, list);
+    } else {
+      topLevelRows.push(row);
+    }
+  });
+
+  return topLevelRows.map((row) => {
+    const comment = mapCommentRow(row, authorsById.get(row.author_id));
+    const replyRows = (repliesByParent.get(row.id) ?? []).sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    comment.replies = replyRows.map((r) => mapCommentRow(r, authorsById.get(r.author_id)));
+    return comment;
+  });
 }
 
 interface MapPostOptions {

@@ -66,18 +66,22 @@ export default function HomePage() {
     await feedService.toggleBookmark(id);
   };
 
-  const handleAddComment = async (publicationId: string, content: string) => {
-    const newComment = await feedService.addComment(publicationId, content);
+  const handleAddComment = async (publicationId: string, content: string, parentCommentId?: string) => {
+    const newComment = await feedService.addComment(publicationId, content, parentCommentId);
     setPublications((prev) =>
-      prev.map((pub) =>
-        pub.id === publicationId
-          ? {
-              ...pub,
-              commentsCount: pub.commentsCount + 1,
-              comments: [newComment, ...pub.comments]
-            }
-          : pub
-      )
+      prev.map((pub) => {
+        if (pub.id !== publicationId) return pub;
+        if (!parentCommentId) {
+          return { ...pub, commentsCount: pub.commentsCount + 1, comments: [newComment, ...pub.comments] };
+        }
+        return {
+          ...pub,
+          commentsCount: pub.commentsCount + 1,
+          comments: pub.comments.map((c) =>
+            c.id === parentCommentId ? { ...c, replies: [...(c.replies ?? []), newComment] } : c
+          )
+        };
+      })
     );
   };
 

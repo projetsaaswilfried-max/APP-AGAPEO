@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces } from "next/font/google";
+import { Fraunces, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/core/providers/app-provider";
 import { SITE_CONFIG } from "@/config/site";
@@ -10,6 +10,13 @@ const fraunces = Fraunces({
   variable: "--font-landing-serif",
   display: "swap",
   axes: ["opsz", "SOFT"]
+});
+
+/** Titres de la landing publique (refonte) — le reste de l'app garde la pile sans-serif système. */
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-landing-heading",
+  display: "swap"
 });
 
 export const metadata: Metadata = {
@@ -34,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`h-full antialiased ${fraunces.variable}`}>
+    <html lang="fr" className={`h-full antialiased ${fraunces.variable} ${bricolage.variable}`}>
       <body className="min-h-full bg-background text-foreground font-sans">
         <AppProvider>
           {children}

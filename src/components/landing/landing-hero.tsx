@@ -1,131 +1,120 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { BadgeCheckIcon, FavouriteIcon } from "@hugeicons/core-free-icons";
-import { HugeIcon } from "@/components/ui/hugeicon";
-import { Button } from "@/components/ui/button";
-import { AgapeoSymbol } from "@/components/ui/logo";
-import { TRANSITION_EASE } from "@/core/animations/variants";
-import { DecorativeBlob, ScatterDots } from "./signature-motif";
+import Image from "next/image";
+import { Icon } from "@iconify/react";
 
-const COMMON_VALUES = ["Foi chrétienne", "Projet familial", "Sincérité"];
+const TRUST_ITEMS = [
+  { icon: "solar:check-circle-linear", label: "Profils vérifiés" },
+  { icon: "solar:users-group-rounded-linear", label: "Célibataires chrétiens" },
+  { icon: "solar:wallet-2-linear", label: "Inscription gratuite" }
+];
 
 export function LandingHero() {
   return (
-    <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden">
-      <div className="relative max-w-6xl mx-auto px-5 sm:px-8">
-        <div className="grid lg:grid-cols-2 gap-14 items-center">
-          {/* Colonne texte */}
-          <div className="text-center lg:text-left">
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: TRANSITION_EASE }}
-              className="text-sm font-medium text-primary mb-3"
-            >
-              Bienvenue sur AGAPEO
-            </motion.p>
+    <section className="relative mx-4 md:mx-[40px] mt-[100px] pt-24 pb-24 md:pt-36 md:pb-32 overflow-hidden bg-[#E83E75] rounded-[30px]">
+      {/* Abstract pink gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#E83E75] via-[#e6356f] to-[#cc1c54] z-0" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/20 blur-[120px] rounded-full z-0 pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-black/10 blur-[120px] rounded-full z-0 pointer-events-none" />
 
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.05, ease: TRANSITION_EASE }}
-              className="font-landing text-4xl sm:text-5xl lg:text-[3.4rem] font-medium tracking-tight text-foreground leading-[1.1]"
-            >
-              La bonne rencontre commence par les <span className="text-primary">bonnes valeurs</span>
-            </motion.h1>
+      {/* Bulles de coeur - GAUCHE (Femme) */}
+      {/* Bulle DEVANT (z-[6]) */}
+      <div className="absolute top-[20%] md:top-[30%] left-[5%] md:left-[10%] w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] flex items-center justify-center animate-float z-[6] pointer-events-none">
+        <Icon icon="solar:heart-bold" className="text-white/60 md:text-white/80 text-2xl md:text-3xl" />
+      </div>
+      {/* Bulle DERRIERE (z-[4]) */}
+      <div className="absolute top-[28%] md:top-[38%] left-[8%] md:left-[14%] w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] flex items-center justify-center animate-float-delayed z-[4] pointer-events-none">
+        <Icon icon="solar:heart-bold" className="text-white/30 md:text-white/50 text-xl md:text-2xl" />
+      </div>
+      {/* Bulle DEVANT (z-[6]) */}
+      <div className="absolute top-[36%] md:top-[46%] left-[4%] md:left-[9%] w-14 h-14 md:w-20 md:h-20 rounded-full bg-white/15 backdrop-blur-lg border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] flex items-center justify-center animate-float-slow z-[6] pointer-events-none">
+        <Icon icon="solar:heart-bold" className="text-white/50 md:text-white/70 text-3xl md:text-4xl" />
+      </div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.15, ease: TRANSITION_EASE }}
-              className="mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-md mx-auto lg:mx-0"
-            >
-              AGAPEO aide les célibataires chrétiens à découvrir des personnes qui partagent leur foi et leur vision du
-              mariage, et à mieux comprendre les relations en chemin.
-            </motion.p>
+      {/* Bulles de coeur - DROITE (Homme) */}
+      {/* Bulle DERRIERE (z-[4]) */}
+      <div className="absolute top-[25%] md:top-[35%] right-[8%] md:right-[12%] w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] flex items-center justify-center animate-float-slow z-[4] pointer-events-none">
+        <Icon icon="solar:heart-bold" className="text-white/40 md:text-white/50 text-2xl" />
+      </div>
+      {/* Bulle DEVANT (z-[6]) */}
+      <div className="absolute top-[33%] md:top-[43%] right-[5%] md:right-[8%] w-16 h-16 md:w-24 md:h-24 rounded-full bg-white/15 backdrop-blur-lg border border-white/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] flex items-center justify-center animate-float z-[6] pointer-events-none">
+        <Icon icon="solar:heart-bold" className="text-white/50 md:text-white/70 text-4xl md:text-5xl" />
+      </div>
+      {/* Bulle DEVANT (z-[6]) */}
+      <div className="absolute top-[45%] md:top-[55%] right-[10%] md:right-[15%] w-6 h-6 md:w-8 md:h-8 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.1)] flex items-center justify-center animate-float-delayed z-[6] pointer-events-none">
+        <Icon icon="solar:heart-bold" className="text-white/30 md:text-white/40 text-lg" />
+      </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.22, ease: TRANSITION_EASE }}
-              className="mt-8 flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start"
-            >
-              <Link href="/register" className="w-full sm:w-auto">
-                <Button variant="primary" size="lg" className="w-full sm:w-auto">
-                  Créer mon profil
-                </Button>
-              </Link>
-              <a href="#comment-ca-marche" className="w-full sm:w-auto">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  Comment ça marche
-                </Button>
-              </a>
-            </motion.div>
-          </div>
+      <Image
+        src="/images/hero-bg.png"
+        alt="Célibataires chrétiens"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center z-[5] opacity-90"
+      />
 
-          {/* Colonne visuelle — Image optimisée avec badges */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: TRANSITION_EASE }}
-            className="relative mx-auto w-full max-w-sm lg:max-w-md aspect-[4/5] sm:aspect-square"
-          >
-            <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden shadow-sm border border-border/40">
-              <img
-                src="/images/hero-image.jpg"
-                alt="Jeune femme rayonnante utilisant AGAPEO"
-                className="w-full h-full object-cover object-center"
-              />
-              {/* Overlay léger pour l'intégration douce */}
-              <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent pointer-events-none" />
-            </div>
+      {/* Subtle overlay in the center to ensure white text readability against the image if they overlap */}
+      <div
+        className="absolute inset-0 z-[10] pointer-events-none"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 60% 80% at 50% 50%, rgba(232, 62, 117, 0.7) 0%, rgba(232, 62, 117, 0.2) 50%, rgba(232, 62, 117, 0) 100%)"
+        }}
+      />
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5, ease: TRANSITION_EASE }}
-              className="absolute -top-4 -right-2 sm:-right-4 flex flex-col items-center justify-center w-20 h-20 rounded-full bg-card border border-border/40 shadow-sm"
-            >
-              <span className="font-landing text-xl font-semibold text-primary leading-none">91%</span>
-              <span className="text-[9px] font-medium text-muted-foreground mt-1 text-center leading-tight">compatibilité</span>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6, ease: TRANSITION_EASE }}
-              className="absolute bottom-4 -left-4 sm:left-0 flex items-center gap-2 bg-card border border-border/40 rounded-2xl shadow-sm px-3.5 py-2.5"
-            >
-              <HugeIcon icon={FavouriteIcon} size={14} className="text-primary shrink-0" />
-              <span className="text-[11px] font-medium text-foreground/80">5 valeurs en commun</span>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.7, ease: TRANSITION_EASE }}
-              className="absolute top-1/3 -right-6 hidden sm:flex items-center gap-1.5 bg-card border border-border/40 rounded-full shadow-sm px-3 py-1.5"
-            >
-              <HugeIcon icon={BadgeCheckIcon} size={13} className="text-primary" />
-              <span className="text-[10px] font-medium text-foreground/80">Vérifié</span>
-            </motion.div>
-          </motion.div>
+      <div className="max-w-7xl mx-auto px-6 relative z-20 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-sm mb-8">
+          <Icon icon="solar:heart-angle-bold" className="text-white" width={16} height={16} />
+          <span className="text-xs font-light text-white tracking-wide uppercase">
+            L&apos;application de rencontre pensée pour les chrétiens
+          </span>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-14 flex flex-wrap items-center justify-center gap-2"
-        >
-          {COMMON_VALUES.map((value) => (
-            <span key={value} className="px-3.5 py-1.5 rounded-full bg-card border border-border/60 text-xs font-medium text-foreground/80">
-              {value}
-            </span>
+        {/* Le titre reste intact (font-bricolage pour les titres), avec des tailles de police optimisées pour mobile */}
+        <h1 className="max-w-4xl mx-auto text-4xl sm:text-5xl md:text-7xl tracking-tight text-white leading-[1.1] font-bricolage font-semibold">
+          Rencontre quelqu&apos;un qui <br className="hidden md:block" />
+          <span className="text-white/80 font-bricolage font-semibold">partage ta foi, tes valeurs</span> <br className="hidden md:block" />
+          et ta vision de l&apos;amour.
+        </h1>
+
+        {/* Desktop Description Text */}
+        <p className="max-w-2xl mx-auto mt-8 text-lg text-white/90 leading-relaxed font-light hidden md:block">
+          Rencontre des célibataires chrétiens qui aiment Dieu, partagent tes valeurs et désirent construire une relation
+          sincère avec <span className="text-white font-light">Christ au centre</span>. Pas besoin de mettre ta foi de
+          côté pour trouver quelqu&apos;un. Ici, elle fait partie de la rencontre dès le départ.
+        </p>
+
+        {/* Mobile Image replacement for description text */}
+        <div className="md:hidden mt-8 flex justify-center px-4">
+          <Image 
+            src="/images/hero-mobile-v3.png" 
+            alt="Agapeo App" 
+            width={280} 
+            height={560} 
+            className="w-full max-w-[280px] h-auto object-contain drop-shadow-2xl rounded-[30px]"
+          />
+        </div>
+
+        <div className="mt-10 md:mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/register"
+            className="w-full sm:w-auto bg-white text-zinc-900 font-light text-base px-8 py-4 rounded-full hover:bg-zinc-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:shadow-[0_0_35px_rgba(255,255,255,0.7)]"
+          >
+            Créer mon profil gratuitement
+          </Link>
+        </div>
+
+        <div className="mt-14 flex flex-wrap items-center justify-center gap-6 text-sm text-white/70 font-light">
+          {TRUST_ITEMS.map((item, i) => (
+            <div key={item.label} className="flex items-center gap-6">
+              {i > 0 && <div className="w-1 h-1 rounded-full bg-white/30 hidden sm:block" />}
+              <div className="flex items-center gap-2">
+                <Icon icon={item.icon} className="text-white" width={18} height={18} />
+                {item.label}
+              </div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

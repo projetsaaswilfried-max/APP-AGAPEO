@@ -1,53 +1,70 @@
-import { AgapeoLogo } from "@/components/ui/logo";
-import { SITE_CONFIG } from "@/config/site";
+import Link from "next/link";
 
-const COLUMNS = [
-  {
-    title: "Produit",
-    links: [
-      { label: "Découvrir", href: "#decouvrir" },
-      { label: "Enseignements", href: "#enseignements" },
-      { label: "Comment ça marche", href: "#comment-ca-marche" },
-      { label: "Sécurité", href: "#securite" }
-    ]
-  },
-  {
-    title: "Compte",
-    links: [
-      { label: "Créer mon profil", href: "/register" },
-      { label: "Se connecter", href: "/login" }
-    ]
-  }
+const NAV_LINKS = [
+  { href: "/", label: "Accueil" },
+  { href: "#decouvrir", label: "Découvrir" },
+  { href: "#comment-ca-marche", label: "Comment ça marche" },
+  { href: "#tarifs", label: "AGAPEO+" }
 ];
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-border/60 py-14">
-      <div className="max-w-6xl mx-auto px-5 sm:px-8">
-        <div className="grid sm:grid-cols-3 gap-10">
-          <div className="sm:col-span-1">
-            <AgapeoLogo href="/" size="sm" />
-            <p className="mt-4 text-xs text-muted-foreground leading-relaxed max-w-[16rem]">{SITE_CONFIG.description}</p>
+    <footer className="bg-zinc-50 pt-10 pb-6">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row gap-10 md:gap-16 lg:gap-24 mb-10 border-b border-zinc-100 pb-10">
+          <div className="flex-[2] max-w-sm">
+            <Link href="/" className="mb-6 block">
+              <img src="/images/agapeo-logo-official.png" alt="Agapeo Logo" className="h-10 w-auto object-contain" />
+            </Link>
+            <h3 className="text-lg font-medium text-zinc-900 mb-4 pr-4">
+              Des rencontres chrétiennes pour construire autour de l&apos;essentiel.
+            </h3>
+            <p className="text-sm text-zinc-500 font-light pr-8 leading-relaxed">
+              Une plateforme destinée aux célibataires chrétiens qui souhaitent rencontrer, aimer et construire sans mettre
+              leur foi de côté.
+            </p>
           </div>
 
-          {COLUMNS.map((column) => (
-            <div key={column.title}>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/70 mb-3.5">{column.title}</h3>
-              <ul className="space-y-2.5">
-                {column.links.map((link) => (
-                  <li key={link.label}>
-                    <a href={link.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="flex-1">
+            <h4 className="text-xs font-medium text-zinc-900 uppercase tracking-widest mb-4">Navigation</h4>
+            <ul className="space-y-2.5 text-sm text-zinc-500 font-light">
+              {NAV_LINKS.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href} className="hover:text-[#E83E75] hover:translate-x-0.5 inline-block transition-all">
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex-1">
+            <h4 className="text-xs font-medium text-zinc-900 uppercase tracking-widest mb-4">Légal</h4>
+            <ul className="space-y-2.5 text-sm text-zinc-500 font-light">
+              <li>
+                <Link href="/cgv" className="hover:text-[#E83E75] hover:translate-x-0.5 inline-block transition-all">
+                  CGV / CGU
+                </Link>
+              </li>
+              <li>
+                <Link href="/politique-de-confidentialite" className="hover:text-[#E83E75] hover:translate-x-0.5 inline-block transition-all">
+                  Confidentialité
+                </Link>
+              </li>
+              <li>
+                <Link href="/mentions-legales" className="hover:text-[#E83E75] hover:translate-x-0.5 inline-block transition-all">
+                  Mentions légales
+                </Link>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-border/50 text-xs text-muted-foreground">
-          © {new Date().getFullYear()} {SITE_CONFIG.name} — {SITE_CONFIG.fullName}
+        <div className="pt-4 flex flex-col md:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-zinc-400 font-light">© {new Date().getFullYear()} AGAPEO. Tous droits réservés.</p>
+          <div className="text-xs font-light text-zinc-500 tracking-widest uppercase flex items-center gap-2">
+            Foi <span className="w-1 h-1 rounded-full bg-zinc-300" /> Rencontre <span className="w-1 h-1 rounded-full bg-zinc-300" /> Amour
+          </div>
         </div>
       </div>
     </footer>
