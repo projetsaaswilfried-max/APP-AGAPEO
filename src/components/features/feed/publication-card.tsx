@@ -181,11 +181,17 @@ export function PublicationCard({
   // fois la police du corps de texte chargée : tant qu'elle ne l'est pas,
   // le navigateur affiche une police de secours aux métriques différentes,
   // ce qui peut fausser le calcul du nombre de lignes réellement visibles.
+  // Tolérance volontairement large (pas juste +1px) : avec line-clamp, un
+  // texte qui tient exactement sur 2 lignes peut avoir un scrollHeight
+  // supérieur de quelques pixels au clientHeight à cause des arrondis de
+  // rendu — sans marge, ça déclenchait un faux positif "Voir plus" dès la
+  // 1ère ligne pour des textes courts qui n'ont pourtant rien de plus à
+  // afficher.
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
 
-    const measure = () => setIsTextTruncated(el.scrollHeight > el.clientHeight + 1);
+    const measure = () => setIsTextTruncated(el.scrollHeight > el.clientHeight + 6);
     measure();
 
     if (typeof document !== "undefined" && document.fonts) {
