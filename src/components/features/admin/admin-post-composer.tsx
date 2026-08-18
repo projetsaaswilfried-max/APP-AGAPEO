@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { createOfficialPostAction, updateOfficialPostAction, deleteOfficialPostAction } from "@/lib/actions/admin.actions";
 import { uploadPostMedia, FileValidationError, PLATFORM_MAX_UPLOAD_BYTES } from "@/lib/storage";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
@@ -48,6 +49,8 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [postPendingDelete, setPostPendingDelete] = useState<PostRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -187,10 +190,15 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
     }
   };
 
-  const handleDelete = async (postId: string) => {
+  const handleConfirmDelete = async () => {
+    if (!postPendingDelete) return;
+    const postId = postPendingDelete.id;
+    setIsDeleting(true);
     setPosts((prev) => prev.filter((p) => p.id !== postId));
     if (editingPostId === postId) resetForm();
     await deleteOfficialPostAction(postId);
+    setIsDeleting(false);
+    setPostPendingDelete(null);
   };
 
   return (
@@ -371,7 +379,7 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
                 <Button variant="outline" size="sm" onClick={() => handleEdit(post)} leftIcon={<Pencil size={13} />}>
                   Modifier
                 </Button>
-                <Button variant="destructive" size="sm" onClick={() => handleDelete(post.id)} leftIcon={<Trash2 size={13} />}>
+                <Button variant="destructive" size="sm" onClick={() => setPostPendingDelete(post)} leftIcon={<Trash2 size={13} />}>
                   Supprimer
                 </Button>
               </div>
@@ -379,6 +387,27 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
           ))}
         </CardContent>
       </Card>
+
+      <Modal
+        isOpen={!!postPendingDelete}
+        onClose={() => setPostPendingDelete(null)}
+        title={postPendingDelete?.title ? `Supprimer « ${postPendingDelete.title} » ?` : "Supprimer cette publication ?"}
+        description="Cette action est définitive : la publication disparaît immédiatement du fil pour tous les membres."
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setPostPendingDelete(null)} disabled={isDeleting}>
+              Annuler
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmDelete} isLoading={isDeleting}>
+              Supprimer
+            </Button>
+          </>
+        }
+      >
+        {!postPendingDelete?.title && (
+          <p className="text-xs text-muted-foreground line-clamp-3">{postPendingDelete?.content}</p>
+        )}
+      </Modal>
     </div>
   );
 }
