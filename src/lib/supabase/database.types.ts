@@ -26,7 +26,8 @@ export type NotificationTypeDb =
   | "POST_COMMENT"
   | "NEW_RECOMMENDATION"
   | "OFFICIAL_POST"
-  | "SUPPORT_REPLY";
+  | "SUPPORT_REPLY"
+  | "NEW_RESOURCE";
 
 export type ReportTargetType = "PROFILE" | "MESSAGE" | "POST";
 export type ReportStatus = "PENDING" | "REVIEWED" | "DISMISSED" | "ACTION_TAKEN";
@@ -268,6 +269,7 @@ export interface MessageRow {
   content: string | null;
   status: MessageStatusDb;
   read_at: string | null;
+  reminder_email_sent_at: string | null;
   deleted_at: string | null;
   created_at: string;
 }
@@ -435,7 +437,7 @@ export interface Database {
         Pick<ConversationParticipantRow, "conversation_id" | "user_id"> & Partial<ConversationParticipantRow>,
         Partial<ConversationParticipantRow>
       >;
-      messages: Rel<MessageRow, MessageInsert, Partial<Pick<MessageRow, "status" | "read_at" | "deleted_at">>>;
+      messages: Rel<MessageRow, MessageInsert, Partial<Pick<MessageRow, "status" | "read_at" | "reminder_email_sent_at" | "deleted_at">>>;
       message_attachments: Rel<MessageAttachmentRow, MessageAttachmentInsert, Partial<MessageAttachmentRow>>;
       notifications: Rel<NotificationRow, Partial<NotificationRow>, Partial<Pick<NotificationRow, "is_read">>>;
       profile_views: Rel<{ id: string; viewer_id: string; viewed_profile_id: string; created_at: string }, never, never>;

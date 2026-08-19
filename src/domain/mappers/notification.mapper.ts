@@ -9,7 +9,8 @@ const TYPE_TO_CATEGORY: Record<NotificationTypeDb, Exclude<NotificationCategory,
   POST_COMMENT: "PUBLICATIONS",
   NEW_RECOMMENDATION: "RECOMMENDATIONS",
   OFFICIAL_POST: "PLATFORM",
-  SUPPORT_REPLY: "PLATFORM"
+  SUPPORT_REPLY: "PLATFORM",
+  NEW_RESOURCE: "PLATFORM"
 };
 
 const TYPE_TO_ICON: Record<NotificationTypeDb, NotificationIconType> = {
@@ -20,7 +21,8 @@ const TYPE_TO_ICON: Record<NotificationTypeDb, NotificationIconType> = {
   POST_COMMENT: "COMMENT",
   NEW_RECOMMENDATION: "RECOMMENDATION",
   OFFICIAL_POST: "ANNOUNCEMENT",
-  SUPPORT_REPLY: "SYSTEM"
+  SUPPORT_REPLY: "SYSTEM",
+  NEW_RESOURCE: "ANNOUNCEMENT"
 };
 
 function timeLabel(iso: string): string {
