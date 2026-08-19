@@ -7,10 +7,11 @@
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 // Hébergé sur Supabase Storage (bucket public `avatars`) : accessible même
 // si l'app Next.js elle-même n'est pas encore déployée sur un domaine public.
-// Logo + cercle blanc pré-fusionnés en une seule image (au lieu d'un fond CSS
-// background-color) — Gmail mobile en mode sombre force certains fonds blancs
-// en noir/gris, mais n'altère jamais les pixels d'une image.
-const LOGO_BADGE_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/v1/object/public/avatars/platform/agapeo-logo-email-badge.png";
+// Icône + texte "AGAPEO" noir pré-fusionnés en une seule image (au lieu d'un
+// fond CSS + span texte) — Gmail mobile en mode sombre force certains fonds
+// blancs en noir/gris et peut altérer une couleur de texte CSS, mais
+// n'altère jamais les pixels d'une image.
+const LOGO_BADGE_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/v1/object/public/avatars/platform/agapeo-email-header-badge.png";
 
 export interface EmailInfoRow {
   label: string;
@@ -89,16 +90,7 @@ export function buildAgapeoEmailHtml({
         <table role="presentation" class="email-card" border="0" cellpadding="0" cellspacing="0" width="480" style="width: 480px; max-width: 480px; background-color: #FFFFFF; border-radius: 24px; overflow: hidden; box-shadow: 0 8px 30px rgba(26, 29, 33, 0.08);">
           <tr>
             <td class="header-banner" style="background: linear-gradient(135deg, #FF8FC7 0%, #FE70B2 55%, #DE4A97 100%); padding: 28px 28px 32px 28px;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="width: 40px; height: 40px; text-align: center; vertical-align: middle;">
-                    <img src="${LOGO_BADGE_URL}" alt="AGAPEO" width="40" height="40" style="display: block; width: 40px; height: 40px; border: 0; border-radius: 50%;" />
-                  </td>
-                  <td style="padding-left: 10px; vertical-align: middle;">
-                    <span style="color: #FFFFFF; font-weight: 700; font-size: 15px; letter-spacing: -0.01em;">Agapeo</span>
-                  </td>
-                </tr>
-              </table>
+              <img src="${LOGO_BADGE_URL}" alt="AGAPEO" width="153" height="44" style="display: block; width: 153px; height: 44px; border: 0;" />
               <p style="margin: 24px 0 0 0; font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: rgba(255,255,255,0.85);">${eyebrow}</p>
               <p style="margin: 6px 0 0 0; font-size: 25px; font-weight: 800; line-height: 1.25; color: #FFFFFF;">${headline}</p>
             </td>

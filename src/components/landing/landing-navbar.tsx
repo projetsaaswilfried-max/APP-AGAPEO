@@ -15,13 +15,12 @@ export function LandingNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-zinc-100/50">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between relative z-10">
-        {/* GAUCHE : Logo */}
+    <header className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-zinc-100/60 shadow-xs">
+      <div className="max-w-7xl mx-auto px-6 h-22 sm:h-24 flex items-center justify-between relative z-10">
+        {/* GAUCHE : Logo Officiel (Croix + texte AGAPEO noir) */}
         <div className="flex items-center">
-          <Link href="/" className="flex items-center gap-3">
-            <img src="/images/agapeo-logo-official.png" alt="Agapeo Logo" className="h-8 md:h-10 w-auto object-contain" />
-            <span className="text-xl tracking-tighter text-[#E83E75] font-bricolage font-semibold">AGAPEO</span>
+          <Link href="/" className="flex items-center group py-2">
+            <img src="/images/agapeo-logo-official.png" alt="AGAPEO Logo" className="h-14 sm:h-16 md:h-18 lg:h-20 w-auto object-contain transition-transform duration-200 group-hover:scale-105" />
           </Link>
         </div>
 
@@ -31,7 +30,7 @@ export function LandingNavbar() {
             <a
               key={link.label}
               href={link.href}
-              className="text-sm font-light text-zinc-500 hover:text-zinc-900 transition-colors"
+              className="text-sm font-medium text-zinc-600 hover:text-[#E83E75] transition-colors"
             >
               {link.label}
             </a>
@@ -40,15 +39,15 @@ export function LandingNavbar() {
 
         {/* DROITE : Boutons & Menu Mobile Toggle */}
         <div className="flex items-center justify-end gap-6">
-          <Link href="/login" className="hidden lg:block text-sm font-light text-zinc-600 hover:text-zinc-900 transition-colors">
+          <Link href="/login" className="hidden lg:block text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors">
             Se connecter
           </Link>
           <Link
             href="/register"
-            className="hidden lg:flex bg-[#E83E75] text-white text-sm font-light px-5 py-2.5 rounded-full hover:bg-[#d42d62] transition-all shadow-sm shadow-[#E83E75]/20 items-center gap-2"
+            className="hidden lg:flex bg-[#E83E75] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#d42d62] transition-all shadow-sm shadow-[#E83E75]/20 items-center gap-2"
           >
             Rejoindre AGAPEO
-            <Icon icon="hugeicons:arrow-right-01" width={14} height={14} />
+            <Icon icon="hugeicons:arrow-right-01" width={15} height={15} />
           </Link>
 
           {/* Hamburger Icon for Mobile */}
@@ -57,14 +56,14 @@ export function LandingNavbar() {
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle Menu"
           >
-            <Icon icon={isMobileMenuOpen ? "solar:close-circle-linear" : "solar:hamburger-menu-linear"} width={28} height={28} />
+            <Icon icon={isMobileMenuOpen ? "solar:close-circle-linear" : "solar:hamburger-menu-linear"} width={30} height={30} />
           </button>
         </div>
       </div>
 
       {/* MOBILE MENU DROPDOWN OVERLAY */}
       <div 
-        className={`lg:hidden absolute top-20 left-0 w-full bg-white border-b border-zinc-100 shadow-xl transition-all duration-300 ease-in-out origin-top ${
+        className={`lg:hidden absolute top-22 sm:top-24 left-0 w-full bg-white border-b border-zinc-100 shadow-xl transition-all duration-300 ease-in-out origin-top ${
           isMobileMenuOpen ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 pointer-events-none"
         }`}
       >

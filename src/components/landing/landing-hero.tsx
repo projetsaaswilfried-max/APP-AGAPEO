@@ -65,8 +65,8 @@ export function LandingHero() {
           </span>
         </div>
 
-        {/* Titre responsive mobile, tablette (y compris Surface Duo) et desktop */}
-        <h1 className="max-w-4xl mx-auto text-2.5xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl tracking-tight text-white leading-[1.14] font-bricolage font-semibold">
+        {/* Titre responsive mobile (text-3xl comme les autres titres de la landing page), tablette (y compris Surface Duo) et desktop */}
+        <h1 className="max-w-4xl mx-auto text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl tracking-tight text-white leading-[1.14] font-bricolage font-semibold">
           Rencontre quelqu&apos;un qui <br className="hidden xl:block" />
           <span className="text-white/80 font-bricolage font-semibold">partage ta foi, tes valeurs</span> <br className="hidden xl:block" />
           et ta vision de l&apos;amour.
@@ -94,7 +94,7 @@ export function LandingHero() {
         <div className="mt-0 xl:mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 relative z-20">
           <Link
             href="/register"
-            className="w-full sm:w-auto max-w-[360px] sm:max-w-[620px] md:max-w-[760px] lg:max-w-[840px] bg-white text-zinc-900 font-semibold text-base sm:text-lg md:text-xl lg:text-2xl px-6 sm:px-12 md:px-16 py-4 sm:py-5 md:py-6 rounded-full hover:bg-zinc-100 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.25)] hover:shadow-[0_0_35px_rgba(255,255,255,0.7)] text-center"
+            className="w-auto max-w-[280px] xs:max-w-[300px] sm:max-w-[620px] md:max-w-[760px] lg:max-w-[840px] bg-white text-zinc-900 font-semibold text-sm sm:text-lg md:text-xl lg:text-2xl px-5 py-3 sm:px-12 md:px-16 sm:py-5 md:py-6 rounded-full hover:bg-zinc-100 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.25)] hover:shadow-[0_0_35px_rgba(255,255,255,0.7)] text-center"
           >
             Créer mon profil gratuitement
           </Link>

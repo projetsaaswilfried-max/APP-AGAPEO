@@ -57,7 +57,7 @@ function LoginForm() {
           className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white flex items-center justify-center shadow-md p-3.5 border border-border/40 hover:scale-105 transition-transform duration-200"
           title="Accueil AGAPEO"
         >
-          <AgapeoLogo size="lg" symbolOnly />
+          <AgapeoLogo size="lg" iconOnly />
         </Link>
       </div>
 

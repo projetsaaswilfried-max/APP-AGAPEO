@@ -13,8 +13,8 @@ export function LandingFooter() {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row gap-10 md:gap-16 lg:gap-24 mb-10 border-b border-zinc-100 pb-10">
           <div className="flex-[2] max-w-sm">
-            <Link href="/" className="mb-6 block">
-              <img src="/images/agapeo-logo-official.png" alt="Agapeo Logo" className="h-10 w-auto object-contain" />
+            <Link href="/" className="mb-6 block group">
+              <img src="/images/agapeo-logo-official.png" alt="AGAPEO Logo" className="h-16 md:h-20 w-auto object-contain transition-transform duration-200 group-hover:scale-105" />
             </Link>
             <h3 className="text-lg font-medium text-zinc-900 mb-4 pr-4">
               Des rencontres chrétiennes pour construire autour de l&apos;essentiel.
