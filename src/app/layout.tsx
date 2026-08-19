@@ -20,13 +20,38 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_CONFIG.url),
   title: {
     default: SITE_CONFIG.fullName,
     template: `%s | ${SITE_CONFIG.name}`
   },
   description: SITE_CONFIG.description,
   keywords: ["Mariage chrétien", "Célibataires chrétiens", "Rencontre éthique", "Réseau social chrétien"],
-  authors: [{ name: SITE_CONFIG.author }]
+  authors: [{ name: SITE_CONFIG.author }],
+  alternates: {
+    canonical: "/"
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true
+    }
+  },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    url: SITE_CONFIG.url,
+    siteName: SITE_CONFIG.name,
+    title: SITE_CONFIG.fullName,
+    description: SITE_CONFIG.description
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_CONFIG.fullName,
+    description: SITE_CONFIG.description
+  }
 };
 
 export const viewport: Viewport = {

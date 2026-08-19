@@ -6,8 +6,9 @@ export const SITE_CONFIG = {
   version: "1.0.0",
   author: "Agapeo Engineering",
   links: {
-    terms: "/terms",
-    privacy: "/privacy",
+    terms: "/cgv",
+    privacy: "/politique-de-confidentialite",
+    legal: "/mentions-legales",
     ethics: "/charter"
   }
 };

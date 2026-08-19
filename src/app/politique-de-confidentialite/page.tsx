@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { LandingFooter } from "@/components/landing/landing-footer";
+
+export const metadata: Metadata = {
+  title: "Politique de Confidentialité",
+  description: "Politique de confidentialité d'Agapeo : comment tes données personnelles sont collectées, utilisées et protégées.",
+  alternates: { canonical: "/politique-de-confidentialite" }
+};
 
 export default function PrivacyPolicyPage() {
   return (

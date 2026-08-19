@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/supabase/session";
 import { signOutAction } from "@/lib/actions/auth.actions";
 import { ShieldAlert } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Compte suspendu",
+  robots: { index: false, follow: false }
+};
 
 export default async function SuspendedPage() {
   const { user, profile } = await getCurrentSession();

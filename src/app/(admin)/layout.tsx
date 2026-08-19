@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/layout/app-shell";
 import { SessionProvider } from "@/core/providers/session-provider";
 import { requireSuperAdminSession } from "@/lib/supabase/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminTabsNav } from "@/components/features/admin/admin-tabs-nav";
+
+// Espace administrateur : jamais indexé.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false }
+};
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, profile } = await requireSuperAdminSession();

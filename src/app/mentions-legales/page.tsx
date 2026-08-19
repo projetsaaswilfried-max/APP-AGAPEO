@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { LandingFooter } from "@/components/landing/landing-footer";
+
+export const metadata: Metadata = {
+  title: "Mentions Légales",
+  description: "Mentions légales d'Agapeo, plateforme sociale destinée aux célibataires chrétiens.",
+  alternates: { canonical: "/mentions-legales" }
+};
 
 export default function LegalMentionsPage() {
   return (

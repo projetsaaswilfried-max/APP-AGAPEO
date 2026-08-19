@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { SessionProvider } from "@/core/providers/session-provider";
 import { requireSession } from "@/lib/supabase/session";
+
+// Espace membre connecté : jamais indexé (contenu privé, profils, messages).
+export const metadata: Metadata = {
+  robots: { index: false, follow: false }
+};
 
 export default async function DashboardLayout({
   children

@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { LandingNavbar } from "@/components/landing/landing-navbar";
 import { LandingFooter } from "@/components/landing/landing-footer";
+
+export const metadata: Metadata = {
+  title: "Conditions Générales d'Utilisation et de Vente",
+  description: "Conditions générales d'utilisation et de vente d'Agapeo, la plateforme de rencontre pour célibataires chrétiens.",
+  alternates: { canonical: "/cgv" }
+};
 
 export default function CGVPage() {
   return (
@@ -18,7 +25,7 @@ export default function CGVPage() {
           <div className="prose prose-zinc prose-a:text-[#E83E75] hover:prose-a:text-[#d42d62] font-light text-zinc-600 max-w-none">
             <h2 className="text-2xl font-medium text-zinc-900 mt-12 mb-6">1. Objet et acceptation des conditions</h2>
             <p>
-              Les présentes Conditions Générales d&apos;Utilisation et de Vente (ci-après les "CGU/CGV") ont pour objet de définir les conditions dans lesquelles AGAPEO met à disposition de ses utilisateurs sa plateforme de rencontre chrétienne. L&apos;inscription et l&apos;utilisation de nos services impliquent l&apos;acceptation sans réserve des présentes conditions.
+              Les présentes Conditions Générales d&apos;Utilisation et de Vente (ci-après les &quot;CGU/CGV&quot;) ont pour objet de définir les conditions dans lesquelles AGAPEO met à disposition de ses utilisateurs sa plateforme de rencontre chrétienne. L&apos;inscription et l&apos;utilisation de nos services impliquent l&apos;acceptation sans réserve des présentes conditions.
             </p>
 
             <h2 className="text-2xl font-medium text-zinc-900 mt-12 mb-6">2. Accès au service et éligibilité</h2>
@@ -37,7 +44,7 @@ export default function CGVPage() {
 
             <h2 className="text-2xl font-medium text-zinc-900 mt-12 mb-6">4. Abonnements et Services Payants (AGAPEO+)</h2>
             <p>
-              L&apos;inscription et l&apos;utilisation de base d&apos;AGAPEO sont gratuites. Toutefois, nous proposons des fonctionnalités premium via notre abonnement "AGAPEO+".
+              L&apos;inscription et l&apos;utilisation de base d&apos;AGAPEO sont gratuites. Toutefois, nous proposons des fonctionnalités premium via notre abonnement &quot;AGAPEO+&quot;.
             </p>
             <p>
               <strong>Prix et renouvellement :</strong> Les tarifs en vigueur sont indiqués sur l&apos;application avant toute souscription. Sauf résiliation de votre part effectuée avant la fin de la période en cours, votre abonnement se renouvellera automatiquement pour une durée identique.

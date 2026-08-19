@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Icon } from "@iconify/react";
 import { Quote } from "lucide-react";
 
@@ -7,6 +8,7 @@ interface Testimonial {
   age: number;
   country: string;
   initial: string;
+  avatar: string;
 }
 
 const TESTIMONIALS: Testimonial[] = [
@@ -15,35 +17,40 @@ const TESTIMONIALS: Testimonial[] = [
     name: "Déborah",
     age: 27,
     country: "Côte d'Ivoire",
-    initial: "D"
+    initial: "D",
+    avatar: "/images/testimonials/deborah.png"
   },
   {
     quote: "Pour moi, être chrétienne sur une fiche de profil ne suffisait pas. Je voulais savoir comment la personne vivait réellement sa foi.",
     name: "Samuel",
     age: 30,
     country: "Sénégal",
-    initial: "S"
+    initial: "S",
+    avatar: "/images/testimonials/samuel.png"
   },
   {
     quote: "Je voulais une relation dans laquelle on puisse parler de tout, mais aussi prier ensemble et avancer ensemble avec Dieu.",
     name: "Grâce",
     age: 28,
     country: "Bénin",
-    initial: "G"
+    initial: "G",
+    avatar: "/images/testimonials/grace.png"
   },
   {
     quote: "J'ai longtemps cherché sur d'autres applications, mais il manquait toujours l'essentiel : partager les mêmes valeurs spirituelles. Ici, j'ai trouvé une vraie communauté bienveillante.",
     name: "Emmanuel",
     age: 34,
     country: "Togo",
-    initial: "E"
+    initial: "E",
+    avatar: "/images/testimonials/emmanuel.png"
   },
   {
     quote: "Au-delà des rencontres, c'est la profondeur des échanges qui m'a marquée. On se comprend sur l'essentiel dès le premier message, ça change tout.",
     name: "Léa",
     age: 25,
     country: "Mali",
-    initial: "L"
+    initial: "L",
+    avatar: "/images/testimonials/lea.png"
   }
 ];
 
@@ -55,11 +62,17 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         <p className="text-stone-600 font-extralight mb-8 italic leading-relaxed">&laquo; {testimonial.quote} &raquo;</p>
       </div>
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-[#E83E75]/10 text-[#E83E75] flex items-center justify-center text-xl tracking-tight shrink-0 font-bricolage font-light">
-          {testimonial.initial}
+        <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0 border border-stone-200/80 shadow-xs bg-stone-100">
+          <Image
+            src={testimonial.avatar}
+            alt={testimonial.name}
+            fill
+            sizes="48px"
+            className="object-cover"
+          />
         </div>
         <div>
-          <div className="font-normal text-stone-900">
+          <div className="font-medium text-stone-900">
             {testimonial.name}, {testimonial.age} ans
           </div>
           <div className="text-sm text-stone-500 font-extralight flex items-center mt-0.5">
@@ -116,3 +129,4 @@ export function LandingTestimonials() {
     </section>
   );
 }
+

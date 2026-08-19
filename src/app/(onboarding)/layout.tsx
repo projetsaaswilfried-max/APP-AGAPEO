@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { SessionProvider } from "@/core/providers/session-provider";
 import { requireSession } from "@/lib/supabase/session";
+
+// Parcours d'inscription du compte : jamais indexé.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false }
+};
 
 /**
  * Volontairement PAS de redirection quand `onboarding_completed` est déjà
