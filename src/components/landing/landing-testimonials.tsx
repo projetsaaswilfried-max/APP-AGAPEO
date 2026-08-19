@@ -18,15 +18,15 @@ const TESTIMONIALS: Testimonial[] = [
     age: 27,
     country: "Côte d'Ivoire",
     initial: "D",
-    avatar: "/images/testimonials/deborah.png"
+    avatar: "/images/testimonials/deborah.jpg"
   },
   {
-    quote: "Pour moi, être chrétienne sur une fiche de profil ne suffisait pas. Je voulais savoir comment la personne vivait réellement sa foi.",
+    quote: "Pour moi, être chrétien sur une fiche de profil ne suffisait pas. Je voulais savoir comment la personne vivait réellement sa foi.",
     name: "Samuel",
     age: 30,
     country: "Sénégal",
     initial: "S",
-    avatar: "/images/testimonials/samuel.png"
+    avatar: "/images/testimonials/samuel.jpg"
   },
   {
     quote: "Je voulais une relation dans laquelle on puisse parler de tout, mais aussi prier ensemble et avancer ensemble avec Dieu.",
@@ -34,7 +34,7 @@ const TESTIMONIALS: Testimonial[] = [
     age: 28,
     country: "Bénin",
     initial: "G",
-    avatar: "/images/testimonials/grace.png"
+    avatar: "/images/testimonials/grace.jpg"
   },
   {
     quote: "J'ai longtemps cherché sur d'autres applications, mais il manquait toujours l'essentiel : partager les mêmes valeurs spirituelles. Ici, j'ai trouvé une vraie communauté bienveillante.",
@@ -42,7 +42,7 @@ const TESTIMONIALS: Testimonial[] = [
     age: 34,
     country: "Togo",
     initial: "E",
-    avatar: "/images/testimonials/emmanuel.png"
+    avatar: "/images/testimonials/emmanuel-v2.jpg"
   },
   {
     quote: "Au-delà des rencontres, c'est la profondeur des échanges qui m'a marquée. On se comprend sur l'essentiel dès le premier message, ça change tout.",
@@ -50,7 +50,15 @@ const TESTIMONIALS: Testimonial[] = [
     age: 25,
     country: "Mali",
     initial: "L",
-    avatar: "/images/testimonials/lea.png"
+    avatar: "/images/testimonials/lea.jpg"
+  },
+  {
+    quote: "Trouver une personne sincère et engagée n'a jamais été aussi fluide. Agapeo permet de fonder des relations fortes basées sur le respect et la foi.",
+    name: "David",
+    age: 32,
+    country: "Cameroun",
+    initial: "D",
+    avatar: "/images/testimonials/david-v2.jpg"
   }
 ];
 
@@ -102,7 +110,7 @@ function MarqueeRow({ order, direction }: { order: Testimonial[]; direction: "le
   );
 }
 
-const ROW_2_ORDER = [TESTIMONIALS[3], TESTIMONIALS[4], TESTIMONIALS[0], TESTIMONIALS[1], TESTIMONIALS[2]];
+const ROW_2_ORDER = [TESTIMONIALS[3], TESTIMONIALS[4], TESTIMONIALS[5], TESTIMONIALS[0], TESTIMONIALS[1], TESTIMONIALS[2]];
 
 export function LandingTestimonials() {
   return (

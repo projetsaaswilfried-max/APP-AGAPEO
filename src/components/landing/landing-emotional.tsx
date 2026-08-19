@@ -8,13 +8,13 @@ export function LandingEmotional() {
         <div className="bg-white border border-[#FCE8EF] rounded-[40px] shadow-[0_8px_40px_rgba(0,0,0,0.04)] p-8 md:p-16 text-center">
           <div className="flex gap-3 mb-10 justify-center max-w-md mx-auto">
             <div className="flex-[1.4] aspect-4/3 rounded-2xl bg-[#FFF5F8] border border-[#FCE8EF] overflow-hidden flex items-center justify-center relative">
-              <img src="/images/couple_laughing.png" alt="Couple laughing" className="w-full h-full object-cover" />
+              <img src="/images/emotional_photo_1.jpg" alt="Lecture de la Bible" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 aspect-4/3 rounded-2xl bg-[#FFF5F8] border border-[#FCE8EF] overflow-hidden flex items-center justify-center relative">
-              <img src="/images/couple_praying.png" alt="Couple praying" className="w-full h-full object-cover" />
+              <img src="/images/emotional_photo_2.jpg" alt="Couple en prière à l'église" className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 aspect-4/3 rounded-2xl bg-[#FFF5F8] border border-[#FCE8EF] overflow-hidden flex items-center justify-center relative">
-              <img src="/images/hands_bible.png" alt="Hands holding Bible" className="w-full h-full object-cover" />
+              <img src="/images/emotional_photo_3.jpg" alt="Couple partageant la parole" className="w-full h-full object-cover" />
             </div>
           </div>
 

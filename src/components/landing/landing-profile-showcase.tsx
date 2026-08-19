@@ -23,7 +23,7 @@ export function LandingProfileShowcase() {
           <div className="bg-zinc-50 rounded-[2rem] p-6 text-zinc-900">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
               <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#E83E75] to-orange-300 p-1 shrink-0">
-                <img src="/images/sarah.png" alt="Sarah" className="w-full h-full rounded-full border-2 border-white object-cover" />
+                <img src="/images/sarah.jpg" alt="Sarah" className="w-full h-full rounded-full border-2 border-white object-cover" />
               </div>
               <div>
                 <div className="text-2xl tracking-tight font-bricolage font-light">Sarah, 27</div>
