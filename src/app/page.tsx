@@ -56,7 +56,7 @@ function LandingStructuredData() {
     name: SITE_CONFIG.name,
     legalName: SITE_CONFIG.fullName,
     url: SITE_CONFIG.url,
-    logo: `${SITE_CONFIG.url}/images/agapeo-logo-official.png`,
+    logo: `${SITE_CONFIG.url}/images/agapeo-symbol.png`,
     description: SITE_CONFIG.description
   };
 

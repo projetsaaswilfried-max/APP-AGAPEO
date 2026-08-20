@@ -17,10 +17,13 @@ export function LandingNavbar() {
   return (
     <header className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-zinc-100/60 shadow-xs">
       <div className="max-w-7xl mx-auto px-6 h-22 sm:h-24 flex items-center justify-between relative z-10">
-        {/* GAUCHE : Logo Officiel (Croix + texte AGAPEO noir) */}
+        {/* GAUCHE : Logo Officiel — icone (image detouree) + texte "AGAPEO"
+            ecrit en vrai texte rose (net a toute taille, pas de detourage
+            image a gerer pour le mot). */}
         <div className="flex items-center">
-          <Link href="/" className="flex items-center group py-2">
-            <img src="/images/agapeo-logo-official.png" alt="AGAPEO Logo" className="h-14 sm:h-16 md:h-18 lg:h-20 w-auto object-contain transition-transform duration-200 group-hover:scale-105" />
+          <Link href="/" className="flex flex-col items-center group py-2">
+            <img src="/images/agapeo-symbol.png" alt="" className="h-9 sm:h-10 md:h-11 lg:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105" />
+            <span className="mt-0.5 font-display font-light tracking-tight text-[#FE72B2] text-sm sm:text-base md:text-lg leading-none">AGAPEO</span>
           </Link>
         </div>
 
