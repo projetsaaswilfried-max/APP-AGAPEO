@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConversationSummary, ChatMessage } from "@/domain/types/message";
 import { messageService } from "@/domain/services/message.service";
@@ -12,12 +13,15 @@ import { SearchInput } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ArrowLeft, MessageSquare, AlertCircle, MoreVertical, Flag, Ban, Bookmark } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, MessageSquare, AlertCircle, MoreVertical, Flag, Ban, Bookmark, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { PremiumRequiredError } from "@/domain/errors";
+import { isProfileComplete } from "@/domain/profile-completeness";
 
 function MessagesPageContent() {
   const searchParams = useSearchParams();
@@ -36,6 +40,8 @@ function MessagesPageContent() {
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isBlockOpen, setIsBlockOpen] = useState(false);
+  const [isDeleteConvOpen, setIsDeleteConvOpen] = useState(false);
+  const [isDeletingConv, setIsDeletingConv] = useState(false);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -174,6 +180,16 @@ function MessagesPageContent() {
     setActiveConvId(null);
   };
 
+  const handleDeleteConversation = async () => {
+    if (!activeConvId) return;
+    setIsDeletingConv(true);
+    await messageService.hideConversation(activeConvId);
+    setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
+    setActiveConvId(null);
+    setIsDeletingConv(false);
+    setIsDeleteConvOpen(false);
+  };
+
   return (
     <div className="space-y-4 w-full pb-16 select-none">
       <div className={cn("border-b border-border/40 pb-3", isMobileChatOpen && "hidden md:block")}>
@@ -237,7 +253,7 @@ function MessagesPageContent() {
         >
           {activeConv ? (
             <>
-              <div className="flex items-center justify-between px-5 h-16 bg-card/90 backdrop-blur-md border-b border-border/40 shrink-0">
+              <div className="relative z-20 flex items-center justify-between px-5 h-16 bg-card/90 backdrop-blur-md border-b border-border/40 shrink-0">
                 <div className="flex items-center gap-3">
                   <button onClick={handleBackToList} className="p-2 text-muted-foreground hover:text-foreground md:hidden rounded-full hover:bg-secondary">
                     <ArrowLeft size={18} />
@@ -272,8 +288,8 @@ function MessagesPageContent() {
                   </button>
                   {isHeaderMenuOpen && (
                     <>
-                      <div className="fixed inset-0 z-30" onClick={() => setIsHeaderMenuOpen(false)} />
-                      <div className="absolute right-0 mt-1 w-56 p-1.5 bg-card border border-border/40 rounded-2xl shadow-soft z-40 text-xs">
+                      <div className="fixed inset-0 z-40" onClick={() => setIsHeaderMenuOpen(false)} />
+                      <div className="absolute right-0 mt-1 w-56 p-1.5 bg-card border border-border/40 rounded-2xl shadow-soft z-50 text-xs">
                         <button
                           onClick={handleToggleFavoriteConversation}
                           className="w-full flex items-center gap-2 px-3 py-2 text-foreground hover:bg-secondary rounded-lg"
@@ -289,6 +305,15 @@ function MessagesPageContent() {
                           className="w-full flex items-center gap-2 px-3 py-2 text-foreground hover:bg-secondary rounded-lg"
                         >
                           <Flag size={14} /> Signaler cette personne
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsDeleteConvOpen(true);
+                            setIsHeaderMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-foreground hover:bg-secondary rounded-lg"
+                        >
+                          <Trash2 size={14} /> Supprimer la discussion
                         </button>
                         <button
                           onClick={() => {
@@ -352,11 +377,31 @@ function MessagesPageContent() {
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <EmptyState
-                icon={<MessageSquare size={28} />}
-                title={isLoadingConvs ? "Chargement..." : "Sélectionne une discussion"}
-                description="Choisis un interlocuteur dans la liste de gauche pour échanger."
-              />
+              {!isLoadingConvs && conversations.length === 0 ? (
+                <EmptyState
+                  icon={<MessageSquare size={28} />}
+                  title="Pas encore de messages"
+                  description={
+                    isProfileComplete(profile)
+                      ? "Explore Découvrir et lance la conversation avec un profil qui t'intéresse."
+                      : "Complète ton profil pour être visible dans Découvrir et commencer à recevoir des messages."
+                  }
+                  action={
+                    <Link
+                      href={isProfileComplete(profile) ? "/discover" : "/onboarding"}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2 shadow-accent-glow"
+                    >
+                      {isProfileComplete(profile) ? "Aller à Découvrir" : "Compléter mon profil"}
+                    </Link>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  icon={<MessageSquare size={28} />}
+                  title={isLoadingConvs ? "Chargement..." : "Sélectionne une discussion"}
+                  description="Choisis un interlocuteur dans la liste de gauche pour échanger."
+                />
+              )}
             </div>
           )}
         </div>
@@ -372,6 +417,24 @@ function MessagesPageContent() {
             blockedProfileName={activeConv.participant.firstName}
             onBlocked={handleBlocked}
           />
+          <Modal
+            isOpen={isDeleteConvOpen}
+            onClose={() => setIsDeleteConvOpen(false)}
+            title="Supprimer cette discussion ?"
+            description="Elle disparaît de ta liste. Si un nouveau message est échangé, elle réapparaît automatiquement."
+            footer={
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setIsDeleteConvOpen(false)} disabled={isDeletingConv}>
+                  Annuler
+                </Button>
+                <Button variant="destructive" size="sm" onClick={handleDeleteConversation} isLoading={isDeletingConv}>
+                  Supprimer
+                </Button>
+              </>
+            }
+          >
+            <></>
+          </Modal>
         </>
       )}
       <PremiumRequiredModal

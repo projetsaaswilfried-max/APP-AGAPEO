@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { AgapeoSymbol } from "@/components/ui/logo";
-import { ShieldCheck, Sparkles, CheckCircle2, Award } from "lucide-react";
+import { ShieldCheck, HeartHandshake, CheckCircle2, Award } from "lucide-react";
 
 interface SlideData {
   id: number;
@@ -117,7 +117,7 @@ export function AuthSlider() {
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-medium tracking-wide uppercase text-pink-200/90 flex items-center gap-1.5">
-                <Sparkles size={12} className="text-primary" /> {currentSlide.badge}
+                <HeartHandshake size={12} className="text-primary" /> {currentSlide.badge}
               </span>
               <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#1877F2]/20 text-[#60A5FA] font-semibold border border-[#1877F2]/40 shadow-xs backdrop-blur-md flex items-center gap-1">
                 <CheckCircle2 size={11} className="text-[#38BDF8] fill-[#1877F2]/30" /> Vérifié

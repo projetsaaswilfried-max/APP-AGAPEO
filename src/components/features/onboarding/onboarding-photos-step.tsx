@@ -3,15 +3,16 @@
 import { useTransition } from "react";
 import { OnboardingStepFooter } from "./onboarding-step-footer";
 import { PhotoManager } from "@/components/features/profile/photo-manager";
-import type { ProfilePhotoRow } from "@/lib/supabase/database.types";
+import type { ProfilePhotoRow, VerificationStatus } from "@/lib/supabase/database.types";
 
 interface OnboardingPhotosStepProps {
   userId: string;
   initialPhotos: ProfilePhotoRow[];
+  photoVerificationStatus?: VerificationStatus;
   onNext: () => void;
 }
 
-export function OnboardingPhotosStep({ userId, initialPhotos, onNext }: OnboardingPhotosStepProps) {
+export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationStatus, onNext }: OnboardingPhotosStepProps) {
   const [isSkipping, startSkipTransition] = useTransition();
   const handleSkip = () => startSkipTransition(async () => onNext());
 
@@ -26,7 +27,7 @@ export function OnboardingPhotosStep({ userId, initialPhotos, onNext }: Onboardi
         </p>
       </div>
 
-      <PhotoManager userId={userId} initialPhotos={initialPhotos} />
+      <PhotoManager userId={userId} initialPhotos={initialPhotos} photoVerificationStatus={photoVerificationStatus} />
 
       <OnboardingStepFooter onSkip={handleSkip} onSaveAndNext={onNext} isSkipping={isSkipping} saveLabel="Continuer" />
     </div>

@@ -2,7 +2,29 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { env } from "@/config/env";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register", "/forgot-password", "/reset-password", "/auth/callback", "/cgv", "/politique-de-confidentialite", "/mentions-legales"];
+const PUBLIC_ROUTES = [
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/callback",
+  "/cgv",
+  "/politique-de-confidentialite",
+  "/mentions-legales",
+  // Fichiers de convention Next.js (robots.txt, sitemap.xml, images de
+  // partage) : sans cette exclusion, Googlebot et les crawlers de reseaux
+  // sociaux (WhatsApp, etc.), qui n'ont pas de cookie de session, etaient
+  // silencieusement redirigés vers /login au lieu de recevoir le contenu.
+  "/robots.txt",
+  "/sitemap.xml",
+  "/opengraph-image",
+  "/twitter-image",
+  "/manifest.webmanifest",
+  // Verification Digital Asset Links du futur TWA Android (fichier a venir
+  // dans public/.well-known/assetlinks.json) et equivalent iOS eventuel.
+  "/.well-known"
+];
 
 function isPublicRoute(pathname: string) {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));

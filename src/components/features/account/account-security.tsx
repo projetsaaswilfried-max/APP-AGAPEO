@@ -5,12 +5,14 @@ import Link from "next/link";
 import { UserProfile } from "@/domain/types/user";
 import { createClient } from "@/lib/supabase/client";
 import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
+import { getBlockedProfilesAction, unblockUserAction } from "@/lib/actions/moderation.actions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { ShieldCheck, ShieldQuestion, Lock, LogOut, Trash2, KeyRound, Mail, AlertCircle, CheckCircle2, Clock, Download, ArrowRight } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
+import { ShieldCheck, ShieldQuestion, Lock, LogOut, Trash2, KeyRound, Mail, AlertCircle, CheckCircle2, Clock, Download, ArrowRight, UserX } from "lucide-react";
 import { changePasswordAction, changeEmailAction, signOutAction, type FormState } from "@/lib/actions/auth.actions";
 import { deleteAccountAction, exportMyDataAction } from "@/lib/actions/profile.actions";
 
@@ -98,6 +100,60 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
   );
 }
 
+interface BlockedProfile {
+  id: string;
+  first_name: string;
+  avatar_url: string | null;
+}
+
+/**
+ * Le blocage est symétrique côté RLS (`profiles_select` exclut un profil
+ * bloqué dans les deux sens) : impossible de revoir cette personne "depuis
+ * la discussion" puisque la discussion elle-même a disparu. C'est donc ici,
+ * dans un espace toujours accessible, que se fait le déblocage.
+ */
+function BlockedUsersCard() {
+  const [blocked, setBlocked] = useState<BlockedProfile[] | null>(null);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getBlockedProfilesAction().then((result) => {
+      if (result.success) setBlocked(result.profiles as BlockedProfile[]);
+    });
+  }, []);
+
+  const handleUnblock = async (id: string) => {
+    setUnblockingId(id);
+    await unblockUserAction(id);
+    setBlocked((prev) => prev?.filter((p) => p.id !== id) ?? null);
+    setUnblockingId(null);
+  };
+
+  if (!blocked || blocked.length === 0) return null;
+
+  return (
+    <Card variant="base" className="p-6 space-y-4 border-border/60 shadow-2xs">
+      <div className="flex items-center gap-2">
+        <UserX className="h-5 w-5 text-primary" />
+        <h3 className="text-sm font-display font-semibold text-foreground tracking-tight">Comptes bloqués</h3>
+      </div>
+      <div className="space-y-2">
+        {blocked.map((p) => (
+          <div key={p.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-secondary/40">
+            <div className="flex items-center gap-2.5">
+              <Avatar size="sm" src={p.avatar_url ?? undefined} fallback={p.first_name.charAt(0)} />
+              <span className="text-xs font-medium text-foreground">{p.first_name}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => handleUnblock(p.id)} isLoading={unblockingId === p.id}>
+              Débloquer
+            </Button>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export function AccountSecurity({ profile }: AccountSecurityProps) {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -147,6 +203,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
   return (
     <div className="space-y-6 select-none">
       <VerificationStatusCard profile={profile} />
+      <BlockedUsersCard />
 
       <Card variant="base" className="p-6 space-y-6 border-border/60 shadow-2xs">
         <div className="flex items-center justify-between border-b border-border/60 pb-4">

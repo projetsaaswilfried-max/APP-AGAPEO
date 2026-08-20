@@ -57,7 +57,7 @@ export function AccountProfileForm({ profile, initialPhotos, onSave }: AccountPr
           <Camera className="h-5 w-5 text-primary" />
           <h2 className="text-base font-display font-semibold text-foreground tracking-tight">Mes photos</h2>
         </div>
-        <PhotoManager userId={profile.id} initialPhotos={initialPhotos} />
+        <PhotoManager userId={profile.id} initialPhotos={initialPhotos} photoVerificationStatus={profile.photoVerificationStatus} />
       </Card>
 
       <Card variant="base" className="p-6 space-y-6 border-border/60 shadow-2xs">

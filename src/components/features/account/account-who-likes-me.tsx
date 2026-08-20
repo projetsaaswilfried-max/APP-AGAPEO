@@ -15,7 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Crown } from "lucide-react";
+import { Heart, Crown } from "lucide-react";
 
 interface AccountWhoLikesMeProps {
   profile: UserProfile;
@@ -68,7 +68,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
   return (
     <Card variant="base" className="p-6 space-y-6 border-border/60 shadow-2xs select-none">
       <div className="flex items-center gap-2 border-b border-border/60 pb-4">
-        <Sparkles className="h-5 w-5 text-primary" />
+        <Heart className="h-5 w-5 text-primary" />
         <h2 className="text-base font-display font-semibold text-foreground tracking-tight">
           Qui s&apos;intéresse à moi {!isLoading && `(${items.length})`}
         </h2>
@@ -84,7 +84,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
 
       {!isLoading && items.length === 0 && (
         <EmptyState
-          icon={<Sparkles size={24} />}
+          icon={<Heart size={24} />}
           title="Personne pour l'instant"
           description="Dès qu'un membre consulte ou met ton profil en favori, il apparaîtra ici."
         />

@@ -259,6 +259,7 @@ export interface ConversationParticipantRow {
   is_favorite: boolean;
   last_read_at: string;
   joined_at: string;
+  hidden_at: string | null;
 }
 
 export interface MessageRow {
@@ -453,6 +454,8 @@ export interface Database {
       record_profile_view: { Args: { viewed_profile_id: string }; Returns: void };
       is_admin_or_moderator: { Args: { uid: string }; Returns: boolean };
       create_conversation_with_participant: { Args: { other_user_id: string }; Returns: string };
+      get_my_blocked_profiles: { Args: Record<string, never>; Returns: { id: string; first_name: string; avatar_url: string | null }[] };
+      is_blocked: { Args: { a: string; b: string }; Returns: boolean };
     };
   };
 }

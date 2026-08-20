@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ProfileEditablePartialSchema, PhoneSchema, EssentialInfoSchema } from "@/lib/validation/profile.schema";
+import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
 import type { ProfileUpdate } from "@/lib/supabase/database.types";
 
 export async function updateProfileAction(updates: Partial<ProfileUpdate>) {
@@ -130,6 +131,26 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
 
   if (isPrimary) {
     await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+
+    // Ré-abonnement automatique : un profil déjà validé qui avait perdu sa
+    // photo (voir removeProfilePhotoAction) repasse à UNVERIFIED — dès qu'il
+    // remet une photo principale, on relance la vérification sans qu'il ait
+    // à retourner soumettre manuellement depuis "Mon Compte". On limite ça
+    // aux profils qui ont déjà été validés une fois (pour ne jamais doubler
+    // la soumission explicite faite en fin d'onboarding pour un nouveau membre).
+    const { data: currentProfile } = await supabase.from("profiles").select("photo_verification_status").eq("id", user.id).single();
+    if (currentProfile?.photo_verification_status === "UNVERIFIED") {
+      const { data: priorApproval } = await supabase
+        .from("verification_requests")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "VERIFIED")
+        .limit(1)
+        .maybeSingle();
+      if (priorApproval) {
+        await submitVerificationRequestAction();
+      }
+    }
   }
 
   revalidatePath("/profile");
@@ -143,13 +164,24 @@ export async function removeProfilePhotoAction(photoId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée." };
 
-  const { data: photo } = await supabase.from("profile_photos").select("storage_path").eq("id", photoId).single();
+  const { data: photo } = await supabase.from("profile_photos").select("storage_path, is_primary").eq("id", photoId).single();
   await supabase.from("profile_photos").delete().eq("id", photoId).eq("profile_id", user.id);
   if (photo?.storage_path) {
     await supabase.storage.from("avatars").remove([photo.storage_path]);
   }
 
+  // Si la photo supprimée était la photo principale : le profil ne doit
+  // plus être visible dans Découvrir (filtre existant sur avatar_url non
+  // nul), et si le profil était vérifié, ce statut ne veut plus rien dire
+  // sans photo — on le repasse à UNVERIFIED (colonne protégée par trigger,
+  // d'où le passage par le client admin, même schéma que la soumission).
+  if (photo?.is_primary) {
+    const admin = createAdminClient();
+    await admin.from("profiles").update({ avatar_url: null, photo_verification_status: "UNVERIFIED" }).eq("id", user.id);
+  }
+
   revalidatePath("/profile");
+  revalidatePath("/discover");
   return { success: true };
 }
 

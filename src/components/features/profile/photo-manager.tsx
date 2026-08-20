@@ -1,22 +1,27 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Loader2, Star, Trash2, AlertCircle } from "lucide-react";
+import { Camera, Loader2, Check, Trash2, AlertCircle, ShieldAlert, Clock3 } from "lucide-react";
 import { FileSizeHint } from "@/components/ui/file-size-hint";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 import { uploadAvatar } from "@/lib/storage";
 import { addProfilePhotoAction, removeProfilePhotoAction } from "@/lib/actions/profile.actions";
-import type { ProfilePhotoRow } from "@/lib/supabase/database.types";
+import type { ProfilePhotoRow, VerificationStatus } from "@/lib/supabase/database.types";
 
 interface PhotoManagerProps {
   userId: string;
   initialPhotos: ProfilePhotoRow[];
+  photoVerificationStatus?: VerificationStatus;
 }
 
 /** Gestion des photos réutilisée par l'onboarding ET par "Mon Profil" (pour les ajouter/retirer à tout moment). */
-export function PhotoManager({ userId, initialPhotos }: PhotoManagerProps) {
+export function PhotoManager({ userId, initialPhotos, photoVerificationStatus }: PhotoManagerProps) {
   const [photos, setPhotos] = useState(initialPhotos);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoPendingDelete, setPhotoPendingDelete] = useState<ProfilePhotoRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,14 +50,28 @@ export function PhotoManager({ userId, initialPhotos }: PhotoManagerProps) {
     if (photo) await addProfilePhotoAction(photo.url, photo.storage_path, true);
   };
 
-  const handleRemove = async (photoId: string) => {
+  const handleConfirmDelete = async () => {
+    if (!photoPendingDelete) return;
+    setIsDeleting(true);
+    const photoId = photoPendingDelete.id;
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
     await removeProfilePhotoAction(photoId);
+    setIsDeleting(false);
+    setPhotoPendingDelete(null);
   };
+
+  const deletingPrimaryWhileVerified = photoPendingDelete?.is_primary && photoVerificationStatus === "VERIFIED";
 
   return (
     <div className="space-y-3">
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFileChange} className="hidden" />
+
+      {photoVerificationStatus === "PENDING" && (
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700">
+          <Clock3 size={15} className="shrink-0" />
+          Profil en cours de vérification — notre équipe l&apos;examine, tu recevras un email dès que c&apos;est fait.
+        </div>
+      )}
 
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
         {photos.map((photo) => (
@@ -61,7 +80,7 @@ export function PhotoManager({ userId, initialPhotos }: PhotoManagerProps) {
             <img src={photo.url} alt="Photo de profil" className="w-full h-full object-cover" />
             {photo.is_primary ? (
               <div className="absolute top-1.5 left-1.5 p-1 rounded-full bg-accent text-accent-foreground shadow-2xs" title="Photo principale">
-                <Star size={11} className="fill-current" />
+                <Check size={11} className="stroke-3" />
               </div>
             ) : (
               <button
@@ -70,12 +89,12 @@ export function PhotoManager({ userId, initialPhotos }: PhotoManagerProps) {
                 className="absolute top-1.5 left-1.5 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Définir comme photo principale"
               >
-                <Star size={11} />
+                <Check size={11} />
               </button>
             )}
             <button
               type="button"
-              onClick={() => handleRemove(photo.id)}
+              onClick={() => setPhotoPendingDelete(photo)}
               className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
               title="Supprimer"
             >
@@ -103,6 +122,38 @@ export function PhotoManager({ userId, initialPhotos }: PhotoManagerProps) {
           {error}
         </div>
       )}
+
+      <Modal
+        isOpen={!!photoPendingDelete}
+        onClose={() => setPhotoPendingDelete(null)}
+        title="Supprimer cette photo ?"
+        description={
+          deletingPrimaryWhileVerified
+            ? "C'est ta photo principale et ton profil est vérifié."
+            : "Cette action est définitive."
+        }
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setPhotoPendingDelete(null)} disabled={isDeleting}>
+              Annuler
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmDelete} isLoading={isDeleting}>
+              Supprimer
+            </Button>
+          </>
+        }
+      >
+        {deletingPrimaryWhileVerified && (
+          <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700">
+            <ShieldAlert size={16} className="shrink-0 mt-0.5" />
+            <p>
+              Tu ne seras plus visible par les autres membres dans Découvrir dès que cette photo sera supprimée.
+              Quand tu ajouteras une nouvelle photo principale, notre équipe devra revérifier ton profil avant qu&apos;il
+              redevienne visible.
+            </p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

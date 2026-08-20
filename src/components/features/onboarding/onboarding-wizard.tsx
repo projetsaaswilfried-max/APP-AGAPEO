@@ -72,7 +72,12 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
         <CardContent className="p-6">
           {currentKey === "essential" && <OnboardingEssentialInfoStep onNext={() => goTo(1)} />}
           {currentKey === "photos" && (
-            <OnboardingPhotosStep userId={profile.id} initialPhotos={initialPhotos} onNext={() => goTo(stepIndex + 1)} />
+            <OnboardingPhotosStep
+              userId={profile.id}
+              initialPhotos={initialPhotos}
+              photoVerificationStatus={profile.photo_verification_status}
+              onNext={() => goTo(stepIndex + 1)}
+            />
           )}
           {currentKey === "faith" && <OnboardingFaithStep profile={profile} onNext={() => goTo(stepIndex + 1)} />}
           {currentKey === "personality" && <OnboardingPersonalityStep profile={profile} onNext={() => goTo(stepIndex + 1)} />}

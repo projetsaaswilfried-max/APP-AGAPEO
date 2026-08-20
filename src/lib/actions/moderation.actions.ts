@@ -49,5 +49,26 @@ export async function unblockUserAction(blockedId: string) {
   if (!user) return { error: "Session expirée." };
 
   await supabase.from("blocks").delete().eq("blocker_id", user.id).eq("blocked_id", blockedId);
+  revalidatePath("/profile");
+  revalidatePath("/discover");
+  revalidatePath("/messages");
   return { success: true };
+}
+
+/**
+ * `profiles_select` exclut un profil bloqué dans les deux sens — impossible
+ * de lire normalement le profil de quelqu'un qu'on a soi-même bloqué. Passe
+ * par la fonction RPC `get_my_blocked_profiles()` (SECURITY DEFINER) qui ne
+ * renvoie que les profils bloqués par l'appelant lui-même.
+ */
+export async function getBlockedProfilesAction() {
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  const { data, error } = await supabase.rpc("get_my_blocked_profiles");
+  if (error) return { error: error.message };
+  return { success: true, profiles: data ?? [] };
 }

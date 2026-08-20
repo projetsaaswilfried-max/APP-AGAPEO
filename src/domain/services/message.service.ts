@@ -22,6 +22,8 @@ export interface IMessageService {
   markAsRead(conversationId: string): Promise<void>;
   deleteMessage(messageId: string): Promise<void>;
   toggleFavoriteConversation(conversationId: string, isFavorite: boolean): Promise<void>;
+  /** Masque la conversation de ma propre liste — réapparaît automatiquement au prochain message échangé. */
+  hideConversation(conversationId: string): Promise<void>;
   subscribeToConversation(conversationId: string, onMessage: (message: ChatMessage) => void): () => void;
   /** Propage en temps réel les changements de statut (accusés de lecture) et les suppressions. */
   subscribeToMessageUpdates(conversationId: string, onUpdate: (update: MessageUpdate) => void): () => void;
@@ -39,6 +41,32 @@ async function getCurrentUserId(): Promise<string> {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Session expirée.");
   return user.id;
+}
+
+/**
+ * `messages_insert` combine en un seul `with check` la condition Premium ET
+ * la condition "non bloqué" — Postgres renvoie le même code RLS générique
+ * (42501) quelle que soit la cause. On distingue les deux ici pour ne pas
+ * afficher "Passe Premium" à quelqu'un qui vient en réalité d'être bloqué.
+ */
+async function throwSendError(conversationId: string, myId: string): Promise<never> {
+  const supabase = createClient();
+  const { data: other } = await supabase
+    .from("conversation_participants")
+    .select("user_id")
+    .eq("conversation_id", conversationId)
+    .neq("user_id", myId)
+    .maybeSingle();
+
+  if (other) {
+    // `is_blocked` est SECURITY DEFINER : contourne la RLS de `blocks` (qui
+    // ne laisse chacun voir que les blocages qu'il a lui-même initiés) pour
+    // détecter aussi le cas où c'est l'AUTRE qui m'a bloqué entre-temps.
+    const { data: blocked } = await supabase.rpc("is_blocked", { a: myId, b: other.user_id });
+    if (blocked) throw new Error("Tu ne peux plus échanger avec cette personne.");
+  }
+
+  throw new PremiumRequiredError("Passe Premium pour répondre à ce message.");
 }
 
 async function hydrateMessages(rows: MessageRow[], recipientId: string): Promise<ChatMessage[]> {
@@ -70,7 +98,8 @@ class MessageServiceSupabase implements IMessageService {
     const { data: myParticipations } = await supabase
       .from("conversation_participants")
       .select("*")
-      .eq("user_id", myId);
+      .eq("user_id", myId)
+      .is("hidden_at", null);
 
     const participations = (myParticipations ?? []) as ConversationParticipantRow[];
     if (participations.length === 0) return [];
@@ -186,7 +215,7 @@ class MessageServiceSupabase implements IMessageService {
       .select()
       .single();
 
-    if (isRlsViolation(error)) throw new PremiumRequiredError("Passe Premium pour répondre à ce message.");
+    if (isRlsViolation(error)) await throwSendError(conversationId, myId);
     if (error || !data) throw new Error(error?.message ?? "Le message n'a pas pu être envoyé.");
     return mapMessageRow(data as MessageRow, myId);
   }
@@ -203,7 +232,7 @@ class MessageServiceSupabase implements IMessageService {
       .select()
       .single();
 
-    if (isRlsViolation(error)) throw new PremiumRequiredError("Passe Premium pour répondre à ce message.");
+    if (isRlsViolation(error)) await throwSendError(conversationId, myId);
     if (error || !message) throw new Error(error?.message ?? "L'envoi a échoué.");
 
     await supabase.from("message_attachments").insert({
@@ -242,6 +271,16 @@ class MessageServiceSupabase implements IMessageService {
     const supabase = createClient();
     const myId = await getCurrentUserId();
     await supabase.from("conversation_participants").update({ is_favorite: isFavorite }).eq("conversation_id", conversationId).eq("user_id", myId);
+  }
+
+  async hideConversation(conversationId: string): Promise<void> {
+    const supabase = createClient();
+    const myId = await getCurrentUserId();
+    await supabase
+      .from("conversation_participants")
+      .update({ hidden_at: new Date().toISOString() })
+      .eq("conversation_id", conversationId)
+      .eq("user_id", myId);
   }
 
   subscribeToConversation(conversationId: string, onMessage: (message: ChatMessage) => void): () => void {

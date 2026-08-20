@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { UserProfile, UserFaithProfile, UserPrivacySettings, UserNotificationSettings } from "@/domain/types/user";
 import { FeedPublication } from "@/domain/types/feed";
@@ -22,7 +23,7 @@ import { AccountSecurity } from "@/components/features/account/account-security"
 
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Eye, Settings } from "lucide-react";
+import { Eye, Settings, Pencil, ArrowRight } from "lucide-react";
 import type { ProfilePhotoRow } from "@/lib/supabase/database.types";
 
 interface ProfilePageClientProps {
@@ -116,6 +117,23 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
 
       {mode === "ACCOUNT_SETTINGS" && (
         <div className="space-y-6">
+          <div className="flex flex-wrap items-center gap-4 rounded-3xl bg-accent-subtle/80 border border-accent/20 px-5 py-3.5 shadow-soft select-none">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0 shadow-accent-glow">
+              <Pencil size={18} />
+            </div>
+            <div className="flex-1 min-w-[220px]">
+              <p className="text-sm font-semibold text-foreground">Personnalité, vision du mariage, préférences</p>
+              <p className="text-xs text-muted-foreground">Reviens à tout moment corriger ou compléter tes réponses d&apos;inscription.</p>
+            </div>
+            <Link
+              href="/onboarding"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2 shrink-0 shadow-accent-glow"
+            >
+              Modifier
+              <ArrowRight size={13} />
+            </Link>
+          </div>
+
           <div className="overflow-x-auto pb-1 no-scrollbar">
             <Tabs
               variant="pill"
