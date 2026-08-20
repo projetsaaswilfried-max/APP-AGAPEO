@@ -23,7 +23,10 @@ const PUBLIC_ROUTES = [
   "/manifest.webmanifest",
   // Verification Digital Asset Links du futur TWA Android (fichier a venir
   // dans public/.well-known/assetlinks.json) et equivalent iOS eventuel.
-  "/.well-known"
+  "/.well-known",
+  // Service worker (notifications push) : un navigateur refuse d'enregistrer
+  // un service worker si la reponse est une redirection — doit rester public.
+  "/sw.js"
 ];
 
 function isPublicRoute(pathname: string) {

@@ -309,6 +309,15 @@ export interface BlockRow {
   created_at: string;
 }
 
+export interface PushSubscriptionRow {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: string;
+}
+
 export interface ReportRow {
   id: string;
   reporter_id: string;
@@ -443,6 +452,7 @@ export interface Database {
       notifications: Rel<NotificationRow, Partial<NotificationRow>, Partial<Pick<NotificationRow, "is_read">>>;
       profile_views: Rel<{ id: string; viewer_id: string; viewed_profile_id: string; created_at: string }, never, never>;
       blocks: Rel<BlockRow, Omit<BlockRow, "created_at">, Partial<BlockRow>>;
+      push_subscriptions: Rel<PushSubscriptionRow, Omit<PushSubscriptionRow, "id" | "created_at">, never>;
       reports: Rel<ReportRow, ReportInsert, Partial<Pick<ReportRow, "status">>>;
       transactions: Rel<TransactionRow, Omit<TransactionRow, "id" | "created_at">, Partial<TransactionRow>>;
       email_campaigns: Rel<EmailCampaignRow, EmailCampaignInsert, EmailCampaignUpdate>;

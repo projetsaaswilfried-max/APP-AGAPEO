@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, Bell, Check } from "lucide-react";
+import { PushNotificationSettings } from "@/components/features/account/push-notification-settings";
 
 interface AccountPrivacySettingsProps {
   privacy?: UserPrivacySettings;
@@ -162,6 +163,8 @@ export function AccountPrivacySettings({
             description="Recevez un bilan synthétique de votre activité par e-mail."
           />
         </div>
+
+        <PushNotificationSettings />
 
         <div className="flex justify-end pt-2">
           <Button type="submit" variant="primary" size="md">
