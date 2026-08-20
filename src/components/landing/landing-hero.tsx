@@ -82,10 +82,10 @@ export function LandingHero() {
         {/* Mobile & Tablet Image replacement (Toutes versions mobiles, tablettes et Surface Duo < 1280px) */}
         <div className="xl:hidden mt-5 sm:mt-7 md:mt-8 -mb-10 sm:-mb-14 md:-mb-18 flex justify-center px-2 relative z-10">
           <Image 
-            src="/images/hero-mobile-transparent-v2.png" 
+            src="/images/hero-mobile-transparent-v4.png" 
             alt="Agapeo App" 
-            width={640} 
-            height={720} 
+            width={819} 
+            height={1024} 
             priority
             className="w-full max-w-[320px] sm:max-w-[420px] md:max-w-[500px] lg:max-w-[580px] h-auto object-contain drop-shadow-[0_15px_35px_rgba(0,0,0,0.3)]"
           />
