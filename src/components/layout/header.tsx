@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Search01Icon,
@@ -34,6 +35,29 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   const { user, profile } = useSession();
   const initials = getInitials(profile.first_name, profile.last_name);
   const { unreadNotifications } = useUnreadCounts();
+
+  // Le menu de profil est rendu dans un portail (document.body) avec
+  // position: fixed calculée manuellement — sinon il reste piégé dans le
+  // contexte d'empilement du <motion.div> de transition de page (AppShell),
+  // qui peut le faire passer derrière le bandeau interne d'une conversation
+  // (Messagerie) malgré son z-index local élevé.
+  const profileTriggerRef = useRef<HTMLDivElement>(null);
+  const [profileMenuPosition, setProfileMenuPosition] = useState({ top: 0, right: 0 });
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isProfileMenuOpen && profileTriggerRef.current) {
+      const rect = profileTriggerRef.current.getBoundingClientRect();
+      setProfileMenuPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right
+      });
+    }
+  }, [isProfileMenuOpen]);
 
   const handleSearchSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -96,7 +120,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         </Link>
 
         {/* User Menu Dropdown Trigger */}
-        <div className="relative">
+        <div className="relative" ref={profileTriggerRef}>
           <button
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
             className="flex items-center gap-2 p-1 pl-1.5 rounded-full hover:bg-secondary border border-transparent hover:border-border/40 transition-all"
@@ -112,14 +136,18 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
             <HugeIcon icon={ArrowDown01Icon} size={14} className="text-muted-foreground hidden sm:inline" />
           </button>
 
-          {/* User Dropdown Menu */}
-          {isProfileMenuOpen && (
+          {/* User Dropdown Menu — portail vers document.body : passe toujours
+              au-dessus de tout (bandeau de conversation dans Messagerie
+              inclus), voir le commentaire sur profileTriggerRef plus haut. */}
+          {isMounted && isProfileMenuOpen && createPortal(
             <>
               <div
-                className="fixed inset-0 z-40"
+                className="fixed inset-0 z-[100]"
                 onClick={() => setIsProfileMenuOpen(false)}
               />
-              <div className="absolute right-0 mt-2 w-60 p-2 bg-card border border-border/50 rounded-3xl shadow-soft z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div
+                style={{ top: profileMenuPosition.top, right: profileMenuPosition.right }}
+                className="fixed w-60 p-2 bg-card border border-border/50 rounded-3xl shadow-soft z-[101] animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="px-3 py-2 border-b border-border/60">
                   <p className="text-xs font-semibold text-foreground">
                     {profile.first_name} {profile.last_name}
@@ -190,7 +218,8 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
                   </form>
                 </div>
               </div>
-            </>
+            </>,
+            document.body
           )}
         </div>
       </div>
