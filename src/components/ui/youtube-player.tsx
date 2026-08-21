@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, RotateCcw } from "lucide-react";
 import { loadYouTubeIframeApi, type YouTubePlayerInstance } from "@/lib/youtube-iframe-api";
 import { cn } from "@/lib/utils";
@@ -28,24 +29,42 @@ function formatTime(seconds: number): string {
  * même raison. En pause, YouTube affiche son propre titre/nom de chaîne
  * par-dessus la vidéo (impossible à désactiver côté YouTube) — accepté tel
  * quel, pas de recouvrement pour ce cas-là.
+ *
+ * "Plein écran" = agrandissement CSS (fixed inset-0), pas l'API Fullscreen
+ * native : `Element.requestFullscreen()` sur un élément quelconque n'est pas
+ * supporté par Safari iOS (seule la balise <video> native a un équivalent
+ * propriétaire là-bas), ce qui rendait le bouton silencieusement inopérant
+ * sur mobile alors qu'il fonctionnait sur desktop/Android. Portalé vers
+ * document.body pour échapper au conteneur de transition de page (AppShell,
+ * cf. le même problème déjà rencontré pour le menu de profil) — le portail
+ * change seulement de conteneur cible (localSlot en temps normal, body une
+ * fois agrandi), jamais de type, donc le lecteur YouTube n'est jamais
+ * démonté/recréé en agrandissant ou en réduisant.
  */
 export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlayerProps) {
   const elementId = `yt-player-${useId().replace(/:/g, "")}`;
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayerInstance | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
+  // État (pas juste une ref) car sa valeur est lue pendant le rendu, pour
+  // choisir la cible du portail (cf. handleToggleExpand plus bas).
+  const [localSlotEl, setLocalSlotEl] = useState<HTMLDivElement | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragPercent, setDragPercent] = useState(0);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isPlaying || playerRef.current) return;
@@ -105,11 +124,25 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
     };
   }, [isPlaying]);
 
+  // Bloque le scroll de la page derrière tant que la vidéo est agrandie.
   useEffect(() => {
-    const handleFullscreenChange = () => setIsFullscreen(document.fullscreenElement === wrapperRef.current);
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
+    if (!isExpanded) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [isExpanded]);
+
+  // Échap pour réduire, comme le ferait le plein écran natif.
+  useEffect(() => {
+    if (!isExpanded) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsExpanded(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isExpanded]);
 
   useEffect(() => {
     return () => {
@@ -174,41 +207,16 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
     setCurrentTime(seekTime);
   };
 
-  const handleToggleFullscreen = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      wrapperRef.current?.requestFullscreen();
-    }
-  };
+  const handleToggleExpand = () => setIsExpanded((v) => !v);
 
   const progressPercent = isDragging ? dragPercent : duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
   const displayTime = isDragging ? (dragPercent / 100) * duration : currentTime;
 
-  return (
-    <div ref={wrapperRef} className={cn("relative w-full aspect-video bg-black", className)}>
-      {isPlaying ? (
-        <div id={elementId} ref={containerRef} className="absolute inset-0 w-full h-full" />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setIsPlaying(true)}
-          className="absolute inset-0 w-full h-full group"
-          aria-label="Lire la vidéo"
-        >
-          {thumbnailUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
-          )}
-          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white/90 shadow-lg group-hover:scale-105 transition-transform">
-              <Play size={26} className="text-black fill-current ml-1" />
-            </div>
-          </div>
-        </button>
-      )}
+  const playingContent = (
+    <div className={cn("bg-black", isExpanded ? "fixed inset-0 z-[200] w-screen h-screen" : "absolute inset-0 w-full h-full")}>
+      <div id={elementId} ref={containerRef} className="absolute inset-0 w-full h-full" />
 
-      {isPlaying && !hasEnded && (
+      {!hasEnded && (
         <div className="absolute inset-x-0 bottom-0 z-20 px-3 pb-2 pt-6 bg-gradient-to-t from-black/80 to-transparent flex flex-col gap-1.5">
           {/* Barre de progression interactive — clic ou glisser pour avancer/reculer. */}
           <div
@@ -253,11 +261,11 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
             </div>
             <button
               type="button"
-              onClick={handleToggleFullscreen}
-              aria-label={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+              onClick={handleToggleExpand}
+              aria-label={isExpanded ? "Quitter le plein écran" : "Plein écran"}
               className="flex items-center justify-center w-7 h-7 rounded-full text-white hover:bg-white/15 transition-colors"
             >
-              {isFullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
+              {isExpanded ? <Minimize size={15} /> : <Maximize size={15} />}
             </button>
           </div>
         </div>
@@ -274,6 +282,33 @@ export function YouTubePlayer({ videoId, thumbnailUrl, className }: YouTubePlaye
           </button>
         </div>
       )}
+    </div>
+  );
+
+  const portalTarget = isMounted ? (isExpanded ? document.body : localSlotEl) : null;
+
+  return (
+    <div ref={setLocalSlotEl} className={cn("relative w-full aspect-video bg-black", className)}>
+      {!isPlaying && (
+        <button
+          type="button"
+          onClick={() => setIsPlaying(true)}
+          className="absolute inset-0 w-full h-full group"
+          aria-label="Lire la vidéo"
+        >
+          {thumbnailUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
+          )}
+          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white/90 shadow-lg group-hover:scale-105 transition-transform">
+              <Play size={26} className="text-black fill-current ml-1" />
+            </div>
+          </div>
+        </button>
+      )}
+
+      {isPlaying && portalTarget && createPortal(playingContent, portalTarget)}
     </div>
   );
 }
