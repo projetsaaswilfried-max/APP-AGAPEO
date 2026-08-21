@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppNotification, NotificationCategory } from "@/domain/types/notification";
 import { notificationService } from "@/domain/services/notification.service";
 import { NotificationItem } from "@/components/features/notifications/notification-item";
@@ -8,7 +9,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, CheckCheck, ArrowLeft } from "lucide-react";
 
 const CATEGORY_TABS = [
   { id: "ALL", label: "Toutes" },
@@ -21,6 +22,7 @@ const CATEGORY_TABS = [
 ];
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<NotificationCategory>("ALL");
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,6 +68,18 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto w-full pb-16 select-none">
+      {/* Sticky sous le Header (h-16) : toujours visible sans avoir à
+          remonter, quelle que soit la longueur de la liste de notifications. */}
+      <div className="sticky top-16 z-10 py-3 bg-background/95 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft size={15} /> Retour
+        </button>
+      </div>
+
       {/* En-tête sans le mot 'RUBRIQUE' */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
         <div>

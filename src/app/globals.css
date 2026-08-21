@@ -145,7 +145,11 @@
 }
 
 html {
-  overflow-x: hidden;
+  /* `hidden` (plutôt que `clip`) force overflow-y à `auto` sur cet ancêtre
+     (règle CSS de propagation overflow-x/overflow-y) et casse `position:
+     sticky`/`fixed` des descendants (sidebar desktop, barre mobile) — d'où
+     `clip`, qui bloque le débordement horizontal sans cet effet de bord. */
+  overflow-x: clip;
 }
 
 body {
@@ -159,8 +163,9 @@ body {
   /* Filet de sécurité : un élément interne trop large sur mobile ne doit
      jamais permettre de glisser horizontalement toute la page — les vraies
      causes (largeurs fixes, flex sans min-w-0...) sont corrigées à la
-     source là où elles sont identifiées, ceci n'est qu'un garde-fou. */
-  overflow-x: hidden;
+     source là où elles sont identifiées, ceci n'est qu'un garde-fou.
+     `clip` et non `hidden` : voir commentaire sur `html` ci-dessus. */
+  overflow-x: clip;
 }
 
 /* Beaucoup de composants utilisent des tailles arbitraires (text-[10px]...)

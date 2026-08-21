@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Home01Icon,
   UserGroupIcon,
@@ -15,7 +14,6 @@ import { HugeIcon } from "@/components/ui/hugeicon";
 import { withUnreadBadges, NavigationItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
-import { NotificationPanel } from "@/components/features/notifications/notification-panel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICON_MAP: Record<string, any> = {
@@ -58,8 +56,7 @@ function NavItemInner({ item, isActive }: { item: NavigationItem; isActive: bool
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { unreadMessages, unreadNotifications, refresh } = useUnreadCounts();
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const { unreadMessages, unreadNotifications } = useUnreadCounts();
   // "Mon Profil" et "Premium" restent accessibles depuis le menu (avatar du
   // header, tiroir mobile) — la barre du bas est réservée aux 4 actions
   // principales pour éviter le débordement.
@@ -76,35 +73,6 @@ export function BottomNav() {
             "relative flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors duration-200 border border-transparent",
             isActive ? "text-primary font-semibold border-accent/30" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
           );
-
-          // Panneau déroulant au-dessus de la barre plutôt qu'une navigation
-          // vers /notifications — on ne perd jamais la position de scroll de
-          // la page en cours (Feed, Découvrir...) en consultant ses notifs.
-          if (item.id === "notifications") {
-            return (
-              <div key={item.id} className="relative">
-                <button type="button" onClick={() => setIsNotifOpen((v) => !v)} className={itemClassName}>
-                  <NavItemInner item={item} isActive={isNotifOpen} />
-                </button>
-                <AnimatePresence>
-                  {isNotifOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 8 }}
-                        transition={{ duration: 0.15 }}
-                        className="fixed z-50 bottom-24 left-4 right-4"
-                      >
-                        <NotificationPanel onClose={() => setIsNotifOpen(false)} onChanged={refresh} />
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          }
 
           return (
             <Link key={item.id} href={item.href} className={itemClassName}>
