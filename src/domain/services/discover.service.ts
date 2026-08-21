@@ -32,6 +32,14 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     if (!viewerRow) return [];
     const viewer = viewerRow as ProfileRow;
+
+    // Tant que la photo du viewer lui-même n'est pas validée (soumission
+    // jamais faite, en attente, ou refusée), il ne peut pas découvrir les
+    // autres membres — gratuit comme Premium. Appliqué ici (pas seulement
+    // masqué dans l'UI) pour qu'un appel direct au service ne contourne pas
+    // la restriction.
+    if (viewer.photo_verification_status !== "VERIFIED" && !viewer.is_staff) return [];
+
     const targetGender = viewer.gender === "MALE" ? "FEMALE" : "MALE";
 
     // Un profil n'est proposé aux autres que lorsqu'il est "actif" (cf.

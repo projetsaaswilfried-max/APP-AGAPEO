@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RecommendedProfileItem, DiscoverFilterCriteria } from "@/domain/types/discover";
@@ -18,15 +18,40 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSession } from "@/core/providers/session-provider";
 import { getScoringGaps } from "@/domain/profile-completeness";
-import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, ArrowRight } from "lucide-react";
+import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, ArrowRight, Clock, ShieldAlert } from "lucide-react";
 
 const DEFAULT_FILTERS: DiscoverFilterCriteria = { ageMin: 20, ageMax: 50, status: "ALL" };
+
+// Tant que la photo n'est pas VERIFIED (jamais soumise, en attente, ou
+// refusée), l'accès à Découvrir est bloqué — gratuit comme Premium. Message
+// adapté à chaque cas pour inciter à finaliser la vérification.
+const VERIFICATION_GATE_CONTENT: Record<"UNVERIFIED" | "PENDING" | "REJECTED", { icon: ReactNode; title: string; description: string; cta: string }> = {
+  UNVERIFIED: {
+    icon: <ShieldAlert size={26} />,
+    title: "Vérifie ton profil pour découvrir les autres membres",
+    description: "Ajoute une photo de profil et soumets-la pour validation : c'est la condition pour commencer à découvrir les autres membres, en formule gratuite comme Premium.",
+    cta: "Vérifier mon profil"
+  },
+  PENDING: {
+    icon: <Clock size={26} />,
+    title: "Ton profil est en cours de vérification",
+    description: "Notre équipe examine ta photo de profil. Dès qu'elle sera validée, tu pourras découvrir les autres membres de la communauté.",
+    cta: "Voir ma demande"
+  },
+  REJECTED: {
+    icon: <ShieldAlert size={26} />,
+    title: "Ta photo de profil n'a pas été validée",
+    description: "Remplace ta photo de profil et soumets une nouvelle demande de vérification pour débloquer Découvrir.",
+    cta: "Soumettre une nouvelle photo"
+  }
+};
 
 function DiscoverPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profile } = useSession();
   const scoringGaps = getScoringGaps(profile);
+  const isVerificationGated = profile.photo_verification_status !== "VERIFIED" && !profile.is_staff;
   const [profiles, setProfiles] = useState<RecommendedProfileItem[]>([]);
   const [filters, setFilters] = useState<DiscoverFilterCriteria>(() => {
     const search = searchParams.get("search");
@@ -42,6 +67,10 @@ function DiscoverPageContent() {
   const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
 
   const fetchProfiles = async () => {
+    if (isVerificationGated) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setIsError(false);
     try {
@@ -58,7 +87,7 @@ function DiscoverPageContent() {
   useEffect(() => {
     fetchProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, isVerificationGated]);
 
   const handleToggleFavorite = async (profileId: string) => {
     setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isFavorite: !item.isFavorite } : item)));
@@ -91,6 +120,9 @@ function DiscoverPageContent() {
   };
 
   const recommendedHighlight = profiles.find((p) => p.compatibilityPercentage >= 90);
+  const gateContent = isVerificationGated
+    ? VERIFICATION_GATE_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
+    : null;
 
   return (
     <div className="space-y-6 w-full pb-16 select-none">
@@ -112,28 +144,48 @@ function DiscoverPageContent() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <SearchInput
-            placeholder="Rechercher par prénom, ville, profession..."
-            value={filters.searchQuery || ""}
-            onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
-            onClear={() => setFilters({ ...filters, searchQuery: "" })}
-            className="flex-1 md:w-72 text-xs h-10 bg-card shadow-2xs"
-          />
+        {!isVerificationGated && (
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <SearchInput
+              placeholder="Rechercher par prénom, ville, profession..."
+              value={filters.searchQuery || ""}
+              onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
+              onClear={() => setFilters({ ...filters, searchQuery: "" })}
+              className="flex-1 md:w-72 text-xs h-10 bg-card shadow-2xs"
+            />
 
-          <Button
-            variant={isFilterOpen ? "primary" : "outline"}
-            size="md"
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            leftIcon={<SlidersHorizontal size={16} />}
-            className="shrink-0"
-          >
-            Filtres
-          </Button>
-        </div>
+            <Button
+              variant={isFilterOpen ? "primary" : "outline"}
+              size="md"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              leftIcon={<SlidersHorizontal size={16} />}
+              className="shrink-0"
+            >
+              Filtres
+            </Button>
+          </div>
+        )}
       </div>
 
-      {isFilterOpen && (
+      {gateContent && (
+        <EmptyState
+          icon={gateContent.icon}
+          title={gateContent.title}
+          description={gateContent.description}
+          className="py-16"
+          action={
+            <Link
+              href="/profile?tab=account"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2 shadow-accent-glow"
+            >
+              {gateContent.cta}
+              <ArrowRight size={13} />
+            </Link>
+          }
+        />
+      )}
+
+      {!isVerificationGated && isFilterOpen && (
         <div className="animate-in fade-in duration-150">
           <FilterPanel
             filters={filters}
@@ -148,7 +200,7 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {isError && !isLoading && (
+      {!isVerificationGated && isError && !isLoading && (
         <EmptyState
           icon={<AlertCircle size={24} className="text-destructive" />}
           title="Impossible de charger les profils"
@@ -161,7 +213,7 @@ function DiscoverPageContent() {
         />
       )}
 
-      {recommendedHighlight && !isLoading && !isError && (
+      {!isVerificationGated && recommendedHighlight && !isLoading && !isError && (
         <CompatibilityCard
           item={recommendedHighlight}
           onInspectProfile={(prof) => {
@@ -171,7 +223,7 @@ function DiscoverPageContent() {
         />
       )}
 
-      {!isLoading && !isError && scoringGaps.length > 0 && profiles.length > 0 && (
+      {!isVerificationGated && !isLoading && !isError && scoringGaps.length > 0 && profiles.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
           <Heart size={14} className="text-accent shrink-0" />
           <span>
@@ -183,7 +235,7 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {isLoading && (
+      {!isVerificationGated && isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-2xs">
@@ -201,7 +253,7 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {!isLoading && !isError && profiles.length === 0 && (
+      {!isVerificationGated && !isLoading && !isError && profiles.length === 0 && (
         <EmptyState
           icon={<Users size={28} />}
           title="Aucun profil ne correspond à vos critères"
@@ -214,7 +266,7 @@ function DiscoverPageContent() {
         />
       )}
 
-      {!isLoading && !isError && profiles.length > 0 && (
+      {!isVerificationGated && !isLoading && !isError && profiles.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Profils recommandés pour vous ({profiles.length})
