@@ -144,6 +144,10 @@
   --shadow-accent-glow: 0 8px 20px -4px rgba(254, 112, 178, 0.45);
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
@@ -152,6 +156,11 @@ body {
   font-feature-settings: "rlig" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Filet de sécurité : un élément interne trop large sur mobile ne doit
+     jamais permettre de glisser horizontalement toute la page — les vraies
+     causes (largeurs fixes, flex sans min-w-0...) sont corrigées à la
+     source là où elles sont identifiées, ceci n'est qu'un garde-fou. */
+  overflow-x: hidden;
 }
 
 /* Beaucoup de composants utilisent des tailles arbitraires (text-[10px]...)

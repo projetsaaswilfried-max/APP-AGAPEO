@@ -121,7 +121,7 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0 shadow-accent-glow">
               <Pencil size={18} />
             </div>
-            <div className="flex-1 min-w-[220px]">
+            <div className="flex-1 min-w-0 sm:min-w-[220px]">
               <p className="text-sm font-semibold text-foreground">Personnalité, vision du mariage, préférences</p>
               <p className="text-xs text-muted-foreground">Reviens à tout moment corriger ou compléter tes réponses d&apos;inscription.</p>
             </div>

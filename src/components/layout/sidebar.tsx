@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Home01Icon,
   UserGroupIcon,
@@ -22,6 +23,7 @@ import { getInitials } from "@/domain/badges";
 import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
 import { Avatar } from "@/components/ui/avatar";
 import { AgapeoLogo } from "@/components/ui/logo";
+import { NotificationPanel } from "@/components/features/notifications/notification-panel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICON_MAP: Record<string, any> = {
@@ -39,12 +41,59 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
+function NavItemContent({
+  item,
+  isActive,
+  isCollapsed
+}: {
+  item: NavigationItem;
+  isActive: boolean;
+  isCollapsed: boolean;
+}) {
+  const iconObj = ICON_MAP[item.iconName] || Home01Icon;
+  return (
+    <>
+      {isActive && (
+        <motion.div
+          layoutId="sidebar-active-pill"
+          className="absolute inset-0 bg-accent-subtle border border-accent/30 rounded-full shadow-2xs"
+          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+        />
+      )}
+
+      <HugeIcon
+        icon={iconObj}
+        size={18}
+        className={cn(
+          "relative z-10 shrink-0 transition-colors",
+          isActive ? "text-primary font-bold" : "text-muted-foreground group-hover:text-foreground"
+        )}
+      />
+
+      {!isCollapsed && <span className="relative z-10 flex-1 truncate tracking-tight">{item.title}</span>}
+
+      {item.badgeCount && item.badgeCount > 0 && (
+        <span
+          className={cn(
+            "relative z-10 flex items-center justify-center text-[11px] font-semibold rounded-full min-w-[20px] h-5 px-1 leading-none",
+            isActive ? "bg-card text-primary font-bold" : "bg-primary text-primary-foreground",
+            isCollapsed && "absolute top-1 right-1 min-w-4 h-4 text-[9px] px-0.5"
+          )}
+        >
+          {item.badgeCount > 99 ? "99+" : item.badgeCount}
+        </span>
+      )}
+    </>
+  );
+}
+
 export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const { profile } = useSession();
   const initials = getInitials(profile.first_name, profile.last_name);
-  const { unreadMessages, unreadNotifications } = useUnreadCounts();
+  const { unreadMessages, unreadNotifications, refresh } = useUnreadCounts();
   const navigation = withUnreadBadges(unreadMessages, unreadNotifications);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   return (
     <aside
@@ -72,58 +121,47 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
       {/* Main Navigation List */}
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
         {navigation.map((item: NavigationItem) => {
-          const iconObj = ICON_MAP[item.iconName] || Home01Icon;
-          const isActive = item.isExact
-            ? pathname === item.href
-            : pathname.startsWith(item.href);
+          const isActive = item.isExact ? pathname === item.href : pathname.startsWith(item.href);
+          const itemClassName = cn(
+            "relative flex items-center gap-3 px-3.5 py-2.5 rounded-full text-sm font-medium transition-colors duration-200 group border border-transparent w-full",
+            isActive
+              ? "text-foreground font-semibold border-accent/30"
+              : "text-muted-foreground hover:text-foreground hover:bg-secondary/70",
+            isCollapsed && "justify-center px-0"
+          );
+
+          // "Notifications" ouvre un panneau déroulant par-dessus la page en
+          // cours au lieu de naviguer vers /notifications — la page derrière
+          // (scroll, filtres Découvrir, etc.) n'est donc jamais perdue.
+          if (item.id === "notifications") {
+            return (
+              <div key={item.id} className="relative">
+                <button type="button" onClick={() => setIsNotifOpen((v) => !v)} className={itemClassName}>
+                  <NavItemContent item={item} isActive={isNotifOpen} isCollapsed={isCollapsed} />
+                </button>
+                <AnimatePresence>
+                  {isNotifOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
+                      <motion.div
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -8 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-50 top-0 left-full ml-2"
+                      >
+                        <NotificationPanel onClose={() => setIsNotifOpen(false)} onChanged={refresh} />
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          }
 
           return (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={cn(
-                "relative flex items-center gap-3 px-3.5 py-2.5 rounded-full text-sm font-medium transition-colors duration-200 group border border-transparent",
-                isActive
-                  ? "text-foreground font-semibold border-accent/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/70",
-                isCollapsed && "justify-center px-0"
-              )}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="sidebar-active-pill"
-                  className="absolute inset-0 bg-accent-subtle border border-accent/30 rounded-full shadow-2xs"
-                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                />
-              )}
-
-              <HugeIcon
-                icon={iconObj}
-                size={18}
-                className={cn(
-                  "relative z-10 shrink-0 transition-colors",
-                  isActive ? "text-primary font-bold" : "text-muted-foreground group-hover:text-foreground"
-                )}
-              />
-
-              {!isCollapsed && (
-                <span className="relative z-10 flex-1 truncate tracking-tight">{item.title}</span>
-              )}
-
-              {/* Badge Notification */}
-              {item.badgeCount && item.badgeCount > 0 && (
-                <span
-                  className={cn(
-                    "relative z-10 flex items-center justify-center text-[11px] font-semibold rounded-full min-w-[20px] h-5 px-1 leading-none",
-                    isActive
-                      ? "bg-card text-primary font-bold"
-                      : "bg-primary text-primary-foreground",
-                    isCollapsed && "absolute top-1 right-1 min-w-4 h-4 text-[9px] px-0.5"
-                  )}
-                >
-                  {item.badgeCount > 99 ? "99+" : item.badgeCount}
-                </span>
-              )}
+            <Link key={item.id} href={item.href} className={itemClassName}>
+              <NavItemContent item={item} isActive={isActive} isCollapsed={isCollapsed} />
             </Link>
           );
         })}

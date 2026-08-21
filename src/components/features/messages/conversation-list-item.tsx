@@ -56,8 +56,8 @@ export function ConversationListItem({
       {/* Titre & Aperçu du dernier message */}
       <div className="flex-1 min-w-0 space-y-0.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 truncate">
-            <span className="text-sm font-semibold tracking-tight text-foreground truncate">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-semibold tracking-tight text-foreground truncate min-w-0">
               {participant.firstName} {participant.lastName}
             </span>
             {isFavorite && <Pin size={11} className="text-accent shrink-0 fill-current" />}

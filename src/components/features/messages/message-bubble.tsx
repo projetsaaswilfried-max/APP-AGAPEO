@@ -13,6 +13,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { cn } from "@/lib/utils";
+import { linkifyText } from "@/lib/linkify";
 
 function formatReadTime(iso?: string): string {
   if (!iso) return "Lu";
@@ -149,7 +150,9 @@ export function MessageBubble({
           {/* Contenu Texte — pour les pièces jointes (IMAGE/VIDEO/DOCUMENT), `content` ne
               contient que le nom de fichier technique (cf. sendFileAttachment), jamais une
               légende saisie par l'utilisateur : on ne l'affiche donc que pour les vrais messages texte. */}
-          {message.content && message.type === "TEXT" && <p className="whitespace-pre-line">{message.content}</p>}
+          {message.content && message.type === "TEXT" && (
+            <p className="whitespace-pre-line break-words">{linkifyText(message.content)}</p>
+          )}
 
           {/* Heure et Ticks d'état (✓✓) */}
           <div

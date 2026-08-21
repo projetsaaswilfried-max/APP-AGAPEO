@@ -55,9 +55,9 @@ export function CompatibilityCard({
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
               {justifications.map((reason, idx) => (
-                <div key={idx} className="flex items-center gap-1.5 text-xs text-foreground/90">
+                <div key={idx} className="flex items-center gap-1.5 text-xs text-foreground/90 min-w-0">
                   <CheckCircle2 size={13} className="text-primary shrink-0" />
-                  <span className="truncate">{reason}</span>
+                  <span className="truncate min-w-0">{reason}</span>
                 </div>
               ))}
             </div>

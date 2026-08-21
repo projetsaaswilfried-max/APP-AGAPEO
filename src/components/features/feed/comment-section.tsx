@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
+import { linkifyText } from "@/lib/linkify";
 import { Send, CornerDownRight, X } from "lucide-react";
 
 interface CommentSectionProps {
@@ -141,8 +142,8 @@ export function CommentSection({
                           {comment.createdAt}
                         </span>
                       </div>
-                      <p className="text-foreground/90 leading-relaxed font-normal">
-                        {comment.content}
+                      <p className="text-foreground/90 leading-relaxed font-normal break-words">
+                        {linkifyText(comment.content)}
                       </p>
                     </div>
                     <button
@@ -187,8 +188,8 @@ export function CommentSection({
                                 {reply.createdAt}
                               </span>
                             </div>
-                            <p className="text-foreground/90 leading-relaxed font-normal">
-                              {reply.content}
+                            <p className="text-foreground/90 leading-relaxed font-normal break-words">
+                              {linkifyText(reply.content)}
                             </p>
                           </div>
                           <button

@@ -25,7 +25,7 @@ function PremiumUpsellBannerContent() {
           <Crown size={18} />
         </div>
 
-        <div className="flex-1 min-w-[220px]">
+        <div className="flex-1 min-w-0 sm:min-w-[220px]">
           <p className="text-sm font-semibold text-foreground">Passe Premium</p>
           <p className="text-xs text-muted-foreground">
             Contacte en priorité, découvre qui s&apos;intéresse à toi et débloque les filtres avancés.

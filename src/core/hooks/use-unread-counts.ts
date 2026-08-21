@@ -10,11 +10,14 @@ const POLL_INTERVAL_MS = 30000;
 export function useUnreadCounts() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [refreshToken, setRefreshToken] = useState(0);
+  /** Permet un rafraîchissement immédiat (ex : après avoir marqué une notification comme lue dans le panneau) sans attendre le prochain poll. */
+  const refresh = () => setRefreshToken((t) => t + 1);
 
   useEffect(() => {
     let cancelled = false;
 
-    const refresh = async () => {
+    const doRefresh = async () => {
       const supabase = createClient();
       const {
         data: { user }
@@ -50,13 +53,13 @@ export function useUnreadCounts() {
       if (!cancelled) setUnreadNotifications(notifCount);
     };
 
-    refresh();
-    const interval = setInterval(refresh, POLL_INTERVAL_MS);
+    doRefresh();
+    const interval = setInterval(doRefresh, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [refreshToken]);
 
-  return { unreadMessages, unreadNotifications };
+  return { unreadMessages, unreadNotifications, refresh };
 }

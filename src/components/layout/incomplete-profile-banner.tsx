@@ -32,7 +32,7 @@ function IncompleteProfileBannerContent() {
           <UserCheck size={18} />
         </div>
 
-        <div className="flex-1 min-w-[220px]">
+        <div className="flex-1 min-w-0 sm:min-w-[220px]">
           <p className="text-sm font-semibold text-foreground">
             Profil incomplet — invisible dans Découvrir
           </p>
