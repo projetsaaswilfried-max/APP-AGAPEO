@@ -123,7 +123,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
         {navigation.map((item: NavigationItem) => {
           const isActive = item.isExact ? pathname === item.href : pathname.startsWith(item.href);
           const itemClassName = cn(
-            "relative flex items-center gap-3 px-3.5 py-2.5 rounded-full text-sm font-medium transition-colors duration-200 group border border-transparent w-full",
+            "relative flex items-center gap-3 px-3.5 py-2.5 rounded-full text-sm font-medium text-left transition-colors duration-200 group border border-transparent w-full",
             isActive
               ? "text-foreground font-semibold border-accent/30"
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/70",
