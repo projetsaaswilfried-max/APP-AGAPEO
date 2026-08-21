@@ -25,6 +25,9 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
   const router = useRouter();
   const isPremium = profile.subscriptionStatus === "ACTIVE";
   const [items, setItems] = useState<RecommendedProfileItem[]>([]);
+  // Le nombre reste visible pour tous — seul `items` (l'identité de chacun)
+  // est réservé Premium/équipe côté service (getWhoLikesMe renvoie [] sinon).
+  const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<RecommendedProfileItem | null>(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
@@ -32,9 +35,11 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
   const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
 
   useEffect(() => {
-    discoverService
-      .getWhoLikesMe()
-      .then(setItems)
+    Promise.all([discoverService.getWhoLikesMe(), discoverService.getWhoLikesMeCount()])
+      .then(([detail, total]) => {
+        setItems(detail);
+        setCount(total);
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -70,7 +75,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
       <div className="flex items-center gap-2 border-b border-border/60 pb-4">
         <Heart className="h-5 w-5 text-primary" />
         <h2 className="text-base font-display font-semibold text-foreground tracking-tight">
-          Qui s&apos;intéresse à moi {!isLoading && `(${items.length})`}
+          Qui s&apos;intéresse à moi {!isLoading && `(${count})`}
         </h2>
       </div>
 
@@ -82,7 +87,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
         </div>
       )}
 
-      {!isLoading && items.length === 0 && (
+      {!isLoading && count === 0 && (
         <EmptyState
           icon={<Heart size={24} />}
           title="Personne pour l'instant"
@@ -90,11 +95,12 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
         />
       )}
 
-      {!isLoading && items.length > 0 && !isPremium && (
+      {!isLoading && count > 0 && !isPremium && (
         <div className="relative">
+          {/* Identite jamais transmise en gratuit (voir getWhoLikesMe cote service) — le flou porte sur des cartes generiques, pas sur de vraies donnees. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 blur-sm pointer-events-none select-none" aria-hidden>
-            {items.slice(0, 3).map((item) => (
-              <DiscoverProfileCard key={item.profile.id} item={item} onInspectProfile={() => {}} onToggleFavorite={() => {}} onSendMessage={() => {}} />
+            {Array.from({ length: Math.min(count, 3) }).map((_, i) => (
+              <Skeleton key={i} className="h-64 w-full rounded-3xl" />
             ))}
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-6">
@@ -102,7 +108,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
               <Crown size={24} />
             </div>
             <p className="text-sm font-semibold text-foreground">
-              {items.length} membre{items.length > 1 ? "s" : ""} s&apos;intéresse{items.length > 1 ? "nt" : ""} à toi
+              {count} membre{count > 1 ? "s" : ""} s&apos;intéresse{count > 1 ? "nt" : ""} à toi
             </p>
             <p className="text-xs text-muted-foreground max-w-xs">Passe Premium pour découvrir qui a consulté ou favori ton profil.</p>
             <Link href="/premium">

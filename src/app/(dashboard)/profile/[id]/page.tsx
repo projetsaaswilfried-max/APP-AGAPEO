@@ -74,6 +74,23 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   const target = targetRow as ProfileRow;
 
+  // Un profil en cours d'examen ou dont la photo a été refusée ne doit
+  // jamais être accessible aux autres membres (cohérent avec le filtre
+  // appliqué dans Découvrir) — même en connaissant l'URL directe. L'équipe
+  // (staff) reste exemptée pour pouvoir modérer/consulter ces profils.
+  const isStaffViewer = viewerRow.role !== "USER";
+  if (!isStaffViewer && (target.photo_verification_status === "PENDING" || target.photo_verification_status === "REJECTED")) {
+    return (
+      <div className="max-w-2xl mx-auto py-16">
+        <EmptyState
+          icon={<UserX size={24} />}
+          title="Profil introuvable"
+          description="Ce profil n'existe pas, a été supprimé, ou n'est plus accessible."
+        />
+      </div>
+    );
+  }
+
   const [{ data: photos }, { data: posts }, { data: favoriteRow }] = await Promise.all([
     supabase.from("profile_photos").select("*").eq("profile_id", target.id).order("position", { ascending: true }),
     supabase.from("posts").select("*").eq("post_type", "PERSONAL").eq("author_id", target.id).order("created_at", { ascending: false }),

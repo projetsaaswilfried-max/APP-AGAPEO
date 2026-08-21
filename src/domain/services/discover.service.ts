@@ -10,6 +10,8 @@ export interface IDiscoverService {
   getRecommendations(): Promise<RecommendedProfileItem[]>;
   getFavorites(): Promise<RecommendedProfileItem[]>;
   getWhoLikesMe(): Promise<RecommendedProfileItem[]>;
+  /** Nombre de personnes intéressées, consultable par tout le monde — seul le détail (identité) est réservé Premium. */
+  getWhoLikesMeCount(): Promise<number>;
   toggleFavorite(profileId: string): Promise<boolean>;
 }
 
@@ -35,6 +37,11 @@ class DiscoverServiceSupabase implements IDiscoverService {
     // Un profil n'est proposé aux autres que lorsqu'il est "actif" (cf.
     // isProfileComplete côté client) — indépendant de `onboarding_completed`,
     // qui ne fait que suivre si l'assistant d'inscription a été vu/quitté.
+    // PENDING/REJECTED exclus : un profil en cours d'examen ou dont la photo
+    // a été refusée par l'équipe ne doit jamais être proposé aux autres
+    // membres tant qu'il n'a pas été (re)validé — cf. email "SUBMITTED" qui
+    // promet déjà "tant que la vérification est en cours, ton profil n'est
+    // pas encore proposé aux autres membres dans Découvrir".
     let query = supabase
       .from("profiles")
       .select("*")
@@ -43,6 +50,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .not("avatar_url", "is", null)
       .not("church_denomination", "is", null)
       .not("why_marriage", "is", null)
+      .not("photo_verification_status", "in", "(PENDING,REJECTED)")
       .order("last_active_at", { ascending: false })
       .limit(60);
 
@@ -50,23 +58,31 @@ class DiscoverServiceSupabase implements IDiscoverService {
       const q = filters.searchQuery.trim();
       query = query.or(`first_name.ilike.%${q}%,city.ilike.%${q}%,profession.ilike.%${q}%,country.ilike.%${q}%`);
     }
+    // "Recherche de base" (gratuit) : age, pays, statut. Tout le reste est
+    // un "filtre de recherche avancé" reserve Premium sur la page tarifs —
+    // applique ici cote serveur (pas seulement desactive dans l'UI) pour
+    // qu'un appel direct au service ne puisse pas contourner la restriction.
     if (filters.ageMax) query = query.gte("birth_date", birthDateFromAge(filters.ageMax + 1));
     if (filters.ageMin) query = query.lte("birth_date", birthDateFromAge(filters.ageMin));
     if (filters.country) query = query.eq("country", filters.country);
-    if (filters.city) query = query.ilike("city", `%${filters.city}%`);
-    if (filters.profession) query = query.ilike("profession", `%${filters.profession}%`);
-    if (filters.educationLevel) query = query.eq("education_level", filters.educationLevel);
-    if (filters.denomination) query = query.eq("church_denomination", filters.denomination);
-    if (filters.faithEngagementLevel) query = query.eq("faith_engagement_level", filters.faithEngagementLevel);
-    if (filters.ministry) query = query.ilike("ministry", `%${filters.ministry}%`);
-    if (filters.language) query = query.contains("languages", [filters.language]);
-    if (filters.hasChildren !== undefined) query = query.eq("has_children", filters.hasChildren);
-    if (filters.wantsChildren !== undefined) query = query.eq("wants_children", filters.wantsChildren);
-    if (filters.relocationReady !== undefined) query = query.eq("relocation_ready", filters.relocationReady);
-    if (filters.passion) query = query.contains("passions", [filters.passion]);
-    if (filters.coreValue) query = query.contains("core_values", [filters.coreValue]);
     if (filters.status && filters.status !== "ALL") query = query.eq("status", filters.status as ProfileRow["status"]);
-    if (filters.verifiedOnly) query = query.eq("photo_verification_status", "VERIFIED");
+
+    const canUseAdvancedFilters = viewer.is_premium || viewer.is_staff;
+    if (canUseAdvancedFilters) {
+      if (filters.city) query = query.ilike("city", `%${filters.city}%`);
+      if (filters.profession) query = query.ilike("profession", `%${filters.profession}%`);
+      if (filters.educationLevel) query = query.eq("education_level", filters.educationLevel);
+      if (filters.denomination) query = query.eq("church_denomination", filters.denomination);
+      if (filters.faithEngagementLevel) query = query.eq("faith_engagement_level", filters.faithEngagementLevel);
+      if (filters.ministry) query = query.ilike("ministry", `%${filters.ministry}%`);
+      if (filters.language) query = query.contains("languages", [filters.language]);
+      if (filters.hasChildren !== undefined) query = query.eq("has_children", filters.hasChildren);
+      if (filters.wantsChildren !== undefined) query = query.eq("wants_children", filters.wantsChildren);
+      if (filters.relocationReady !== undefined) query = query.eq("relocation_ready", filters.relocationReady);
+      if (filters.passion) query = query.contains("passions", [filters.passion]);
+      if (filters.coreValue) query = query.contains("core_values", [filters.coreValue]);
+      if (filters.verifiedOnly) query = query.eq("photo_verification_status", "VERIFIED");
+    }
 
     const { data: candidates, error } = await query;
     if (error || !candidates || candidates.length === 0) return [];
@@ -163,7 +179,13 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const favoriteIds = (favoriteRows ?? []).map((f) => f.favorite_profile_id);
     if (favoriteIds.length === 0) return [];
 
-    const { data: candidates } = await supabase.from("profiles").select("*").in("id", favoriteIds);
+    // Un profil favori qui passe ensuite en PENDING/REJECTED disparaît de la
+    // liste tant qu'il n'est pas (re)validé — même raison que dans Découvrir.
+    const { data: candidates } = await supabase
+      .from("profiles")
+      .select("*")
+      .in("id", favoriteIds)
+      .not("photo_verification_status", "in", "(PENDING,REJECTED)");
     if (!candidates || candidates.length === 0) return [];
 
     const { data: photos } = await supabase.from("profile_photos").select("*").in("profile_id", favoriteIds);
@@ -193,7 +215,13 @@ class DiscoverServiceSupabase implements IDiscoverService {
     });
   }
 
-  /** Membres ayant consulté ou mis en favori mon profil — fonctionnalité Premium (le décompte reste visible, le détail est filtré côté UI). */
+  /**
+   * Membres ayant consulté ou mis en favori mon profil — fonctionnalité
+   * Premium. Le détail (identité, photo) n'est renvoyé qu'aux membres
+   * Premium/équipe ; un membre gratuit doit passer par `getWhoLikesMeCount()`
+   * pour le nombre seul. Contrôle fait ici côté serveur (pas seulement
+   * masqué dans l'UI) pour qu'un appel direct ne puisse pas contourner Premium.
+   */
   async getWhoLikesMe(): Promise<RecommendedProfileItem[]> {
     const supabase = createClient();
     const {
@@ -204,6 +232,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     if (!viewerRow) return [];
     const viewer = viewerRow as ProfileRow;
+    if (!viewer.is_premium && !viewer.is_staff) return [];
 
     const [{ data: favoritedByRows }, { data: viewedByRows }, { data: myFavoriteRows }] = await Promise.all([
       supabase.from("favorites").select("user_id").eq("favorite_profile_id", user.id),
@@ -216,7 +245,13 @@ class DiscoverServiceSupabase implements IDiscoverService {
     ];
     if (candidateIds.length === 0) return [];
 
-    const { data: candidates } = await supabase.from("profiles").select("*").in("id", candidateIds);
+    // Même exclusion PENDING/REJECTED que Découvrir/Favoris : ne pas
+    // présenter un profil non validé, même dans "qui s'intéresse à moi".
+    const { data: candidates } = await supabase
+      .from("profiles")
+      .select("*")
+      .in("id", candidateIds)
+      .not("photo_verification_status", "in", "(PENDING,REJECTED)");
     if (!candidates || candidates.length === 0) return [];
 
     const { data: photos } = await supabase.from("profile_photos").select("*").in("profile_id", candidateIds);
@@ -248,6 +283,33 @@ class DiscoverServiceSupabase implements IDiscoverService {
         };
       })
       .sort((a, b) => b.compatibilityPercentage - a.compatibilityPercentage);
+  }
+
+  /** Nombre de personnes intéressées, sans exposer leur identité — accessible à tous, y compris en gratuit. */
+  async getWhoLikesMeCount(): Promise<number> {
+    const supabase = createClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+    if (!user) return 0;
+
+    const [{ data: favoritedByRows }, { data: viewedByRows }] = await Promise.all([
+      supabase.from("favorites").select("user_id").eq("favorite_profile_id", user.id),
+      supabase.from("profile_views").select("viewer_id").eq("viewed_profile_id", user.id)
+    ]);
+
+    const candidateIds = [...new Set([...(favoritedByRows ?? []).map((r) => r.user_id), ...(viewedByRows ?? []).map((r) => r.viewer_id)])];
+    if (candidateIds.length === 0) return 0;
+
+    // Même exclusion que getWhoLikesMe() : le compte doit correspondre à ce
+    // qui sera effectivement affiché en détail (profils PENDING/REJECTED exclus).
+    const { data: visibleCandidates } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("id", candidateIds)
+      .not("photo_verification_status", "in", "(PENDING,REJECTED)");
+
+    return visibleCandidates?.length ?? 0;
   }
 
   async toggleFavorite(profileId: string): Promise<boolean> {
