@@ -55,7 +55,11 @@ function NavItemContent({
     <>
       {isActive && (
         <motion.div
-          layoutId="sidebar-active-pill"
+          // Le panneau Notifications a son propre layoutId : sinon, tant que
+          // pathname reste sur la route déjà active (ex. Accueil) pendant que
+          // le panneau s'ouvre, deux éléments partagent "sidebar-active-pill"
+          // en même temps, ce que framer-motion ne gère pas correctement.
+          layoutId={item.id === "notifications" ? "sidebar-notif-pill" : "sidebar-active-pill"}
           className="absolute inset-0 bg-accent-subtle border border-accent/30 rounded-full shadow-2xs"
           transition={{ type: "spring", stiffness: 420, damping: 34 }}
         />
