@@ -13,7 +13,7 @@ import { z } from "zod";
 const OfficialPostSchema = z.object({
   title: z.string().trim().max(140).optional(),
   content: z.string().trim().min(3).max(3000),
-  category: z.enum(["TEACHING", "TESTIMONY", "ADVICE", "ANNOUNCEMENT", "QUOTE", "VERSE", "NEWS"]),
+  category: z.enum(["TEACHING", "TESTIMONY", "WORKSHOP", "ADVICE", "ANNOUNCEMENT", "QUOTE", "VERSE", "NEWS"]),
   mediaKind: z.enum(["IMAGE", "VIDEO", "YOUTUBE"]).optional(),
   mediaUrl: z.string().url().optional(),
   mediaStoragePath: z.string().optional()

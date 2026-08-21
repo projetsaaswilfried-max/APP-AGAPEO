@@ -14,6 +14,7 @@ const CATEGORY_TABS = [
   { id: "ALL", label: "Tout le fil" },
   { id: "TEACHING", label: "Enseignements" },
   { id: "TESTIMONY", label: "Témoignages" },
+  { id: "WORKSHOP", label: "Atelier/Mariage" },
   { id: "ADVICE", label: "Conseils & Préparation" },
   { id: "QUOTE", label: "Pensées & Citations" }
 ];

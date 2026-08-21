@@ -19,6 +19,7 @@ const PLATFORM_MAX_UPLOAD_MB = Math.round(PLATFORM_MAX_UPLOAD_BYTES / 1024 / 102
 const CATEGORIES = [
   { value: "TEACHING", label: "Enseignement" },
   { value: "TESTIMONY", label: "Témoignage" },
+  { value: "WORKSHOP", label: "Atelier/Mariage" },
   { value: "ADVICE", label: "Conseil" },
   { value: "ANNOUNCEMENT", label: "Annonce" },
   { value: "QUOTE", label: "Pensée & Citation" },

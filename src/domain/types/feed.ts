@@ -4,6 +4,7 @@ export type FeedCategory =
   | "ALL"
   | "TEACHING"
   | "TESTIMONY"
+  | "WORKSHOP"
   | "ADVICE"
   | "ANNOUNCEMENT"
   | "QUOTE"

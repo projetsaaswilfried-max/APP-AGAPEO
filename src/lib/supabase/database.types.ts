@@ -11,7 +11,7 @@ export type RelationshipStatusDb = "AVAILABLE" | "IN_DISCUSSION" | "ON_PAUSE";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 
 export type PostType = "OFFICIAL" | "PERSONAL";
-export type PostCategory = "TEACHING" | "TESTIMONY" | "ADVICE" | "ANNOUNCEMENT" | "QUOTE" | "VERSE" | "NEWS";
+export type PostCategory = "TEACHING" | "TESTIMONY" | "WORKSHOP" | "ADVICE" | "ANNOUNCEMENT" | "QUOTE" | "VERSE" | "NEWS";
 export type PostMediaTypeDb = "IMAGE" | "GALLERY" | "VIDEO" | "YOUTUBE" | "QUOTE_CARD" | "TEXT_ONLY";
 
 export type MessageTypeDb = "TEXT" | "IMAGE" | "VIDEO" | "DOCUMENT" | "VOICE" | "SYSTEM";

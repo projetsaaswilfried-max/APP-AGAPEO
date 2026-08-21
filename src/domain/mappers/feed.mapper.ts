@@ -9,6 +9,7 @@ const AGAPE_TEAM_AVATAR_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/
 const CATEGORY_LABELS: Record<string, string> = {
   TEACHING: "Enseignement",
   TESTIMONY: "Témoignage",
+  WORKSHOP: "Atelier/Mariage",
   ADVICE: "Conseil",
   ANNOUNCEMENT: "Annonce",
   QUOTE: "Pensée & Citation",
