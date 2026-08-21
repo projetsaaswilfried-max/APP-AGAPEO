@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Home01Icon,
   UserGroupIcon,
@@ -23,7 +22,6 @@ import { getInitials } from "@/domain/badges";
 import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
 import { Avatar } from "@/components/ui/avatar";
 import { AgapeoLogo } from "@/components/ui/logo";
-import { NotificationPanel } from "@/components/features/notifications/notification-panel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICON_MAP: Record<string, any> = {
@@ -55,11 +53,7 @@ function NavItemContent({
     <>
       {isActive && (
         <motion.div
-          // Le panneau Notifications a son propre layoutId : sinon, tant que
-          // pathname reste sur la route déjà active (ex. Accueil) pendant que
-          // le panneau s'ouvre, deux éléments partagent "sidebar-active-pill"
-          // en même temps, ce que framer-motion ne gère pas correctement.
-          layoutId={item.id === "notifications" ? "sidebar-notif-pill" : "sidebar-active-pill"}
+          layoutId="sidebar-active-pill"
           className="absolute inset-0 bg-accent-subtle border border-accent/30 rounded-full shadow-2xs"
           transition={{ type: "spring", stiffness: 420, damping: 34 }}
         />
@@ -95,9 +89,10 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
   const pathname = usePathname();
   const { profile } = useSession();
   const initials = getInitials(profile.first_name, profile.last_name);
-  const { unreadMessages, unreadNotifications, refresh } = useUnreadCounts();
-  const navigation = withUnreadBadges(unreadMessages, unreadNotifications);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const { unreadMessages, unreadNotifications } = useUnreadCounts();
+  // Notifications retiré du menu latéral — reste accessible via la cloche
+  // du header (desktop et mobile) et la barre de navigation mobile.
+  const navigation = withUnreadBadges(unreadMessages, unreadNotifications).filter((item) => item.id !== "notifications");
 
   return (
     <aside
@@ -133,35 +128,6 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
               : "text-muted-foreground hover:text-foreground hover:bg-secondary/70",
             isCollapsed && "justify-center px-0"
           );
-
-          // "Notifications" ouvre un panneau déroulant par-dessus la page en
-          // cours au lieu de naviguer vers /notifications — la page derrière
-          // (scroll, filtres Découvrir, etc.) n'est donc jamais perdue.
-          if (item.id === "notifications") {
-            return (
-              <div key={item.id} className="relative">
-                <button type="button" onClick={() => setIsNotifOpen((v) => !v)} className={itemClassName}>
-                  <NavItemContent item={item} isActive={isNotifOpen} isCollapsed={isCollapsed} />
-                </button>
-                <AnimatePresence>
-                  {isNotifOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)} />
-                      <motion.div
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -8 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute z-50 top-0 left-full ml-2"
-                      >
-                        <NotificationPanel onClose={() => setIsNotifOpen(false)} onChanged={refresh} />
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          }
 
           return (
             <Link key={item.id} href={item.href} className={itemClassName}>
