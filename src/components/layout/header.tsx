@@ -195,14 +195,14 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
                     <HugeIcon icon={HelpCircleIcon} size={14} className="text-muted-foreground" />
                     <span>Support</span>
                   </Link>
-                  {profile.role === "SUPER_ADMIN" && (
+                  {profile.role !== "USER" && (
                     <Link
                       href="/admin"
                       onClick={() => setIsProfileMenuOpen(false)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-secondary rounded-lg transition-colors"
                     >
                       <HugeIcon icon={SecurityValidationIcon} size={14} className="text-primary" />
-                      <span>Administration</span>
+                      <span>{profile.role === "MODERATOR" ? "Modération" : "Administration"}</span>
                     </Link>
                   )}
                 </div>

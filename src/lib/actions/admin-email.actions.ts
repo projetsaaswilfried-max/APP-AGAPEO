@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireSuperAdminSession } from "@/lib/supabase/session";
+import { requireAdminSession } from "@/lib/supabase/session";
 import { logAdminAction } from "@/lib/audit-log";
 import { getResendApiKey } from "@/config/env";
 import { isProfileComplete } from "@/domain/profile-completeness";
@@ -37,7 +37,7 @@ async function resolveAudienceProfiles(audience: EmailAudience, directRecipientI
 }
 
 export async function getAudienceCountAction(audience: EmailAudience, directRecipientId?: string) {
-  await requireSuperAdminSession();
+  await requireAdminSession();
   const rows = await resolveAudienceProfiles(audience, directRecipientId);
   return { count: rows.length };
 }
@@ -101,7 +101,7 @@ export async function sendEmailCampaignAction(input: {
   directRecipientId?: string;
   scheduledFor?: string;
 }) {
-  const { user } = await requireSuperAdminSession();
+  const { user } = await requireAdminSession();
 
   const subject = input.subject.trim();
   const bodyHtml = input.bodyHtml.trim();
@@ -181,7 +181,7 @@ export async function sendEmailCampaignAction(input: {
 }
 
 export async function cancelScheduledCampaignAction(campaignId: string) {
-  const { user } = await requireSuperAdminSession();
+  const { user } = await requireAdminSession();
   const admin = createAdminClient();
 
   const { error } = await admin.from("email_campaigns").update({ status: "CANCELED" }).eq("id", campaignId).eq("status", "SCHEDULED");

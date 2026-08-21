@@ -3,10 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireSuperAdminSession } from "@/lib/supabase/session";
+import { requireSuperAdminSession, requireAdminSession, requireStaffSession } from "@/lib/supabase/session";
 import { logAdminAction } from "@/lib/audit-log";
 import { sendVerificationEmail } from "@/lib/actions/verification.actions";
 import { sendPremiumRemovedEmail } from "@/lib/premium-emails";
+import { sendRoleChangedEmail } from "@/lib/role-emails";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { z } from "zod";
 
@@ -20,19 +21,18 @@ const OfficialPostSchema = z.object({
 });
 
 /**
- * Publication officielle : la RLS (`posts_insert`) exige déjà que l'auteur
- * ait le rôle ADMIN/MODERATOR/SUPER_ADMIN — cette action n'est qu'une
- * validation applicative supplémentaire, pas la seule barrière de sécurité.
+ * Publication officielle : réservée à ADMIN/SUPER_ADMIN (pas MODERATOR, dont
+ * le périmètre est la modération — signalements, support, vérifications).
+ * La RLS (`posts_insert`) autorise en réalité aussi MODERATOR, mais cette
+ * action ne l'expose qu'à ADMIN+ : la page `/admin/posts` elle-même est
+ * gated pareil, MODERATOR ne peut donc jamais l'atteindre via l'UI.
  */
 export async function createOfficialPostAction(input: unknown) {
   const parsed = OfficialPostSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
 
+  const { user } = await requireAdminSession();
   const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée." };
 
   const isVideo = parsed.data.mediaKind === "VIDEO" && Boolean(parsed.data.mediaUrl);
   const isImage = parsed.data.mediaKind === "IMAGE" && Boolean(parsed.data.mediaUrl);
@@ -78,20 +78,17 @@ const UpdateOfficialPostSchema = OfficialPostSchema.extend({
 });
 
 /**
- * Modification d'une publication officielle existante. Même barrière de
- * sécurité que la création (`posts_update` exige ADMIN/MODERATOR/SUPER_ADMIN
- * côté RLS). Si `mediaKind`/`mediaUrl` sont absents et `removeMedia` est
- * faux, le média existant n'est pas touché (édition texte seule).
+ * Modification d'une publication officielle existante — réservée à ADMIN/
+ * SUPER_ADMIN, même périmètre que la création. Si `mediaKind`/`mediaUrl`
+ * sont absents et `removeMedia` est faux, le média existant n'est pas
+ * touché (édition texte seule).
  */
 export async function updateOfficialPostAction(input: unknown) {
   const parsed = UpdateOfficialPostSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
 
+  await requireAdminSession();
   const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée." };
 
   const { postId, title, content, category, mediaKind, mediaUrl, mediaStoragePath, removeMedia } = parsed.data;
 
@@ -132,6 +129,7 @@ export async function updateOfficialPostAction(input: unknown) {
 }
 
 export async function deleteOfficialPostAction(postId: string) {
+  await requireAdminSession();
   const supabase = await createClient();
   const { error } = await supabase.from("posts").delete().eq("id", postId).eq("post_type", "OFFICIAL");
   if (error) return { error: error.message };
@@ -148,8 +146,10 @@ const ASSIGNABLE_ROLES = ["USER", "MODERATOR", "ADMIN"] as const;
  * `profiles` (vérification photo) : passent par le client service_role car
  * ni l'une ni l'autre table n'a de policy RLS d'écriture pour un tiers
  * (volontaire — cf. migration RLS / lock_down_restricted_profile_fields). La
- * seule barrière de sécurité est donc `requireSuperAdminSession()` ici,
- * revérifiée à chaque appel plutôt que déléguée à l'UI.
+ * seule barrière de sécurité est donc le `require*Session()` de chaque
+ * action, revérifié à chaque appel plutôt que délégué à l'UI. Changer le
+ * rôle de quelqu'un reste réservé à SUPER_ADMIN (jamais délégué, pour éviter
+ * qu'un ADMIN/MODERATOR ne s'auto-promeuve ou promeuve un tiers).
  */
 export async function updateUserRoleAction(userId: string, role: (typeof ASSIGNABLE_ROLES)[number]) {
   const { user, profile } = await requireSuperAdminSession();
@@ -163,6 +163,13 @@ export async function updateUserRoleAction(userId: string, role: (typeof ASSIGNA
 
   await logAdminAction(user.id, "UPDATE_USER_ROLE", { targetType: "profile", targetId: userId, details: { role } });
   revalidatePath("/admin/users");
+
+  const { data: target } = await admin.from("profiles").select("first_name").eq("id", userId).maybeSingle();
+  const { data: authUser } = await admin.auth.admin.getUserById(userId);
+  if (target && authUser?.user?.email) {
+    await sendRoleChangedEmail(authUser.user.email, target.first_name, role);
+  }
+
   return { success: true };
 }
 
@@ -175,7 +182,7 @@ export async function updateUserRoleAction(userId: string, role: (typeof ASSIGNA
  * visuellement — plutôt que de retoucher une à une toutes les policies RLS.
  */
 export async function toggleSuspendUserAction(userId: string, suspend: boolean, reason?: string) {
-  const { user } = await requireSuperAdminSession();
+  const { user } = await requireAdminSession();
   if (userId === user.id) return { error: "Impossible de suspendre son propre compte." };
 
   const admin = createAdminClient();
@@ -210,7 +217,7 @@ const PREMIUM_GRANT_DAYS = 30;
  * abonnements payés via Chariow (`premium_monthly`) dans l'historique.
  */
 export async function toggleUserPremiumAction(userId: string, grant: boolean) {
-  const { user } = await requireSuperAdminSession();
+  const { user } = await requireAdminSession();
   if (userId === user.id) return { error: "Impossible de modifier ton propre abonnement depuis cet espace." };
 
   const admin = createAdminClient();
@@ -249,7 +256,7 @@ export async function toggleUserPremiumAction(userId: string, grant: boolean) {
  * clôt le dossier (`verification_requests`), notifie le membre par email.
  */
 export async function approveVerificationRequestAction(requestId: string, userId: string) {
-  const { user } = await requireSuperAdminSession();
+  const { user } = await requireStaffSession();
   const admin = createAdminClient();
 
   const { error: profileError } = await admin.from("profiles").update({ photo_verification_status: "VERIFIED" }).eq("id", userId);
@@ -274,7 +281,7 @@ export async function approveVerificationRequestAction(requestId: string, userId
 
 /** Refuse une demande de vérification : la raison est obligatoire et envoyée telle quelle au membre. */
 export async function rejectVerificationRequestAction(requestId: string, userId: string, reason: string) {
-  const { user } = await requireSuperAdminSession();
+  const { user } = await requireStaffSession();
   const trimmedReason = reason.trim();
   if (!trimmedReason) return { error: "Le motif du refus est obligatoire." };
 
@@ -303,7 +310,7 @@ export async function rejectVerificationRequestAction(requestId: string, userId:
 const REPORT_STATUSES = ["PENDING", "REVIEWED", "DISMISSED", "ACTION_TAKEN"] as const;
 
 export async function updateReportStatusAction(reportId: string, status: (typeof REPORT_STATUSES)[number]) {
-  const { user } = await requireSuperAdminSession();
+  const { user } = await requireStaffSession();
   if (!REPORT_STATUSES.includes(status)) return { error: "Statut invalide." };
 
   const supabase = await createClient();

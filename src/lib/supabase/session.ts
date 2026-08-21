@@ -61,6 +61,15 @@ export async function requireStaffSession() {
   return { user, profile };
 }
 
+/** Gestion (utilisateurs, publications officielles, campagnes email, transactions) — ADMIN et au-dessus, pas MODERATOR. */
+export async function requireAdminSession() {
+  const { user, profile } = await requireSession();
+  if (profile.role !== "ADMIN" && profile.role !== "SUPER_ADMIN") {
+    redirect("/");
+  }
+  return { user, profile };
+}
+
 /** Espace de pilotage complet — réservé au(x) compte(s) SUPER_ADMIN uniquement. */
 export async function requireSuperAdminSession() {
   const { user, profile } = await requireSession();

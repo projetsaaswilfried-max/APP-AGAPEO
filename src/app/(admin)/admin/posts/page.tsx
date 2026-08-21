@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { requireAdminSession } from "@/lib/supabase/session";
 import { AdminPostComposer } from "@/components/features/admin/admin-post-composer";
 
 export default async function AdminPostsPage() {
+  await requireAdminSession();
   const supabase = await createClient();
   const { data: posts } = await supabase.from("posts").select("*").eq("post_type", "OFFICIAL").order("created_at", { ascending: false });
 

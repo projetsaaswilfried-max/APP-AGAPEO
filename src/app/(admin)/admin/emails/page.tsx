@@ -1,10 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdminSession } from "@/lib/supabase/session";
 import { AdminEmailComposer, type DirectRecipientOption } from "@/components/features/admin/admin-email-composer";
 import type { EmailCampaignRow, ProfileRow, ProfileRestrictedRow } from "@/lib/supabase/database.types";
 import { isProfileComplete } from "@/domain/profile-completeness";
 import type { EmailAudience } from "@/domain/email-audience";
 
 export default async function AdminEmailsPage() {
+  await requireAdminSession();
   const admin = createAdminClient();
 
   const [{ data: profiles }, { data: restricted }, { data: campaigns }] = await Promise.all([

@@ -1,8 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdminSession } from "@/lib/supabase/session";
 import { AdminTransactionsList, type AdminTransactionRow } from "@/components/features/admin/admin-transactions-list";
 import type { TransactionRow } from "@/lib/supabase/database.types";
 
 export default async function AdminTransactionsPage() {
+  await requireAdminSession();
   const admin = createAdminClient();
 
   const { data: transactions } = await admin.from("transactions").select("*").order("created_at", { ascending: false }).limit(1000);

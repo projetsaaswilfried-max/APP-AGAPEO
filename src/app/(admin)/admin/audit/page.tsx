@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireSuperAdminSession } from "@/lib/supabase/session";
 import type { AdminAuditLogRow } from "@/lib/supabase/database.types";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -16,6 +17,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default async function AdminAuditPage() {
+  await requireSuperAdminSession();
   const admin = createAdminClient();
 
   const { data: logs } = await admin.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(200);

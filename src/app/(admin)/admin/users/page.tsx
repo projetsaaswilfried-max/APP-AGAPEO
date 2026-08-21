@@ -1,8 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdminSession } from "@/lib/supabase/session";
 import { AdminUsersTable, type AdminUserRow } from "@/components/features/admin/admin-users-table";
 import type { ProfileRow, ProfileRestrictedRow } from "@/lib/supabase/database.types";
 
 export default async function AdminUsersPage() {
+  await requireAdminSession();
   const admin = createAdminClient();
 
   const [{ data: profiles }, { data: restricted }, { data: usersPage }] = await Promise.all([
