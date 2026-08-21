@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
 import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
+import { useRestoreScrollMemory } from "@/core/hooks/use-scroll-memory";
 import { IncompleteProfileBanner } from "./incomplete-profile-banner";
 import { PremiumUpsellBanner } from "./premium-upsell-banner";
 import { AgapeoLogo } from "@/components/ui/logo";
@@ -40,6 +41,7 @@ export function AppShell({ children }: AppShellProps) {
   const initials = getInitials(profile.first_name, profile.last_name);
   const { unreadMessages, unreadNotifications } = useUnreadCounts();
   const navigation = withUnreadBadges(unreadMessages, unreadNotifications);
+  useRestoreScrollMemory(pathname);
 
   return (
     <div className="min-h-screen flex bg-background text-foreground antialiased">

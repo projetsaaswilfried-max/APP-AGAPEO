@@ -14,6 +14,7 @@ import { HugeIcon } from "@/components/ui/hugeicon";
 import { withUnreadBadges, NavigationItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
+import { saveScrollForCurrentPage } from "@/core/hooks/use-scroll-memory";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICON_MAP: Record<string, any> = {
@@ -75,7 +76,12 @@ export function BottomNav() {
           );
 
           return (
-            <Link key={item.id} href={item.href} className={itemClassName}>
+            <Link
+              key={item.id}
+              href={item.href}
+              onClick={item.id === "notifications" ? saveScrollForCurrentPage : undefined}
+              className={itemClassName}
+            >
               <NavItemInner item={item} isActive={isActive} />
             </Link>
           );

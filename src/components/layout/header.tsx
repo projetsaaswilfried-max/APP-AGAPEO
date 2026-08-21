@@ -22,6 +22,7 @@ import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
 import { signOutAction } from "@/lib/actions/auth.actions";
 import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
+import { saveScrollForCurrentPage } from "@/core/hooks/use-scroll-memory";
 
 interface HeaderProps {
   onOpenMobileMenu?: () => void;
@@ -111,6 +112,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
       <div className="flex items-center gap-2">
         <Link
           href="/notifications"
+          onClick={saveScrollForCurrentPage}
           className="relative w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground bg-secondary/80 hover:bg-secondary rounded-full transition-all"
           title="Notifications"
           aria-label="Notifications"
