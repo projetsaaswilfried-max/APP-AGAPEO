@@ -166,6 +166,14 @@ export async function updateUserRoleAction(userId: string, role: (typeof ASSIGNA
   return { success: true };
 }
 
+/**
+ * `profile_restricted.is_suspended` n'était affiché que par la page (dashboard) —
+ * elle ne coupait rien côté API : une session déjà valide continuait de
+ * fonctionner pour envoyer des messages, publier, etc. via un appel direct.
+ * On bannit désormais aussi la session au niveau Supabase Auth
+ * (`ban_duration`), qui invalide le compte pour de vrai, pas seulement
+ * visuellement — plutôt que de retoucher une à une toutes les policies RLS.
+ */
 export async function toggleSuspendUserAction(userId: string, suspend: boolean, reason?: string) {
   const { user } = await requireSuperAdminSession();
   if (userId === user.id) return { error: "Impossible de suspendre son propre compte." };
@@ -180,6 +188,11 @@ export async function toggleSuspendUserAction(userId: string, suspend: boolean, 
     })
     .eq("id", userId);
   if (error) return { error: error.message };
+
+  const { error: banError } = await admin.auth.admin.updateUserById(userId, {
+    ban_duration: suspend ? "876000h" : "none"
+  });
+  if (banError) return { error: banError.message };
 
   await logAdminAction(user.id, suspend ? "SUSPEND_USER" : "UNSUSPEND_USER", { targetType: "profile", targetId: userId, details: { reason } });
   revalidatePath("/admin/users");

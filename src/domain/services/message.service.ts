@@ -252,7 +252,16 @@ class MessageServiceSupabase implements IMessageService {
     const supabase = createClient();
     const myId = await getCurrentUserId();
 
+    // `last_read_at` alimente uniquement MON propre compteur de non-lus —
+    // toujours mis à jour, indépendamment du réglage ci-dessous qui ne
+    // concerne que ce que L'AUTRE voit de moi.
     await supabase.from("conversation_participants").update({ last_read_at: new Date().toISOString() }).eq("conversation_id", conversationId).eq("user_id", myId);
+
+    // "Afficher les confirmations de lecture" (show_read_receipts) : si je
+    // l'ai désactivé, l'expéditeur ne doit jamais voir que j'ai lu son
+    // message — ce contrôle n'existait pas avant, le statut passait toujours à READ.
+    const { data: myProfile } = await supabase.from("profiles").select("show_read_receipts").eq("id", myId).single();
+    if (!myProfile?.show_read_receipts) return;
 
     await supabase
       .from("messages")
@@ -264,7 +273,11 @@ class MessageServiceSupabase implements IMessageService {
 
   async deleteMessage(messageId: string): Promise<void> {
     const supabase = createClient();
-    await supabase.from("messages").update({ deleted_at: new Date().toISOString(), content: null }).eq("id", messageId);
+    const myId = await getCurrentUserId();
+    // Filtre applicatif en plus du trigger DB (guard_message_update) qui
+    // interdit désormais réellement à un simple participant de supprimer le
+    // message de quelqu'un d'autre — défense en profondeur, pas la seule barrière.
+    await supabase.from("messages").update({ deleted_at: new Date().toISOString(), content: null }).eq("id", messageId).eq("sender_id", myId);
   }
 
   async toggleFavoriteConversation(conversationId: string, isFavorite: boolean): Promise<void> {

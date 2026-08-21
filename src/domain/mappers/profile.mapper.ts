@@ -16,6 +16,20 @@ interface MapOptions {
   phoneCountryCode?: string;
   subscriptionStatus?: UserProfile["subscriptionStatus"];
   subscriptionCurrentPeriodEnd?: string;
+  /** Faux par défaut : tant qu'on ne mappe pas explicitement le profil du viewer lui-même, le floutage s'applique. */
+  isOwnProfile?: boolean;
+}
+
+/**
+ * "Flouter mes photos pour le grand public" doit flouter les PIXELS, pas
+ * juste l'affichage (cf. bug corrigé : un CSS blur laissait l'URL brute
+ * dans la réponse, visible via les outils de développeur). On fait donc
+ * transiter l'URL par une route serveur qui applique un vrai flou avant de
+ * la servir à quiconque n'est pas le propriétaire de la photo.
+ */
+export function resolvePhotoUrl(url: string, ownerId: string, isPhotoBlurred: boolean, isOwnProfile: boolean): string {
+  if (!url || isOwnProfile || !isPhotoBlurred) return url;
+  return `/api/blurred-photo?url=${encodeURIComponent(url)}&owner=${ownerId}`;
 }
 
 /**
@@ -30,6 +44,8 @@ export function mapProfileRowToUserProfile(
   opts: MapOptions = {}
 ): UserProfile {
   const primaryPhoto = photos.find((p) => p.is_primary) ?? photos[0];
+  const isOwnProfile = opts.isOwnProfile ?? false;
+  const rawAvatarUrl = row.avatar_url ?? primaryPhoto?.url ?? "";
 
   return {
     id: row.id,
@@ -50,8 +66,13 @@ export function mapProfileRowToUserProfile(
     compatibilityPercentage: opts.compatibilityPercentage ?? 0,
     bio: row.bio ?? "",
     quote: row.quote ?? undefined,
-    avatarUrl: row.avatar_url ?? primaryPhoto?.url ?? "",
-    photos: photos.map((p) => ({ id: p.id, url: p.url, isPrimary: p.is_primary, caption: p.caption ?? undefined })),
+    avatarUrl: rawAvatarUrl ? resolvePhotoUrl(rawAvatarUrl, row.id, row.is_photo_blurred, isOwnProfile) : "",
+    photos: photos.map((p) => ({
+      id: p.id,
+      url: resolvePhotoUrl(p.url, row.id, row.is_photo_blurred, isOwnProfile),
+      isPrimary: p.is_primary,
+      caption: p.caption ?? undefined
+    })),
     faith: {
       churchDenomination: row.church_denomination ?? "",
       faithJourneyYears: row.faith_journey_years ?? 0,

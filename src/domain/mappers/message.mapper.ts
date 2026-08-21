@@ -49,7 +49,11 @@ export function mapConversationSummary(
   isFavorite: boolean,
   updatedAt: string
 ): ConversationSummary {
-  const isOnline = Date.now() - new Date(participant.last_active_at).getTime() < ONLINE_THRESHOLD_MS;
+  // "Afficher mon statut en ligne" (show_online_status) : si désactivé par le
+  // participant, ni la présence ni le "vu le..." ne doivent être révélés —
+  // ce calcul se faisait avant uniquement sur `last_active_at`, sans jamais
+  // consulter ce réglage.
+  const isOnline = participant.show_online_status && Date.now() - new Date(participant.last_active_at).getTime() < ONLINE_THRESHOLD_MS;
 
   return {
     id: conversationId,
@@ -57,7 +61,7 @@ export function mapConversationSummary(
     lastMessage,
     unreadCount,
     isOnline,
-    lastSeen: isOnline ? undefined : new Date(participant.last_active_at).toLocaleDateString("fr-FR"),
+    lastSeen: !participant.show_online_status || isOnline ? undefined : new Date(participant.last_active_at).toLocaleDateString("fr-FR"),
     isFavorite,
     updatedAt: formatTime(updatedAt)
   };

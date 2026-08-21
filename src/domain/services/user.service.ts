@@ -35,7 +35,8 @@ class UserServiceSupabase implements IUserService {
 
     return mapProfileRowToUserProfile(result.profile, result.photos, {
       email: user.email,
-      phone: privateData?.phone ?? undefined
+      phone: privateData?.phone ?? undefined,
+      isOwnProfile: true
     });
   }
 

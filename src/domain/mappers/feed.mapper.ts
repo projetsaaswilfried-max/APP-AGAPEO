@@ -1,6 +1,7 @@
 import type { PostRow, PostCommentRow, PostMediaRow, ProfileRow } from "@/lib/supabase/database.types";
 import type { FeedPublication, FeedComment, FeedCategory } from "@/domain/types/feed";
 import { getProfileBadges } from "@/domain/badges";
+import { resolvePhotoUrl } from "@/domain/mappers/profile.mapper";
 
 /** Logo + cercle blanc pré-fusionnés (même image que le badge email) — avatar fixe de l'équipe, indépendant de qui a publié le post officiel. */
 const AGAPE_TEAM_AVATAR_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/v1/object/public/avatars/platform/agapeo-logo-email-badge.png";
@@ -33,7 +34,7 @@ export function mapCommentRow(row: PostCommentRow, author: ProfileRow | undefine
     publicationId: row.post_id,
     authorId: row.author_id,
     authorName: author ? `${author.first_name} ${author.last_name}`.trim() : "Membre",
-    authorAvatar: author?.avatar_url ?? "",
+    authorAvatar: author?.avatar_url ? resolvePhotoUrl(author.avatar_url, author.id, author.is_photo_blurred, false) : "",
     authorBadge: author && getProfileBadges(author).length > 0 ? "Vérifié" : undefined,
     isOfficialResponse: author?.is_staff === true,
     content: row.content,
@@ -89,7 +90,12 @@ export function mapPostRowToFeedPublication(row: PostRow, opts: MapPostOptions =
       id: row.author_id,
       name: authorName,
       role: row.post_type === "OFFICIAL" ? "Équipe éditoriale" : author?.profession || "Membre",
-      avatarUrl: row.post_type === "OFFICIAL" ? AGAPE_TEAM_AVATAR_URL : (author?.avatar_url ?? ""),
+      avatarUrl:
+        row.post_type === "OFFICIAL"
+          ? AGAPE_TEAM_AVATAR_URL
+          : author?.avatar_url
+            ? resolvePhotoUrl(author.avatar_url, author.id, author.is_photo_blurred, false)
+            : "",
       isOfficialTeam: row.post_type === "OFFICIAL",
       isVerified,
       badgeLabel: row.post_type === "OFFICIAL" ? "Officiel" : "Membre"
