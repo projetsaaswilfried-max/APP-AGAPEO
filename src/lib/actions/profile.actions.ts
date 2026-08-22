@@ -157,6 +157,38 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
   return { success: true, photo: data };
 }
 
+/**
+ * Change la photo principale parmi des photos DÉJÀ existantes (contrairement
+ * à `addProfilePhotoAction`, qui insère une nouvelle ligne — la réutiliser
+ * ici aurait dupliqué la photo en base au lieu de simplement marquer la
+ * ligne existante comme principale).
+ */
+export async function setPrimaryPhotoAction(photoId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  const { data: photo, error: fetchError } = await supabase
+    .from("profile_photos")
+    .select("url")
+    .eq("id", photoId)
+    .eq("profile_id", user.id)
+    .single();
+  if (fetchError || !photo) return { error: "Photo introuvable." };
+
+  await supabase.from("profile_photos").update({ is_primary: false }).eq("profile_id", user.id);
+  const { error } = await supabase.from("profile_photos").update({ is_primary: true }).eq("id", photoId);
+  if (error) return { error: error.message };
+
+  await supabase.from("profiles").update({ avatar_url: photo.url }).eq("id", user.id);
+
+  revalidatePath("/profile");
+  revalidatePath("/discover");
+  return { success: true };
+}
+
 export async function removeProfilePhotoAction(photoId: string) {
   const supabase = await createClient();
   const {

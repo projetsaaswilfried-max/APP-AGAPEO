@@ -6,7 +6,7 @@ import { FileSizeHint } from "@/components/ui/file-size-hint";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { uploadAvatar } from "@/lib/storage";
-import { addProfilePhotoAction, removeProfilePhotoAction } from "@/lib/actions/profile.actions";
+import { addProfilePhotoAction, removeProfilePhotoAction, setPrimaryPhotoAction } from "@/lib/actions/profile.actions";
 import type { ProfilePhotoRow, VerificationStatus } from "@/lib/supabase/database.types";
 
 interface PhotoManagerProps {
@@ -46,8 +46,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus }:
 
   const handleSetPrimary = async (photoId: string) => {
     setPhotos((prev) => prev.map((p) => ({ ...p, is_primary: p.id === photoId })));
-    const photo = photos.find((p) => p.id === photoId);
-    if (photo) await addProfilePhotoAction(photo.url, photo.storage_path, true);
+    await setPrimaryPhotoAction(photoId);
   };
 
   const handleConfirmDelete = async () => {
@@ -78,6 +77,11 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus }:
           <div key={photo.id} className="relative aspect-square rounded-2xl overflow-hidden border border-border/60 group">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photo.url} alt="Photo de profil" className="w-full h-full object-cover" />
+            {/* Dégradé permanent (pas seulement au survol) pour que les
+                boutons restent lisibles sur une photo claire — nécessaire
+                puisqu'ils sont maintenant toujours visibles, y compris sur
+                mobile où il n'y a pas de survol pour les révéler. */}
+            <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
             {photo.is_primary ? (
               <div className="absolute top-1.5 left-1.5 p-1 rounded-full bg-accent text-accent-foreground shadow-2xs" title="Photo principale">
                 <Check size={11} className="stroke-3" />
@@ -86,7 +90,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus }:
               <button
                 type="button"
                 onClick={() => handleSetPrimary(photo.id)}
-                className="absolute top-1.5 left-1.5 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-1.5 left-1.5 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
                 title="Définir comme photo principale"
               >
                 <Check size={11} />
@@ -95,7 +99,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus }:
             <button
               type="button"
               onClick={() => setPhotoPendingDelete(photo)}
-              className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
               title="Supprimer"
             >
               <Trash2 size={12} />
