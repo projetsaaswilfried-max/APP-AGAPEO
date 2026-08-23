@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Avatar } from "@/components/ui/avatar";
+import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
 import { ShieldCheck, ShieldQuestion, Lock, LogOut, Trash2, KeyRound, Mail, AlertCircle, CheckCircle2, Clock, Download, ArrowRight, UserX } from "lucide-react";
 import { changePasswordAction, changeEmailAction, signOutAction, type FormState } from "@/lib/actions/auth.actions";
 import { deleteAccountAction, exportMyDataAction } from "@/lib/actions/profile.actions";
@@ -27,6 +28,7 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justSubmitted, setJustSubmitted] = useState(false);
+  const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
 
   useEffect(() => {
     if (profile.photoVerificationStatus !== "REJECTED") return;
@@ -42,10 +44,11 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
       .then(({ data }) => setRejectionReason(data?.rejection_reason ?? null));
   }, [profile.id, profile.photoVerificationStatus]);
 
-  const handleSubmit = async () => {
+  const handleSelfieCaptured = async (selfieStoragePath: string) => {
+    setIsSelfieModalOpen(false);
     setIsSubmitting(true);
     setError(null);
-    const result = await submitVerificationRequestAction();
+    const result = await submitVerificationRequestAction(selfieStoragePath);
     setIsSubmitting(false);
     if (result?.error) {
       setError(result.error);
@@ -80,7 +83,13 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
             Complète ton profil (photo, confession, vision du mariage) puis soumets-le pour vérification — ton badge apparaîtra une fois validé par
             notre équipe.
           </p>
-          <Button variant="primary" size="sm" onClick={handleSubmit} isLoading={isSubmitting} leftIcon={<ShieldCheck size={15} />}>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setIsSelfieModalOpen(true)}
+            isLoading={isSubmitting}
+            leftIcon={<ShieldCheck size={15} />}
+          >
             {profile.photoVerificationStatus === "REJECTED" ? "Soumettre à nouveau" : "Soumettre pour vérification"}
           </Button>
           {error && (
@@ -96,6 +105,13 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
           )}
         </>
       )}
+
+      <SelfieCaptureModal
+        isOpen={isSelfieModalOpen}
+        userId={profile.id}
+        onClose={() => setIsSelfieModalOpen(false)}
+        onCaptured={handleSelfieCaptured}
+      />
     </Card>
   );
 }

@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { RejectVerificationModal } from "@/components/features/admin/reject-verification-modal";
 import { approveVerificationRequestAction, rejectVerificationRequestAction } from "@/lib/actions/admin.actions";
 import { computeAge } from "@/domain/badges";
-import { Check, X, ShieldCheck, Crown, ExternalLink, Clock } from "lucide-react";
+import { Check, X, ShieldCheck, Crown, ExternalLink, Clock, ScanFace } from "lucide-react";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
 export interface AdminVerificationRow {
@@ -20,6 +20,8 @@ export interface AdminVerificationRow {
   submittedAt: string;
   profile: ProfileRow;
   photos: ProfilePhotoRow[];
+  /** URL signée (expire) du selfie live pris à la soumission — null pour une ancienne demande antérieure à cette exigence. */
+  selfieUrl: string | null;
 }
 
 function timeAgo(iso: string): string {
@@ -159,12 +161,33 @@ export function AdminVerificationsList({ initialItems }: { initialItems: AdminVe
               </div>
             )}
 
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <ScanFace size={13} /> Selfie de vérification (à comparer aux photos ci-dessous)
+              </p>
+              {activeItem.selfieUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={activeItem.selfieUrl}
+                  alt="Selfie de vérification"
+                  className="w-32 sm:w-40 aspect-square object-cover rounded-2xl border-2 border-accent/50 shadow-soft"
+                />
+              ) : (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700">
+                  Aucun selfie fourni — demande soumise avant la mise en place de cette exigence.
+                </div>
+              )}
+            </div>
+
             {activeItem.photos.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {activeItem.photos.map((p) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={p.id} src={p.url} alt="" className="w-full aspect-square object-cover rounded-xl border border-border/60" />
-                ))}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Photos de profil postées</p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {activeItem.photos.map((p) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={p.id} src={p.url} alt="" className="w-full aspect-square object-cover rounded-xl border border-border/60" />
+                  ))}
+                </div>
               </div>
             )}
 

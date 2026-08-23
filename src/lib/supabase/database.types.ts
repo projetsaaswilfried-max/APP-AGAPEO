@@ -168,13 +168,14 @@ export interface VerificationRequestRow {
   user_id: string;
   status: VerificationStatus;
   is_priority: boolean;
+  selfie_storage_path: string | null;
   submitted_at: string;
   reviewed_at: string | null;
   reviewed_by: string | null;
   rejection_reason: string | null;
   created_at: string;
 }
-export type VerificationRequestInsert = Pick<VerificationRequestRow, "user_id" | "is_priority">;
+export type VerificationRequestInsert = Pick<VerificationRequestRow, "user_id" | "is_priority" | "selfie_storage_path">;
 export type VerificationRequestUpdate = Partial<Pick<VerificationRequestRow, "status" | "reviewed_at" | "reviewed_by" | "rejection_reason">>;
 
 export interface ProfilePhotoRow {

@@ -7,6 +7,7 @@ import { TagInput } from "@/components/ui/tag-input";
 import { OnboardingStepFooter } from "./onboarding-step-footer";
 import { updateProfileAction, completeOnboardingAction } from "@/lib/actions/profile.actions";
 import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
+import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import type { ProfileRow } from "@/lib/supabase/database.types";
 
@@ -23,6 +24,7 @@ export function OnboardingPreferencesStep({ profile }: OnboardingPreferencesStep
   const [isSkipping, startSkipTransition] = useTransition();
   const [isFinishing, startFinishTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
 
   const savePreferences = () =>
     updateProfileAction({
@@ -32,12 +34,20 @@ export function OnboardingPreferencesStep({ profile }: OnboardingPreferencesStep
       desired_values: desiredValues
     });
 
-  /** Bouton principal : enregistre, soumet pour vérification, puis termine l'onboarding (redirige). */
+  /** Bouton principal : enregistre les préférences, puis ouvre la capture du selfie de vérification. */
   const handleSubmit = () => {
     setSubmitError(null);
     startTransition(async () => {
       await savePreferences();
-      const result = await submitVerificationRequestAction();
+      setIsSelfieModalOpen(true);
+    });
+  };
+
+  /** Selfie envoyé : soumet réellement pour vérification, puis termine l'onboarding (redirige). */
+  const handleSelfieCaptured = (selfieStoragePath: string) => {
+    setIsSelfieModalOpen(false);
+    startTransition(async () => {
+      const result = await submitVerificationRequestAction(selfieStoragePath);
       if (result?.error) {
         setSubmitError(result.error);
         return;
@@ -117,8 +127,9 @@ export function OnboardingPreferencesStep({ profile }: OnboardingPreferencesStep
       )}
 
       <p className="text-xs text-muted-foreground">
-        En soumettant, ton profil est envoyé à notre équipe pour vérification — tu recevras un email de confirmation.
-        Retrouve aussi ce bouton à tout moment depuis{" "}
+        En soumettant, on te demandera un selfie en direct (comparé à tes photos par notre équipe), puis ton profil
+        sera envoyé pour vérification — tu recevras un email de confirmation. Retrouve aussi ce bouton à tout moment
+        depuis{" "}
         <Link href="/profile" className="text-accent underline underline-offset-2">
           Mon Compte & Sécurité
         </Link>
@@ -132,6 +143,13 @@ export function OnboardingPreferencesStep({ profile }: OnboardingPreferencesStep
         isSkipping={isSkipping}
         skipLabel="Terminer plus tard"
         saveLabel="Soumettre"
+      />
+
+      <SelfieCaptureModal
+        isOpen={isSelfieModalOpen}
+        userId={profile.id}
+        onClose={() => setIsSelfieModalOpen(false)}
+        onCaptured={handleSelfieCaptured}
       />
     </div>
   );

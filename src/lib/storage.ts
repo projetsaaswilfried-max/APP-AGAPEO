@@ -144,6 +144,25 @@ export async function uploadAvatar(userId: string, file: File) {
 }
 
 /**
+ * Selfie de vérification — bucket privé (jamais affiché aux autres membres,
+ * uniquement comparé par l'équipe aux photos déjà postées). `file` vient
+ * toujours d'une capture caméra en direct (canvas.toBlob), jamais d'un
+ * fichier importé depuis la galerie.
+ */
+export async function uploadVerificationSelfie(userId: string, file: Blob) {
+  const supabase = createClient();
+  const path = `${userId}/${Date.now()}-selfie.jpg`;
+
+  const { error } = await supabase.storage.from("verification-selfies").upload(path, file, {
+    upsert: false,
+    contentType: file.type || "image/jpeg"
+  });
+  if (error) throw new Error(`Échec de l'envoi du selfie : ${error.message}`);
+
+  return { path };
+}
+
+/**
  * `videoMaxBytes` : plafond appliqué à la validation côté client — laisser
  * vide utilise le défaut de `validateVideoFile`. Le vrai plafond reste de
  * toute façon celui du plan Supabase (`PLATFORM_MAX_UPLOAD_BYTES`), quoi que

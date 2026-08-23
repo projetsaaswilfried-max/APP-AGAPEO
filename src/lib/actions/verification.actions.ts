@@ -11,6 +11,12 @@ import type { ProfileRow } from "@/lib/supabase/database.types";
 /**
  * Soumission d'une demande de vérification par le membre lui-même.
  *
+ * `selfieStoragePath` est obligatoire : un selfie pris en direct (caméra,
+ * jamais un fichier importé — cf. `SelfieCaptureModal`) que l'équipe compare
+ * aux photos déjà postées avant de valider. Sans ça, n'importe qui pouvait
+ * poster les photos de quelqu'un d'autre (influenceur, photo trouvée en
+ * ligne) et se faire "vérifier" sans jamais montrer son vrai visage.
+ *
  * `profiles.photo_verification_status` est protégé par le trigger
  * `protect_privileged_profile_columns()` — même le propriétaire de la ligne
  * ne peut pas le faire passer à PENDING via le client authentifié normal.
@@ -18,7 +24,9 @@ import type { ProfileRow } from "@/lib/supabase/database.types";
  * user_id = auth.uid() suffit), puis bascule le badge public via le client
  * service_role pour ce seul champ — même pattern que `deleteAccountAction`.
  */
-export async function submitVerificationRequestAction() {
+export async function submitVerificationRequestAction(selfieStoragePath: string) {
+  if (!selfieStoragePath) return { error: "Le selfie de vérification est obligatoire." };
+
   const supabase = await createClient();
   const {
     data: { user }
@@ -42,7 +50,9 @@ export async function submitVerificationRequestAction() {
   const { data: restricted } = await supabase.from("profile_restricted").select("subscription_status").eq("id", user.id).single();
   const isPriority = restricted?.subscription_status === "ACTIVE";
 
-  const { error: insertError } = await supabase.from("verification_requests").insert({ user_id: user.id, is_priority: isPriority });
+  const { error: insertError } = await supabase
+    .from("verification_requests")
+    .insert({ user_id: user.id, is_priority: isPriority, selfie_storage_path: selfieStoragePath });
   if (insertError) {
     if (insertError.code === "23505") {
       return { error: "Une demande est déjà en cours de traitement." };

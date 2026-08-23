@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ProfileEditablePartialSchema, PhoneSchema, EssentialInfoSchema } from "@/lib/validation/profile.schema";
-import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
 import type { ProfileUpdate } from "@/lib/supabase/database.types";
 
 export async function updateProfileAction(updates: Partial<ProfileUpdate>) {
@@ -132,25 +131,12 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
   if (isPrimary) {
     await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
 
-    // Ré-abonnement automatique : un profil déjà validé qui avait perdu sa
-    // photo (voir removeProfilePhotoAction) repasse à UNVERIFIED — dès qu'il
-    // remet une photo principale, on relance la vérification sans qu'il ait
-    // à retourner soumettre manuellement depuis "Mon Compte". On limite ça
-    // aux profils qui ont déjà été validés une fois (pour ne jamais doubler
-    // la soumission explicite faite en fin d'onboarding pour un nouveau membre).
-    const { data: currentProfile } = await supabase.from("profiles").select("photo_verification_status").eq("id", user.id).single();
-    if (currentProfile?.photo_verification_status === "UNVERIFIED") {
-      const { data: priorApproval } = await supabase
-        .from("verification_requests")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("status", "VERIFIED")
-        .limit(1)
-        .maybeSingle();
-      if (priorApproval) {
-        await submitVerificationRequestAction();
-      }
-    }
+    // Pas de ré-abonnement automatique à la vérification ici : depuis
+    // l'ajout du selfie live obligatoire (cf. submitVerificationRequestAction),
+    // une soumission ne peut plus se faire "en silence" côté serveur — il
+    // faut une caméra et une personne en face. Un profil qui avait perdu sa
+    // photo (voir removeProfilePhotoAction) reste donc UNVERIFIED jusqu'à ce
+    // que le membre soumette lui-même une nouvelle demande depuis "Mon Compte".
   }
 
   revalidatePath("/profile");

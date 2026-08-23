@@ -23,6 +23,17 @@ export default async function AdminVerificationsPage() {
     admin.from("profile_photos").select("*").in("profile_id", userIds).order("position", { ascending: true })
   ]);
 
+  // URLs signées (bucket privé verification-selfies) générées à la lecture,
+  // jamais stockées telles quelles — même convention que message-attachments.
+  const selfiePaths = rows.map((r) => r.selfie_storage_path).filter((p): p is string => Boolean(p));
+  const selfieUrlByPath = new Map<string, string>();
+  if (selfiePaths.length > 0) {
+    const { data: signed } = await admin.storage.from("verification-selfies").createSignedUrls(selfiePaths, 3600);
+    (signed ?? []).forEach((s) => {
+      if (s.signedUrl && s.path) selfieUrlByPath.set(s.path, s.signedUrl);
+    });
+  }
+
   const profileById = new Map(((profiles ?? []) as ProfileRow[]).map((p) => [p.id, p]));
   const photosByProfile = new Map<string, ProfilePhotoRow[]>();
   ((photos ?? []) as ProfilePhotoRow[]).forEach((p) => {
@@ -41,7 +52,8 @@ export default async function AdminVerificationsPage() {
         isPriority: r.is_priority,
         submittedAt: r.submitted_at,
         profile,
-        photos: photosByProfile.get(r.user_id) ?? []
+        photos: photosByProfile.get(r.user_id) ?? [],
+        selfieUrl: r.selfie_storage_path ? (selfieUrlByPath.get(r.selfie_storage_path) ?? null) : null
       };
     })
     .filter((item): item is AdminVerificationRow => item !== null);
