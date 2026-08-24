@@ -2,8 +2,9 @@ import "server-only";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getChariowPulseSecret, type ChariowPlanKey } from "@/config/env";
+import { getChariowPulseSecret, env, type ChariowPlanKey } from "@/config/env";
 import { sendPremiumActivatedEmail } from "@/lib/premium-emails";
+import { sendMetaPurchaseEvent } from "@/lib/meta-conversions-api";
 import { PREMIUM_PLANS } from "@/domain/premium-plans";
 
 interface ChariowMoney {
@@ -184,6 +185,18 @@ export async function handleChariowWebhook(request: Request, planKey: ChariowPla
     ]);
     if (memberProfile && authUser?.user?.email) {
       await sendPremiumActivatedEmail(authUser.user.email, memberProfile.first_name, sale.amount, newPeriodEnd, plan.periodDays);
+      // eventId dérivé de la même façon côté client (/premium/success) —
+      // secondes epoch plutôt que la chaîne ISO brute, insensible aux
+      // différences de sérialisation (précision, format) entre ce que ce
+      // webhook calcule et ce qu'une lecture PostgREST renverrait.
+      await sendMetaPurchaseEvent({
+        eventId: `${userId}:${Math.floor(newPeriodEnd.getTime() / 1000)}`,
+        email: authUser.user.email,
+        userId,
+        value: plan.priceUsd,
+        currency: "USD",
+        eventSourceUrl: `${env.siteUrl}/premium/success`
+      });
     }
   }
 

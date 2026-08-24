@@ -39,9 +39,13 @@ export default function PremiumSuccessPage() {
         // achat garde la même date de fin, donc revisiter cette page (retour
         // arrière, favori) sans nouveau paiement ne redéclenche jamais
         // l'évènement — seul un vrai nouvel achat (nouvelle échéance) le fera.
+        // Secondes epoch (pas la chaîne ISO brute) pour matcher exactement
+        // l'eventId calculé côté webhook Chariow malgré des sérialisations
+        // de date potentiellement différentes entre les deux.
         const planKey = planKeyFromDbValue(data.subscription_plan);
         if (planKey && data.subscription_current_period_end) {
-          trackMetaEventOnce("Purchase", `${user.id}:${data.subscription_current_period_end}`, {
+          const epochSeconds = Math.floor(new Date(data.subscription_current_period_end).getTime() / 1000);
+          trackMetaEventOnce("Purchase", `${user.id}:${epochSeconds}`, {
             value: PREMIUM_PLANS[planKey].priceUsd,
             currency: "USD"
           });
