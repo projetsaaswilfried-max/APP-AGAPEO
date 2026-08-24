@@ -7,11 +7,18 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { createOfficialPostAction, updateOfficialPostAction, deleteOfficialPostAction } from "@/lib/actions/admin.actions";
+import {
+  createOfficialPostAction,
+  updateOfficialPostAction,
+  deleteOfficialPostAction,
+  pinOfficialPostAction,
+  unpinOfficialPostAction,
+  reorderPinnedPostAction
+} from "@/lib/actions/admin.actions";
 import { uploadPostMedia, FileValidationError, PLATFORM_MAX_UPLOAD_BYTES } from "@/lib/storage";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { useSession } from "@/core/providers/session-provider";
-import { Camera, Video, SquarePlay, AlertCircle, Trash2, X, Pencil } from "lucide-react";
+import { Camera, Video, SquarePlay, AlertCircle, Trash2, X, Pencil, Pin, PinOff, ArrowUp, ArrowDown } from "lucide-react";
 import type { PostRow } from "@/lib/supabase/database.types";
 
 const PLATFORM_MAX_UPLOAD_MB = Math.round(PLATFORM_MAX_UPLOAD_BYTES / 1024 / 1024);
@@ -52,8 +59,27 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
   const [error, setError] = useState<string | null>(null);
   const [postPendingDelete, setPostPendingDelete] = useState<PostRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pinActionPostId, setPinActionPostId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const isVideoPost = (post: PostRow) => post.media_type === "VIDEO" || post.media_type === "YOUTUBE";
+  const pinnedPosts = posts.filter((p) => p.is_pinned).sort((a, b) => (a.pinned_position ?? 0) - (b.pinned_position ?? 0));
+  const otherPosts = posts.filter((p) => !p.is_pinned);
+
+  // Les positions (pinned_position) sont recalculées côté serveur (max+1,
+  // permutations) — un rechargement garantit un état toujours exact plutôt
+  // que de dupliquer cette logique côté client.
+  const runPinAction = async (postId: string, action: () => Promise<{ error?: string }>) => {
+    setPinActionPostId(postId);
+    const result = await action();
+    if (result.error) {
+      setError(result.error);
+      setPinActionPostId(null);
+    } else {
+      window.location.reload();
+    }
+  };
 
   const resetForm = () => {
     setEditingPostId(null);
@@ -364,19 +390,84 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
         </CardContent>
       </Card>
 
+      {pinnedPosts.length > 0 && (
+        <Card variant="base">
+          <CardHeader>
+            <CardTitle>Vidéos épinglées ({pinnedPosts.length})</CardTitle>
+            <CardDescription>Affichées en tête du fil officiel, dans cet ordre.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {pinnedPosts.map((post, index) => (
+              <div key={post.id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-primary/30 bg-primary/5">
+                <div className="min-w-0">
+                  {post.title && <p className="text-sm font-semibold text-foreground">{post.title}</p>}
+                  <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label="Monter"
+                    disabled={index === 0 || pinActionPostId === post.id}
+                    onClick={() => runPinAction(post.id, () => reorderPinnedPostAction(post.id, "up"))}
+                  >
+                    <ArrowUp size={13} />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label="Descendre"
+                    disabled={index === pinnedPosts.length - 1 || pinActionPostId === post.id}
+                    onClick={() => runPinAction(post.id, () => reorderPinnedPostAction(post.id, "down"))}
+                  >
+                    <ArrowDown size={13} />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleEdit(post)} leftIcon={<Pencil size={13} />}>
+                    Modifier
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    isLoading={pinActionPostId === post.id}
+                    leftIcon={<PinOff size={13} />}
+                    onClick={() => runPinAction(post.id, () => unpinOfficialPostAction(post.id))}
+                  >
+                    Désépingler
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => setPostPendingDelete(post)} leftIcon={<Trash2 size={13} />}>
+                    Supprimer
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <Card variant="base">
         <CardHeader>
-          <CardTitle>Publications officielles ({posts.length})</CardTitle>
+          <CardTitle>Publications officielles ({otherPosts.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {posts.length === 0 && <p className="text-xs text-muted-foreground">Aucune publication officielle pour le moment.</p>}
-          {posts.map((post) => (
+          {otherPosts.length === 0 && <p className="text-xs text-muted-foreground">Aucune publication officielle pour le moment.</p>}
+          {otherPosts.map((post) => (
             <div key={post.id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-border/60">
               <div className="min-w-0">
                 {post.title && <p className="text-sm font-semibold text-foreground">{post.title}</p>}
                 <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
               </div>
               <div className="flex gap-2 shrink-0">
+                {isVideoPost(post) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    isLoading={pinActionPostId === post.id}
+                    leftIcon={<Pin size={13} />}
+                    onClick={() => runPinAction(post.id, () => pinOfficialPostAction(post.id))}
+                  >
+                    Épingler
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => handleEdit(post)} leftIcon={<Pencil size={13} />}>
                   Modifier
                 </Button>

@@ -21,7 +21,8 @@ import {
   MoreHorizontal,
   Quote,
   Copy,
-  Flag
+  Flag,
+  Pin
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -241,6 +242,11 @@ export function PublicationCard({
               {publication.author.isOfficialTeam && (
                 <Badge variant="verified" className="text-[10px] px-2 py-0">
                   {publication.author.badgeLabel}
+                </Badge>
+              )}
+              {publication.isPinned && (
+                <Badge variant="status" className="text-[10px] px-2 py-0 gap-1">
+                  <Pin size={10} /> Épinglé
                 </Badge>
               )}
             </div>

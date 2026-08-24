@@ -217,6 +217,8 @@ export interface PostRow {
   likes_count: number;
   comments_count: number;
   shares_count: number;
+  is_pinned: boolean;
+  pinned_position: number | null;
   created_at: string;
   updated_at: string;
 }

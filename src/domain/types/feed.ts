@@ -46,6 +46,7 @@ export interface FeedPublication {
   content: string;
   category: FeedCategory;
   categoryLabel: string;
+  isPinned?: boolean;
   mediaType?: FeedMediaType;
   images?: UserPhoto[];
   videoUrl?: string;

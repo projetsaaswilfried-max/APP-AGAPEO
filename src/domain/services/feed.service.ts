@@ -83,20 +83,34 @@ class FeedServiceSupabase implements IFeedService {
 
   async getPublications(category: FeedCategory = "ALL"): Promise<FeedPublication[]> {
     const supabase = createClient();
-    let query = supabase
+
+    // Les vidéos épinglées sont récupérées séparément (sans limite) pour
+    // toujours apparaître en tête, même si elles sont plus anciennes que les
+    // 30 dernières publications — puis placées avant le reste, trié par
+    // pinned_position (ordre choisi par l'équipe éditoriale).
+    let pinnedQuery = supabase
       .from("posts")
       .select("*")
       .eq("post_type", "OFFICIAL")
+      .eq("is_pinned", true)
+      .order("pinned_position", { ascending: true });
+    let recentQuery = supabase
+      .from("posts")
+      .select("*")
+      .eq("post_type", "OFFICIAL")
+      .eq("is_pinned", false)
       .order("created_at", { ascending: false })
       .limit(30);
 
     if (category !== "ALL") {
-      query = query.eq("category", category);
+      pinnedQuery = pinnedQuery.eq("category", category);
+      recentQuery = recentQuery.eq("category", category);
     }
 
-    const { data, error } = await query;
-    if (error || !data) return [];
-    return this.hydrate(data as PostRow[]);
+    const [{ data: pinned }, { data: recent }] = await Promise.all([pinnedQuery, recentQuery]);
+    const combined = [...(pinned ?? []), ...(recent ?? [])] as PostRow[];
+    if (combined.length === 0) return [];
+    return this.hydrate(combined);
   }
 
   async getPersonalPublications(profileId: string): Promise<FeedPublication[]> {

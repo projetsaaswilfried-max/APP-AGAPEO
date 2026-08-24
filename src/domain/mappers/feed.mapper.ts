@@ -105,6 +105,7 @@ export function mapPostRowToFeedPublication(row: PostRow, opts: MapPostOptions =
     content: row.content,
     category: (row.category as FeedCategory) ?? "QUOTE",
     categoryLabel: row.category ? CATEGORY_LABELS[row.category] ?? row.category : "Pensée",
+    isPinned: row.is_pinned,
     mediaType: row.media_type === "TEXT_ONLY" ? undefined : row.media_type,
     images: opts.media?.map((m) => ({ id: m.id, url: m.url, isPrimary: false })),
     videoUrl: row.video_url ?? undefined,

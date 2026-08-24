@@ -140,6 +140,91 @@ export async function deleteOfficialPostAction(postId: string) {
   return { success: true };
 }
 
+const PINNABLE_MEDIA_TYPES = ["VIDEO", "YOUTUBE"];
+
+/** Épingle une vidéo du fil officiel — passe en tête du fil, après les vidéos déjà épinglées. */
+export async function pinOfficialPostAction(postId: string) {
+  await requireAdminSession();
+  const supabase = await createClient();
+
+  const { data: target } = await supabase
+    .from("posts")
+    .select("id, media_type, is_pinned")
+    .eq("id", postId)
+    .eq("post_type", "OFFICIAL")
+    .single();
+  if (!target) return { error: "Publication introuvable." };
+  if (!PINNABLE_MEDIA_TYPES.includes(target.media_type)) return { error: "Seules les vidéos peuvent être épinglées." };
+  if (target.is_pinned) return { success: true };
+
+  const { data: lastPinned } = await supabase
+    .from("posts")
+    .select("pinned_position")
+    .eq("post_type", "OFFICIAL")
+    .eq("is_pinned", true)
+    .order("pinned_position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("posts")
+    .update({ is_pinned: true, pinned_position: (lastPinned?.pinned_position ?? 0) + 1 })
+    .eq("id", postId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/posts");
+  return { success: true };
+}
+
+export async function unpinOfficialPostAction(postId: string) {
+  await requireAdminSession();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("posts")
+    .update({ is_pinned: false, pinned_position: null })
+    .eq("id", postId)
+    .eq("post_type", "OFFICIAL");
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/posts");
+  return { success: true };
+}
+
+/** Fait remonter/descendre une vidéo épinglée d'un cran parmi les autres vidéos épinglées. */
+export async function reorderPinnedPostAction(postId: string, direction: "up" | "down") {
+  await requireAdminSession();
+  const supabase = await createClient();
+
+  const { data: pinnedPosts } = await supabase
+    .from("posts")
+    .select("id, pinned_position")
+    .eq("post_type", "OFFICIAL")
+    .eq("is_pinned", true)
+    .order("pinned_position", { ascending: true });
+  if (!pinnedPosts) return { error: "Aucune vidéo épinglée." };
+
+  const index = pinnedPosts.findIndex((p) => p.id === postId);
+  if (index === -1) return { error: "Publication introuvable." };
+
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (swapIndex < 0 || swapIndex >= pinnedPosts.length) return { success: true };
+
+  const current = pinnedPosts[index];
+  const swapWith = pinnedPosts[swapIndex];
+
+  const [{ error: error1 }, { error: error2 }] = await Promise.all([
+    supabase.from("posts").update({ pinned_position: swapWith.pinned_position }).eq("id", current.id),
+    supabase.from("posts").update({ pinned_position: current.pinned_position }).eq("id", swapWith.id)
+  ]);
+  if (error1 || error2) return { error: error1?.message ?? error2?.message };
+
+  revalidatePath("/");
+  revalidatePath("/admin/posts");
+  return { success: true };
+}
+
 const ASSIGNABLE_ROLES = ["USER", "MODERATOR", "ADMIN"] as const;
 
 /**
