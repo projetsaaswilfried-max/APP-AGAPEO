@@ -38,4 +38,7 @@ export interface ConversationSummary {
   isTyping?: boolean;
   isFavorite?: boolean;
   updatedAt: string;
+  status: "PENDING" | "ACCEPTED" | "DECLINED";
+  /** `true` si c'est moi qui ai envoyé l'invitation — détermine "en attente" vs bannière à répondre quand status = PENDING. */
+  initiatedByMe: boolean;
 }

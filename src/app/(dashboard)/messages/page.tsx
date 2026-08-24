@@ -15,13 +15,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, AlertCircle, MoreVertical, Flag, Ban, Bookmark, Trash2 } from "lucide-react";
+import { ArrowLeft, MessageSquare, AlertCircle, MoreVertical, Flag, Ban, Bookmark, Trash2, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { PremiumRequiredError } from "@/domain/errors";
 import { isProfileComplete } from "@/domain/profile-completeness";
+import { requestMatchAction, respondToMatchAction, cancelMatchAction, getMatchForConversationAction } from "@/lib/actions/match.actions";
+import type { MatchRow } from "@/lib/supabase/database.types";
 
 function MessagesPageContent() {
   const searchParams = useSearchParams();
@@ -43,6 +45,12 @@ function MessagesPageContent() {
   const [isDeleteConvOpen, setIsDeleteConvOpen] = useState(false);
   const [isDeletingConv, setIsDeletingConv] = useState(false);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
+  const [isInviteBusy, setIsInviteBusy] = useState(false);
+  const [activeMatch, setActiveMatch] = useState<MatchRow | null>(null);
+  const [isMatchBusy, setIsMatchBusy] = useState(false);
+  const [matchError, setMatchError] = useState<string | null>(null);
+  const [isMatchRequestConfirmOpen, setIsMatchRequestConfirmOpen] = useState(false);
+  const [isMatchAcceptConfirmOpen, setIsMatchAcceptConfirmOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,6 +135,20 @@ function MessagesPageContent() {
     searchQuery ? `${c.participant.firstName} ${c.participant.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) : true
   );
 
+  useEffect(() => {
+    if (!activeConvId || activeConv?.status !== "ACCEPTED") {
+      setActiveMatch(null);
+      return;
+    }
+    let cancelled = false;
+    getMatchForConversationAction(activeConvId).then((match) => {
+      if (!cancelled) setActiveMatch(match);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeConvId, activeConv?.status]);
+
   const handleSelectConversation = (convId: string) => {
     setActiveConvId(convId);
     setIsMobileChatOpen(true);
@@ -141,6 +163,78 @@ function MessagesPageContent() {
   const handleTyping = useCallback(() => {
     if (activeConvId) void messageService.broadcastTyping(activeConvId);
   }, [activeConvId]);
+
+  const handleAcceptInvitation = async () => {
+    if (!activeConvId) return;
+    setIsInviteBusy(true);
+    try {
+      await messageService.acceptInvitation(activeConvId);
+      setConversations((prev) => prev.map((c) => (c.id === activeConvId ? { ...c, status: "ACCEPTED" } : c)));
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Impossible d'accepter cette invitation.");
+      setTimeout(() => setSendError(null), 4000);
+    } finally {
+      setIsInviteBusy(false);
+    }
+  };
+
+  const handleDeclineInvitation = async () => {
+    if (!activeConvId) return;
+    setIsInviteBusy(true);
+    try {
+      await messageService.declineInvitation(activeConvId);
+      setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
+      setActiveConvId(null);
+      router.replace("/messages", { scroll: false });
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Impossible de refuser cette invitation.");
+      setTimeout(() => setSendError(null), 4000);
+    } finally {
+      setIsInviteBusy(false);
+    }
+  };
+
+  const handleRequestMatch = async () => {
+    if (!activeConvId) return;
+    setIsMatchRequestConfirmOpen(false);
+    setIsMatchBusy(true);
+    setMatchError(null);
+    const result = await requestMatchAction(activeConvId);
+    if ("error" in result) {
+      setMatchError(result.error);
+      setTimeout(() => setMatchError(null), 4000);
+    } else {
+      setActiveMatch(await getMatchForConversationAction(activeConvId));
+    }
+    setIsMatchBusy(false);
+  };
+
+  const handleRespondToMatch = async (accept: boolean) => {
+    if (!activeMatch || !activeConvId) return;
+    setIsMatchAcceptConfirmOpen(false);
+    setIsMatchBusy(true);
+    const result = await respondToMatchAction(activeMatch.id, accept);
+    if ("error" in result) {
+      setMatchError(result.error);
+      setTimeout(() => setMatchError(null), 4000);
+    } else {
+      setActiveMatch(await getMatchForConversationAction(activeConvId));
+    }
+    setIsMatchBusy(false);
+  };
+
+  const handleCancelMatch = async () => {
+    if (!activeMatch) return;
+    setIsMatchBusy(true);
+    const result = await cancelMatchAction(activeMatch.id);
+    if ("error" in result) {
+      setMatchError(result.error);
+      setTimeout(() => setMatchError(null), 4000);
+    } else {
+      setActiveMatch(null);
+    }
+    setIsMatchBusy(false);
+  };
 
   const runSend = async (action: () => Promise<ChatMessage>) => {
     if (!activeConvId) return;
@@ -330,50 +424,142 @@ function MessagesPageContent() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                {isLoadingMessages ? (
-                  <div className="space-y-3 p-4">
-                    <Skeleton className="h-10 w-2/3 rounded-2xl" />
-                    <Skeleton className="h-12 w-1/2 ml-auto rounded-2xl" />
-                    <Skeleton className="h-10 w-3/4 rounded-2xl" />
+              {activeConv.status === "PENDING" ? (
+                <div className="flex-1 flex items-center justify-center p-6">
+                  <div className="max-w-sm w-full text-center space-y-4">
+                    <div className="mx-auto w-14 h-14 rounded-full bg-accent-subtle flex items-center justify-center">
+                      <MessageSquare size={22} className="text-accent" />
+                    </div>
+                    {activeConv.initiatedByMe ? (
+                      <>
+                        <p className="text-sm font-semibold text-foreground">Invitation envoyée à {activeConv.participant.firstName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Vous pourrez échanger dès que {activeConv.participant.firstName} aura accepté ton invitation à discuter.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold text-foreground">{activeConv.participant.firstName} souhaite discuter avec toi</p>
+                        <p className="text-xs text-muted-foreground">
+                          Accepte l&apos;invitation pour commencer à échanger des messages en toute confidentialité.
+                        </p>
+                        <div className="flex items-center justify-center gap-2 pt-2">
+                          <Button variant="ghost" size="sm" onClick={handleDeclineInvitation} isLoading={isInviteBusy}>
+                            Refuser
+                          </Button>
+                          <Button size="sm" onClick={handleAcceptInvitation} isLoading={isInviteBusy}>
+                            Accepter l&apos;invitation
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                    {sendError && <p className="text-xs text-destructive">{sendError}</p>}
                   </div>
-                ) : messages.length === 0 ? (
-                  <EmptyState icon={<MessageSquare size={24} />} title="Aucun message" description="Envoie le premier message de cette conversation." />
-                ) : (
-                  <>
-                    {messages.map((msg) => (
-                      <MessageBubble key={msg.id} message={msg} isCurrentUser={msg.senderId === user.id} onDeleteMessage={handleDeleteMessage} />
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </>
-                )}
-              </div>
-
-              {sendError && (
-                <div className="mx-4 mb-2 flex items-center gap-2 p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">
-                  <AlertCircle size={14} className="shrink-0" />
-                  {sendError}
                 </div>
-              )}
+              ) : (
+                <>
+                  {matchError && (
+                    <div className="mx-4 mt-3 flex items-center gap-2 p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">
+                      <AlertCircle size={14} className="shrink-0" />
+                      {matchError}
+                    </div>
+                  )}
 
-              {!canSendMessages && (
-                <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
-                  <span>Passe Premium pour répondre à tes messages.</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsPremiumRequiredOpen(true)}
-                    className="shrink-0 text-xs font-semibold text-primary hover:underline"
-                  >
-                    Découvrir
-                  </button>
-                </div>
-              )}
+                  {activeMatch?.status === "ACCEPTED" ? (
+                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <Heart size={14} className="fill-current text-accent shrink-0" /> Vous êtes en couple sur Agapeo !
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCancelMatch}
+                        disabled={isMatchBusy}
+                        className="shrink-0 text-xs font-semibold text-destructive hover:underline"
+                      >
+                        Annuler le match
+                      </button>
+                    </div>
+                  ) : activeMatch?.status === "PENDING" && activeMatch.recipient_id === user.id ? (
+                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <Heart size={14} className="text-accent shrink-0" /> {activeConv.participant.firstName} te propose un match !
+                      </span>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <button type="button" onClick={() => handleRespondToMatch(false)} disabled={isMatchBusy} className="text-xs font-semibold text-muted-foreground hover:underline">
+                          Refuser
+                        </button>
+                        <button type="button" onClick={() => setIsMatchAcceptConfirmOpen(true)} disabled={isMatchBusy} className="text-xs font-semibold text-primary hover:underline">
+                          Accepter
+                        </button>
+                      </div>
+                    </div>
+                  ) : activeMatch?.status === "PENDING" ? (
+                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-secondary/60 border border-border/40 text-xs text-muted-foreground">
+                      <span>En attente de la réponse de {activeConv.participant.firstName}...</span>
+                      <button type="button" onClick={handleCancelMatch} disabled={isMatchBusy} className="shrink-0 text-xs font-semibold text-destructive hover:underline">
+                        Annuler
+                      </button>
+                    </div>
+                  ) : !profile.is_matched ? (
+                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/40 text-xs text-foreground">
+                      <span>Vous vous sentez prêts à passer à l&apos;étape suivante ?</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsMatchRequestConfirmOpen(true)}
+                        disabled={isMatchBusy}
+                        className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 rounded-full px-3 py-1.5"
+                      >
+                        <Heart size={12} /> Matcher
+                      </button>
+                    </div>
+                  ) : null}
 
-              <ChatInputBar
-                onSendMessage={handleSendMessage}
-                onSendFileAttachment={handleSendFileAttachment}
-                onTyping={handleTyping}
-              />
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    {isLoadingMessages ? (
+                      <div className="space-y-3 p-4">
+                        <Skeleton className="h-10 w-2/3 rounded-2xl" />
+                        <Skeleton className="h-12 w-1/2 ml-auto rounded-2xl" />
+                        <Skeleton className="h-10 w-3/4 rounded-2xl" />
+                      </div>
+                    ) : messages.length === 0 ? (
+                      <EmptyState icon={<MessageSquare size={24} />} title="Aucun message" description="Envoie le premier message de cette conversation." />
+                    ) : (
+                      <>
+                        {messages.map((msg) => (
+                          <MessageBubble key={msg.id} message={msg} isCurrentUser={msg.senderId === user.id} onDeleteMessage={handleDeleteMessage} />
+                        ))}
+                        <div ref={messagesEndRef} />
+                      </>
+                    )}
+                  </div>
+
+                  {sendError && (
+                    <div className="mx-4 mb-2 flex items-center gap-2 p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">
+                      <AlertCircle size={14} className="shrink-0" />
+                      {sendError}
+                    </div>
+                  )}
+
+                  {!canSendMessages && (
+                    <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                      <span>Passe Premium pour répondre à tes messages.</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsPremiumRequiredOpen(true)}
+                        className="shrink-0 text-xs font-semibold text-primary hover:underline"
+                      >
+                        Découvrir
+                      </button>
+                    </div>
+                  )}
+
+                  <ChatInputBar
+                    onSendMessage={handleSendMessage}
+                    onSendFileAttachment={handleSendFileAttachment}
+                    onTyping={handleTyping}
+                  />
+                </>
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center">
@@ -434,6 +620,65 @@ function MessagesPageContent() {
             }
           >
             <></>
+          </Modal>
+
+          <Modal
+            isOpen={isMatchRequestConfirmOpen}
+            onClose={() => setIsMatchRequestConfirmOpen(false)}
+            title={`Proposer un match à ${activeConv.participant.firstName}`}
+            maxWidth="sm"
+          >
+            <div className="flex flex-col items-center text-center gap-3 py-2">
+              <div className="p-3 rounded-full bg-primary/10 text-primary">
+                <Heart size={24} />
+              </div>
+              <p className="text-sm text-foreground">
+                En proposant un match, tu indiques vouloir démarrer une relation sérieuse avec {activeConv.participant.firstName}.{" "}
+                {activeConv.participant.firstName} devra accepter à son tour. Une fois confirmé : vos deux profils disparaissent de Découvrir, vous
+                recevez chacun un email avec des conseils et une prière pour la suite, et vous ne pourrez plus proposer de match à quelqu&apos;un
+                d&apos;autre tant que celui-ci est actif — tu pourras toujours l&apos;annuler plus tard.
+              </p>
+              <div className="flex items-center gap-2.5 w-full pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setIsMatchRequestConfirmOpen(false)} disabled={isMatchBusy}>
+                  Annuler
+                </Button>
+                <Button variant="primary" className="flex-1" onClick={handleRequestMatch} isLoading={isMatchBusy} leftIcon={<Heart size={15} />}>
+                  Proposer le match
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
+          <Modal
+            isOpen={isMatchAcceptConfirmOpen}
+            onClose={() => setIsMatchAcceptConfirmOpen(false)}
+            title={`Accepter le match de ${activeConv.participant.firstName}`}
+            maxWidth="sm"
+          >
+            <div className="flex flex-col items-center text-center gap-3 py-2">
+              <div className="p-3 rounded-full bg-primary/10 text-primary">
+                <Heart size={24} />
+              </div>
+              <p className="text-sm text-foreground">
+                En acceptant, {activeConv.participant.firstName} et toi serez officiellement en couple sur Agapeo : vos deux profils disparaissent
+                de Découvrir, vous recevez chacun un email avec des conseils pour la suite de votre relation, et vous ne pourrez plus matcher avec
+                quelqu&apos;un d&apos;autre tant que ce match est actif. Tu pourras toujours l&apos;annuler plus tard si besoin.
+              </p>
+              <div className="flex items-center gap-2.5 w-full pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setIsMatchAcceptConfirmOpen(false)} disabled={isMatchBusy}>
+                  Pas encore
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={() => handleRespondToMatch(true)}
+                  isLoading={isMatchBusy}
+                  leftIcon={<Heart size={15} />}
+                >
+                  Confirmer le match
+                </Button>
+              </div>
+            </div>
           </Modal>
         </>
       )}

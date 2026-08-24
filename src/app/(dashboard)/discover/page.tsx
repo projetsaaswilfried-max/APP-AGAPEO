@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RecommendedProfileItem, DiscoverFilterCriteria } from "@/domain/types/discover";
 import { discoverService } from "@/domain/services/discover.service";
-import { messageService } from "@/domain/services/message.service";
 import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { CompatibilityCard } from "@/components/features/discover/compatibility-card";
@@ -13,6 +12,8 @@ import { FilterPanel } from "@/components/features/discover/filter-panel";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
+import { SendInvitationModal } from "@/components/features/messages/send-invitation-modal";
+import { useSendInvitation } from "@/core/hooks/use-send-invitation";
 import { SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -113,23 +114,22 @@ function DiscoverPageContent() {
     }
   };
 
-  const handleSendMessage = async (profileId: string) => {
-    try {
-      const conversationId = await messageService.getOrCreateConversation(profileId);
-      router.push(`/messages?conversation=${conversationId}`);
-    } catch (err) {
-      if (err instanceof PremiumRequiredError) {
-        setPremiumReason("contacter ce membre en premier");
-        setIsPremiumRequiredOpen(true);
-        return;
-      }
-      if (err instanceof VerificationRequiredError) {
-        handleRequireVerification("contacter ce membre");
-        return;
-      }
-      setToastMessage(err instanceof Error ? err.message : "Impossible de démarrer la conversation.");
+  const { pendingTarget: pendingInvitation, isSending: isSendingInvitation, requestSend: requestInvitation, cancel: cancelInvitation, confirmSend: confirmInvitation } = useSendInvitation({
+    onSuccess: (conversationId) => router.push(`/messages?conversation=${conversationId}`),
+    onPremiumRequired: () => {
+      setPremiumReason("contacter ce membre en premier");
+      setIsPremiumRequiredOpen(true);
+    },
+    onVerificationRequired: () => handleRequireVerification("contacter ce membre"),
+    onError: (message) => {
+      setToastMessage(message);
       setTimeout(() => setToastMessage(null), 4000);
     }
+  });
+
+  const handleSendMessage = (profileId: string) => {
+    const target = profiles.find((p) => p.profile.id === profileId);
+    requestInvitation(profileId, target?.profile.firstName ?? "ce membre");
   };
 
   const recommendedHighlight = profiles.find((p) => p.compatibilityPercentage >= 90);
@@ -310,6 +310,13 @@ function DiscoverPageContent() {
 
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
       <VerificationRequiredModal isOpen={isVerificationRequiredOpen} onClose={() => setIsVerificationRequiredOpen(false)} reason={verificationReason} />
+      <SendInvitationModal
+        isOpen={!!pendingInvitation}
+        onClose={cancelInvitation}
+        onConfirm={confirmInvitation}
+        firstName={pendingInvitation?.firstName ?? ""}
+        isSending={isSendingInvitation}
+      />
     </div>
   );
 }

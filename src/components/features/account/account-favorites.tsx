@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RecommendedProfileItem } from "@/domain/types/discover";
 import { discoverService } from "@/domain/services/discover.service";
-import { messageService } from "@/domain/services/message.service";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
-import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
+import { SendInvitationModal } from "@/components/features/messages/send-invitation-modal";
+import { useSendInvitation } from "@/core/hooks/use-send-invitation";
+import { VerificationRequiredError } from "@/domain/errors";
 import { SearchInput } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -56,22 +57,19 @@ export function AccountFavorites() {
     }
   };
 
-  const handleSendMessage = async (profileId: string) => {
-    try {
-      const conversationId = await messageService.getOrCreateConversation(profileId);
-      router.push(`/messages?conversation=${conversationId}`);
-    } catch (err) {
-      if (err instanceof PremiumRequiredError) {
-        setPremiumReason("contacter ce membre en premier");
-        setIsPremiumRequiredOpen(true);
-        return;
-      }
-      if (err instanceof VerificationRequiredError) {
-        handleRequireVerification("contacter ce membre");
-        return;
-      }
-      console.error(err);
-    }
+  const { pendingTarget: pendingInvitation, isSending: isSendingInvitation, requestSend: requestInvitation, cancel: cancelInvitation, confirmSend: confirmInvitation } = useSendInvitation({
+    onSuccess: (conversationId) => router.push(`/messages?conversation=${conversationId}`),
+    onPremiumRequired: () => {
+      setPremiumReason("contacter ce membre en premier");
+      setIsPremiumRequiredOpen(true);
+    },
+    onVerificationRequired: () => handleRequireVerification("contacter ce membre"),
+    onError: (message) => console.error(message)
+  });
+
+  const handleSendMessage = (profileId: string) => {
+    const target = favorites.find((item) => item.profile.id === profileId);
+    requestInvitation(profileId, target?.profile.firstName ?? "ce membre");
   };
 
   const filtered = favorites.filter((item) =>
@@ -145,6 +143,13 @@ export function AccountFavorites() {
 
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
       <VerificationRequiredModal isOpen={isVerificationRequiredOpen} onClose={() => setIsVerificationRequiredOpen(false)} reason={verificationReason} />
+      <SendInvitationModal
+        isOpen={!!pendingInvitation}
+        onClose={cancelInvitation}
+        onConfirm={confirmInvitation}
+        firstName={pendingInvitation?.firstName ?? ""}
+        isSending={isSendingInvitation}
+      />
     </Card>
   );
 }

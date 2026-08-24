@@ -21,14 +21,21 @@ export type AttachmentTypeDb = "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT";
 
 export type NotificationTypeDb =
   | "NEW_MESSAGE"
+  | "CONVERSATION_INVITE"
+  | "CONVERSATION_ACCEPTED"
   | "NEW_FAVORITE"
   | "PROFILE_VISIT"
+  | "MATCH_REQUEST"
+  | "MATCH_ACCEPTED"
   | "POST_LIKE"
   | "POST_COMMENT"
   | "NEW_RECOMMENDATION"
   | "OFFICIAL_POST"
   | "SUPPORT_REPLY"
   | "NEW_RESOURCE";
+
+export type ConversationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
+export type MatchStatus = "PENDING" | "ACCEPTED" | "CANCELLED";
 
 export type ReportTargetType = "PROFILE" | "MESSAGE" | "POST";
 export type ReportStatus = "PENDING" | "REVIEWED" | "DISMISSED" | "ACTION_TAKEN";
@@ -123,6 +130,8 @@ export interface ProfileRow {
   is_staff: boolean;
   /** Dérivé de `profile_restricted.subscription_status = 'ACTIVE'` — booléen public utilisé pour prioriser Découvrir, jamais le détail de l'abonnement. */
   is_premium: boolean;
+  /** Dérivé de `matches.status = 'ACCEPTED'` — exclut le profil de Découvrir tant qu'un match est actif (cf. matches table). */
+  is_matched: boolean;
 
   created_at: string;
   updated_at: string;
@@ -260,8 +269,22 @@ export interface PostBookmarkRow {
 
 export interface ConversationRow {
   id: string;
+  status: ConversationStatus;
+  initiated_by: string | null;
   created_at: string;
   last_message_at: string;
+}
+
+export interface MatchRow {
+  id: string;
+  conversation_id: string;
+  requester_id: string;
+  recipient_id: string;
+  status: MatchStatus;
+  created_at: string;
+  responded_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
 }
 
 export interface ConversationParticipantRow {

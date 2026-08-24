@@ -52,6 +52,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .not("church_denomination", "is", null)
       .not("why_marriage", "is", null)
       .not("photo_verification_status", "in", "(PENDING,REJECTED)")
+      .eq("is_matched", false)
       .order("last_active_at", { ascending: false })
       .limit(60);
 

@@ -6,12 +6,13 @@ import Link from "next/link";
 import { UserProfile } from "@/domain/types/user";
 import { RecommendedProfileItem } from "@/domain/types/discover";
 import { discoverService } from "@/domain/services/discover.service";
-import { messageService } from "@/domain/services/message.service";
 import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
+import { SendInvitationModal } from "@/components/features/messages/send-invitation-modal";
+import { useSendInvitation } from "@/core/hooks/use-send-invitation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -71,22 +72,19 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
     }
   };
 
-  const handleSendMessage = async (profileId: string) => {
-    try {
-      const conversationId = await messageService.getOrCreateConversation(profileId);
-      router.push(`/messages?conversation=${conversationId}`);
-    } catch (err) {
-      if (err instanceof PremiumRequiredError) {
-        setPremiumReason("contacter ce membre en premier");
-        setIsPremiumRequiredOpen(true);
-        return;
-      }
-      if (err instanceof VerificationRequiredError) {
-        handleRequireVerification("contacter ce membre");
-        return;
-      }
-      console.error(err);
-    }
+  const { pendingTarget: pendingInvitation, isSending: isSendingInvitation, requestSend: requestInvitation, cancel: cancelInvitation, confirmSend: confirmInvitation } = useSendInvitation({
+    onSuccess: (conversationId) => router.push(`/messages?conversation=${conversationId}`),
+    onPremiumRequired: () => {
+      setPremiumReason("contacter ce membre en premier");
+      setIsPremiumRequiredOpen(true);
+    },
+    onVerificationRequired: () => handleRequireVerification("contacter ce membre"),
+    onError: (message) => console.error(message)
+  });
+
+  const handleSendMessage = (profileId: string) => {
+    const target = items.find((item) => item.profile.id === profileId);
+    requestInvitation(profileId, target?.profile.firstName ?? "ce membre");
   };
 
   return (
@@ -172,6 +170,13 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
 
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
       <VerificationRequiredModal isOpen={isVerificationRequiredOpen} onClose={() => setIsVerificationRequiredOpen(false)} reason={verificationReason} />
+      <SendInvitationModal
+        isOpen={!!pendingInvitation}
+        onClose={cancelInvitation}
+        onConfirm={confirmInvitation}
+        firstName={pendingInvitation?.firstName ?? ""}
+        isSending={isSendingInvitation}
+      />
     </Card>
   );
 }

@@ -30,7 +30,8 @@ export function ConversationListItem({
   isActive,
   onSelect
 }: ConversationListItemProps) {
-  const { participant, lastMessage, unreadCount, isOnline, isTyping, isFavorite } = conversation;
+  const { participant, lastMessage, unreadCount, isOnline, isTyping, isFavorite, status, initiatedByMe } = conversation;
+  const isPendingInvite = status === "PENDING";
 
   return (
     <div
@@ -74,6 +75,10 @@ export function ConversationListItem({
             <span className="text-xs text-accent font-medium italic animate-pulse">
               est en train d&apos;écrire...
             </span>
+          ) : isPendingInvite ? (
+            <p className={cn("text-xs truncate font-medium leading-tight", initiatedByMe ? "text-muted-foreground italic" : "text-accent")}>
+              {initiatedByMe ? "Invitation envoyée..." : "Souhaite discuter avec toi"}
+            </p>
           ) : (
             <p className="text-xs text-muted-foreground truncate font-normal leading-tight">
               {lastMessage ? lastMessagePreview(lastMessage) : "Nouvelle conversation"}

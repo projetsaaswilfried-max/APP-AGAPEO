@@ -6,7 +6,6 @@ import type { UserProfile } from "@/domain/types/user";
 import type { FeedPublication } from "@/domain/types/feed";
 import { createClient } from "@/lib/supabase/client";
 import { discoverService } from "@/domain/services/discover.service";
-import { messageService } from "@/domain/services/message.service";
 import { PremiumRequiredError } from "@/domain/errors";
 import { ProfileHero } from "@/components/features/profile/profile-hero";
 import { CompatibilityExplainedSection } from "@/components/features/profile/compatibility-explained-section";
@@ -16,6 +15,8 @@ import { UserPublicationsSection } from "@/components/features/profile/user-publ
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { SendInvitationModal } from "@/components/features/messages/send-invitation-modal";
+import { useSendInvitation } from "@/core/hooks/use-send-invitation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Flag, Ban } from "lucide-react";
 
@@ -60,19 +61,16 @@ export function PublicProfileClient({
     }
   };
 
-  const handleSendMessage = async () => {
-    try {
-      const conversationId = await messageService.getOrCreateConversation(profile.id);
-      router.push(`/messages?conversation=${conversationId}`);
-    } catch (err) {
-      if (err instanceof PremiumRequiredError) {
-        setPremiumReason("contacter ce membre en premier");
-        setIsPremiumRequiredOpen(true);
-        return;
-      }
-      console.error(err);
-    }
-  };
+  const { pendingTarget: pendingInvitation, isSending: isSendingInvitation, requestSend: requestInvitation, cancel: cancelInvitation, confirmSend: confirmInvitation } = useSendInvitation({
+    onSuccess: (conversationId) => router.push(`/messages?conversation=${conversationId}`),
+    onPremiumRequired: () => {
+      setPremiumReason("contacter ce membre en premier");
+      setIsPremiumRequiredOpen(true);
+    },
+    onError: (message) => console.error(message)
+  });
+
+  const handleSendMessage = () => requestInvitation(profile.id, profile.firstName);
 
   if (isBlocked) {
     return (
@@ -128,6 +126,13 @@ export function PublicProfileClient({
         }}
       />
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
+      <SendInvitationModal
+        isOpen={!!pendingInvitation}
+        onClose={cancelInvitation}
+        onConfirm={confirmInvitation}
+        firstName={pendingInvitation?.firstName ?? ""}
+        isSending={isSendingInvitation}
+      />
     </div>
   );
 }

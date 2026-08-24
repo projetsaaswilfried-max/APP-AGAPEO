@@ -5,6 +5,7 @@ import { mapConversationSummary, mapMessageRow, mapAttachmentRow } from "@/domai
 import { PremiumRequiredError, VerificationRequiredError, isRlsViolation } from "@/domain/errors";
 import type {
   ConversationParticipantRow,
+  ConversationRow,
   MessageRow,
   MessageAttachmentRow,
   ProfileRow,
@@ -17,6 +18,9 @@ export interface IMessageService {
   getConversations(): Promise<ConversationSummary[]>;
   getMessages(conversationId: string): Promise<ChatMessage[]>;
   getOrCreateConversation(otherProfileId: string): Promise<string>;
+  /** Le destinataire d'une invitation (jamais l'initiateur) accepte — la RLS `conversations_respond_to_invite` l'impose déjà, revérifiée côté service pour un message d'erreur clair. */
+  acceptInvitation(conversationId: string): Promise<void>;
+  declineInvitation(conversationId: string): Promise<void>;
   sendMessage(conversationId: string, content: string): Promise<ChatMessage>;
   sendFileAttachment(conversationId: string, file: File, kind: "IMAGE" | "VIDEO" | "DOCUMENT"): Promise<ChatMessage>;
   markAsRead(conversationId: string): Promise<void>;
@@ -106,11 +110,14 @@ class MessageServiceSupabase implements IMessageService {
 
     const conversationIds = participations.map((p) => p.conversation_id);
 
-    const [{ data: otherParticipants }, { data: lastMessages }, { data: unreadRows }] = await Promise.all([
+    const [{ data: conversationRows }, { data: otherParticipants }, { data: lastMessages }, { data: unreadRows }] = await Promise.all([
+      supabase.from("conversations").select("*").in("id", conversationIds),
       supabase.from("conversation_participants").select("*").in("conversation_id", conversationIds).neq("user_id", myId),
       supabase.from("messages").select("*").in("conversation_id", conversationIds).order("created_at", { ascending: false }),
       supabase.from("messages").select("conversation_id, created_at").in("conversation_id", conversationIds).neq("sender_id", myId)
     ]);
+
+    const conversationsById = new Map<string, ConversationRow>((conversationRows as ConversationRow[] | null ?? []).map((c) => [c.id, c]));
 
     const otherByConversation = new Map<string, string>();
     (otherParticipants as ConversationParticipantRow[] | null)?.forEach((p) => otherByConversation.set(p.conversation_id, p.user_id));
@@ -136,6 +143,10 @@ class MessageServiceSupabase implements IMessageService {
 
     const summaries: ConversationSummary[] = [];
     for (const participation of participations) {
+      const conversation = conversationsById.get(participation.conversation_id);
+      // Une invitation refusée ne doit plus jamais réapparaître dans la liste de qui que ce soit.
+      if (!conversation || conversation.status === "DECLINED") continue;
+
       const otherId = otherByConversation.get(participation.conversation_id);
       const otherProfile = otherId ? profilesById.get(otherId) : undefined;
       if (!otherProfile) continue;
@@ -155,7 +166,9 @@ class MessageServiceSupabase implements IMessageService {
           lastMessage,
           unreadCount,
           participation.is_favorite,
-          lastMsgRow?.created_at ?? participation.joined_at
+          lastMsgRow?.created_at ?? participation.joined_at,
+          conversation.status,
+          conversation.initiated_by === myId
         )
       );
     }
@@ -211,6 +224,18 @@ class MessageServiceSupabase implements IMessageService {
     if (error || !newConversationId) throw new Error(error?.message ?? "Impossible de créer la conversation.");
 
     return newConversationId;
+  }
+
+  async acceptInvitation(conversationId: string): Promise<void> {
+    const supabase = createClient();
+    const { error } = await supabase.from("conversations").update({ status: "ACCEPTED" }).eq("id", conversationId);
+    if (error) throw new Error("Impossible d'accepter cette invitation.");
+  }
+
+  async declineInvitation(conversationId: string): Promise<void> {
+    const supabase = createClient();
+    const { error } = await supabase.from("conversations").update({ status: "DECLINED" }).eq("id", conversationId);
+    if (error) throw new Error("Impossible de refuser cette invitation.");
   }
 
   async sendMessage(conversationId: string, content: string): Promise<ChatMessage> {

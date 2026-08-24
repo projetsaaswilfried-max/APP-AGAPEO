@@ -1,4 +1,4 @@
-import type { MessageRow, MessageAttachmentRow, ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
+import type { MessageRow, MessageAttachmentRow, ProfileRow, ProfilePhotoRow, ConversationStatus } from "@/lib/supabase/database.types";
 import type { ChatMessage, MessageAttachment, ConversationSummary } from "@/domain/types/message";
 import { mapProfileRowToUserProfile } from "@/domain/mappers/profile.mapper";
 
@@ -47,7 +47,9 @@ export function mapConversationSummary(
   lastMessage: ChatMessage | undefined,
   unreadCount: number,
   isFavorite: boolean,
-  updatedAt: string
+  updatedAt: string,
+  status: ConversationStatus,
+  initiatedByMe: boolean
 ): ConversationSummary {
   // "Afficher mon statut en ligne" (show_online_status) : si désactivé par le
   // participant, ni la présence ni le "vu le..." ne doivent être révélés —
@@ -63,6 +65,8 @@ export function mapConversationSummary(
     isOnline,
     lastSeen: !participant.show_online_status || isOnline ? undefined : new Date(participant.last_active_at).toLocaleDateString("fr-FR"),
     isFavorite,
-    updatedAt: formatTime(updatedAt)
+    updatedAt: formatTime(updatedAt),
+    status,
+    initiatedByMe
   };
 }
