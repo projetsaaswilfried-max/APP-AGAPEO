@@ -14,6 +14,7 @@ import type { ProfileRow, MaritalStatusType } from "@/lib/supabase/database.type
 
 interface OnboardingPreferencesStepProps {
   profile: ProfileRow;
+  onBack?: () => void;
 }
 
 const MARITAL_STATUS_OPTIONS: { value: MaritalStatusType; label: string }[] = [
@@ -23,7 +24,7 @@ const MARITAL_STATUS_OPTIONS: { value: MaritalStatusType; label: string }[] = [
   { value: "WIDOWED", label: "Veuf / Veuve" }
 ];
 
-export function OnboardingPreferencesStep({ profile }: OnboardingPreferencesStepProps) {
+export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPreferencesStepProps) {
   const [bio, setBio] = useState(profile.bio ?? "");
   const [hobbies, setHobbies] = useState(profile.hobbies);
   const [whyMarriage, setWhyMarriage] = useState(profile.why_marriage ?? "");
@@ -172,6 +173,7 @@ export function OnboardingPreferencesStep({ profile }: OnboardingPreferencesStep
       <OnboardingStepFooter
         onSkip={handleSkip}
         onSaveAndNext={handleSubmit}
+        onBack={onBack}
         isSaving={isPending || isFinishing}
         isSkipping={isSkipping}
         skipLabel="Terminer plus tard"

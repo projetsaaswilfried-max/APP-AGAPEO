@@ -88,8 +88,10 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
               onNext={() => goTo(stepIndex + 1)}
             />
           )}
-          {currentKey === "faith" && <OnboardingFaithStep profile={profile} onNext={() => goTo(stepIndex + 1)} />}
-          {currentKey === "preferences" && <OnboardingPreferencesStep profile={profile} />}
+          {currentKey === "faith" && (
+            <OnboardingFaithStep profile={profile} onNext={() => goTo(stepIndex + 1)} onBack={() => goTo(stepIndex - 1)} />
+          )}
+          {currentKey === "preferences" && <OnboardingPreferencesStep profile={profile} onBack={() => goTo(stepIndex - 1)} />}
         </CardContent>
       </Card>
 

@@ -106,6 +106,11 @@ export async function saveOnboardingStepAction(step: number) {
   if (!user) return { error: "Session expirée." };
 
   await supabase.from("profiles").update({ onboarding_step: step }).eq("id", user.id);
+  // Sans ça, revenir sur /onboarding via un lien (ex: bandeau "Valider mon
+  // profil") après être reparti au milieu de l'assistant pouvait servir une
+  // page mise en cache reflétant un onboarding_step périmé, ramenant
+  // toujours à la première étape au lieu de reprendre où la personne s'était arrêtée.
+  revalidatePath("/onboarding");
   return { success: true };
 }
 

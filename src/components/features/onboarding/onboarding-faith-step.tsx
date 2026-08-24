@@ -9,6 +9,7 @@ import type { ProfileRow, MaritalStatusType } from "@/lib/supabase/database.type
 interface OnboardingFaithStepProps {
   profile: ProfileRow;
   onNext: () => void;
+  onBack?: () => void;
 }
 
 const MARITAL_STATUS_OPTIONS: { value: MaritalStatusType; label: string }[] = [
@@ -18,7 +19,7 @@ const MARITAL_STATUS_OPTIONS: { value: MaritalStatusType; label: string }[] = [
   { value: "WIDOWED", label: "Veuf / Veuve" }
 ];
 
-export function OnboardingFaithStep({ profile, onNext }: OnboardingFaithStepProps) {
+export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaithStepProps) {
   const [denomination, setDenomination] = useState(profile.church_denomination ?? "");
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatusType | "">(profile.marital_status ?? "");
   const [isPending, startTransition] = useTransition();
@@ -66,7 +67,7 @@ export function OnboardingFaithStep({ profile, onNext }: OnboardingFaithStepProp
         </select>
       </div>
 
-      <OnboardingStepFooter onSkip={handleSkip} onSaveAndNext={handleSaveAndNext} isSaving={isPending} isSkipping={isSkipping} />
+      <OnboardingStepFooter onSkip={handleSkip} onSaveAndNext={handleSaveAndNext} onBack={onBack} isSaving={isPending} isSkipping={isSkipping} />
     </div>
   );
 }
