@@ -10,7 +10,9 @@ function requireEnv(name: string, value: string | undefined): string {
 export const env = {
   supabaseUrl: requireEnv("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),
   supabaseAnonKey: requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  /** Meta Pixel (business.facebook.com/events_manager) — absent en dev si non configuré, le composant ne s'affiche alors pas. */
+  metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID || null
 };
 
 /** Lazy — n'explose que si un code serveur qui en a réellement besoin l'appelle. */

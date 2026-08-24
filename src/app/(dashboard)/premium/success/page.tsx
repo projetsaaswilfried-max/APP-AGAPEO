@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, Crown } from "lucide-react";
+import { trackMetaEventOnce } from "@/lib/meta-pixel";
+import { PREMIUM_PLANS, planKeyFromDbValue } from "@/domain/premium-plans";
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_ATTEMPTS = 10;
@@ -24,11 +26,26 @@ export default function PremiumSuccessPage() {
       } = await supabase.auth.getUser();
       if (!user || cancelled) return;
 
-      const { data } = await supabase.from("profile_restricted").select("subscription_status").eq("id", user.id).maybeSingle();
+      const { data } = await supabase
+        .from("profile_restricted")
+        .select("subscription_status, subscription_plan, subscription_current_period_end")
+        .eq("id", user.id)
+        .maybeSingle();
       if (cancelled) return;
 
       if (data?.subscription_status === "ACTIVE") {
         setStatus("active");
+        // Déduplication sur user + échéance de la période payée : un même
+        // achat garde la même date de fin, donc revisiter cette page (retour
+        // arrière, favori) sans nouveau paiement ne redéclenche jamais
+        // l'évènement — seul un vrai nouvel achat (nouvelle échéance) le fera.
+        const planKey = planKeyFromDbValue(data.subscription_plan);
+        if (planKey && data.subscription_current_period_end) {
+          trackMetaEventOnce("Purchase", `${user.id}:${data.subscription_current_period_end}`, {
+            value: PREMIUM_PLANS[planKey].priceUsd,
+            currency: "USD"
+          });
+        }
         return;
       }
 

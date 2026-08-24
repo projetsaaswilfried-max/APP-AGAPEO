@@ -3,6 +3,7 @@ import { Fraunces, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/core/providers/app-provider";
 import { SITE_CONFIG } from "@/config/site";
+import { MetaPixel } from "@/components/analytics/meta-pixel";
 
 /** Serif d'accent réservée à la landing publique (titres) — le reste de l'app garde la pile sans-serif système. */
 const fraunces = Fraunces({
@@ -77,6 +78,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`h-full antialiased ${fraunces.variable} ${bricolage.variable}`}>
       <body className="min-h-full bg-background text-foreground font-sans">
+        <MetaPixel />
         <AppProvider>
           {children}
         </AppProvider>

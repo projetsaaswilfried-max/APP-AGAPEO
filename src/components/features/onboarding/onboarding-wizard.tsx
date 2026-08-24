@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { OnboardingProgress } from "./onboarding-progress";
@@ -11,6 +11,7 @@ import { OnboardingPersonalityStep } from "./onboarding-personality-step";
 import { OnboardingMarriageVisionStep } from "./onboarding-marriage-vision-step";
 import { OnboardingPreferencesStep } from "./onboarding-preferences-step";
 import { saveOnboardingStepAction } from "@/lib/actions/profile.actions";
+import { trackMetaEventOnce } from "@/lib/meta-pixel";
 import { X } from "lucide-react";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
@@ -31,6 +32,16 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
 
   const [stepIndex, setStepIndex] = useState(() => (needsEssentialInfo ? 0 : Math.min(profile.onboarding_step, 4)));
   const isRevisit = profile.onboarding_completed;
+
+  // Arrivée sur l'onboarding = confirmation que le compte vient d'être créé
+  // (email confirmé, ou OAuth Google) : c'est ici que la personne devient un
+  // "prospect" traqué par le Pixel Meta. `isRevisit` distingue un vrai
+  // nouveau compte d'un membre déjà onboardé revenant corriger son profil.
+  useEffect(() => {
+    if (!isRevisit) {
+      trackMetaEventOnce("CompleteRegistration", profile.id);
+    }
+  }, [isRevisit, profile.id]);
 
   const goTo = (next: number) => {
     setStepIndex(next);
