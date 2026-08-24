@@ -158,6 +158,10 @@ export interface ProfileRestrictedRow {
   subscription_expired_at: string | null;
   /** true une fois la relance des 24h après expiration envoyée — évite un doublon. */
   subscription_expiry_followup_sent: boolean;
+  /** Palier déjà envoyé (1/3/5/7) de la séquence "soumets ton profil" — null si aucun. */
+  onboarding_sequence_stage: number | null;
+  /** Palier déjà envoyé (1/3/5/7) de la séquence "passe Premium" — null si aucun ; remis à null à chaque nouvelle validation de profil. */
+  premium_sequence_stage: number | null;
   latitude: number | null;
   longitude: number | null;
 }

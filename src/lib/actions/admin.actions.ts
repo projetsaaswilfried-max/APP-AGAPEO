@@ -269,6 +269,12 @@ export async function approveVerificationRequestAction(requestId: string, userId
     .eq("id", requestId);
   if (requestError) return { error: requestError.message };
 
+  // Repart de zéro pour la séquence email "passe Premium" (cf. migration
+  // activation_email_sequences) — utile si ce membre avait déjà été vérifié
+  // puis avait perdu son statut (photo supprimée) : une nouvelle validation
+  // doit relancer le cycle de J1 à J7, pas reprendre un ancien palier.
+  await admin.from("profile_restricted").update({ premium_sequence_stage: null }).eq("id", userId);
+
   const { data: target } = await admin.from("profiles").select("first_name").eq("id", userId).single();
   const { data: authUser } = await admin.auth.admin.getUserById(userId);
   if (target && authUser?.user?.email) {
