@@ -39,12 +39,23 @@ export function getChariowApiKey(): string {
   return requireEnv("CHARIOW_API_KEY", process.env.CHARIOW_API_KEY);
 }
 
-/** ID du produit Chariow "Abonnement Premium Agapeo" (paiement unique, renouvelé manuellement chaque mois). */
-export function getChariowProductId(): string {
-  return requireEnv("CHARIOW_PRODUCT_ID", process.env.CHARIOW_PRODUCT_ID);
+export type ChariowPlanKey = "MONTHLY" | "QUARTERLY";
+
+/** ID du produit Chariow "Abonnement Premium Agapeo" (paiement unique, renouvelé manuellement chaque cycle) — un produit distinct par plan. */
+export function getChariowProductId(plan: ChariowPlanKey): string {
+  const varName = plan === "QUARTERLY" ? "CHARIOW_PRODUCT_ID_QUARTERLY" : "CHARIOW_PRODUCT_ID";
+  return requireEnv(varName, process.env[varName]);
 }
 
-/** Secret de signature du Pulse (webhook) Chariow — vérifie l'authenticité de chaque évènement reçu. */
-export function getChariowPulseSecret(): string {
-  return requireEnv("CHARIOW_PULSE_SECRET", process.env.CHARIOW_PULSE_SECRET);
+/**
+ * Secrets de signature des Pulses (webhooks) Chariow — un Pulse (et donc un
+ * secret) distinct par produit/plan côté Chariow. Non-bloquant si le
+ * trimestriel n'est pas encore configuré (`CHARIOW_PULSE_SECRET_QUARTERLY`
+ * absent) : le webhook continue de fonctionner pour le mensuel en attendant.
+ */
+export function getChariowPulseSecrets(): { plan: ChariowPlanKey; secret: string }[] {
+  const secrets: { plan: ChariowPlanKey; secret: string }[] = [];
+  if (process.env.CHARIOW_PULSE_SECRET) secrets.push({ plan: "MONTHLY", secret: process.env.CHARIOW_PULSE_SECRET });
+  if (process.env.CHARIOW_PULSE_SECRET_QUARTERLY) secrets.push({ plan: "QUARTERLY", secret: process.env.CHARIOW_PULSE_SECRET_QUARTERLY });
+  return secrets;
 }

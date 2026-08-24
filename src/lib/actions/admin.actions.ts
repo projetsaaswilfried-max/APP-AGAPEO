@@ -9,6 +9,7 @@ import { sendVerificationEmail } from "@/lib/actions/verification.actions";
 import { sendPremiumRemovedEmail } from "@/lib/premium-emails";
 import { sendRoleChangedEmail } from "@/lib/role-emails";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
+import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
 import { z } from "zod";
 
 const OfficialPostSchema = z.object({
@@ -206,29 +207,29 @@ export async function toggleSuspendUserAction(userId: string, suspend: boolean, 
   return { success: true };
 }
 
-const PREMIUM_GRANT_PLAN = "admin_grant";
-const PREMIUM_GRANT_DAYS = 30;
-
 /**
  * Accorde ou retire manuellement l'accès Premium depuis l'espace admin (ex :
  * geste commercial, remboursement, test). N'écrit jamais dans `transactions`
  * — aucun paiement réel n'a eu lieu, ce serait fabriquer une preuve de vente.
- * `subscription_plan = 'admin_grant'` distingue clairement ces octrois des
- * abonnements payés via Chariow (`premium_monthly`) dans l'historique.
+ * `plan` (mensuel/trimestriel) fixe la durée accordée et la valeur écrite
+ * dans `subscription_plan` — la même que pour un achat réel via Chariow, un
+ * octroi admin est donc indiscernable ensuite d'un vrai abonnement du même
+ * plan (colonne "Premium" de l'espace admin, emails de relance, etc.).
  */
-export async function toggleUserPremiumAction(userId: string, grant: boolean) {
+export async function toggleUserPremiumAction(userId: string, grant: boolean, plan?: PremiumPlanKey) {
   const { user } = await requireAdminSession();
   if (userId === user.id) return { error: "Impossible de modifier ton propre abonnement depuis cet espace." };
 
   const admin = createAdminClient();
+  const planConfig = PREMIUM_PLANS[plan ?? "MONTHLY"];
   const { error } = await admin
     .from("profile_restricted")
     .update(
       grant
         ? {
             subscription_status: "ACTIVE",
-            subscription_plan: PREMIUM_GRANT_PLAN,
-            subscription_current_period_end: new Date(Date.now() + PREMIUM_GRANT_DAYS * 24 * 60 * 60 * 1000).toISOString()
+            subscription_plan: planConfig.dbValue,
+            subscription_current_period_end: new Date(Date.now() + planConfig.periodDays * 24 * 60 * 60 * 1000).toISOString()
           }
         : { subscription_status: "FREE", subscription_plan: null, subscription_current_period_end: null }
     )

@@ -1,9 +1,10 @@
 import "server-only";
-import { getChariowApiKey, getChariowProductId } from "@/config/env";
+import { getChariowApiKey, getChariowProductId, type ChariowPlanKey } from "@/config/env";
 
 const CHARIOW_API_BASE = "https://api.chariow.com/v1";
 
 export interface InitiateChariowCheckoutInput {
+  plan: ChariowPlanKey;
   email: string;
   firstName: string;
   lastName: string;
@@ -20,10 +21,11 @@ export interface ChariowCheckoutResult {
 }
 
 /**
- * Initie un paiement unique sur le produit "Abonnement Premium Agapeo".
+ * Initie un paiement unique sur le produit Chariow du plan choisi (mensuel
+ * ou trimestriel — deux produits distincts côté Chariow, cf. `PREMIUM_PLANS`).
  * Chariow ne gère pas les abonnements récurrents (confirmé dans sa doc) : on
  * reconstruit la récurrence côté application via `subscription_current_period_end`,
- * chaque paiement renouvelant manuellement 30 jours d'accès.
+ * chaque paiement renouvelant manuellement la durée du plan.
  */
 export async function initiateChariowCheckout(input: InitiateChariowCheckoutInput): Promise<ChariowCheckoutResult> {
   const res = await fetch(`${CHARIOW_API_BASE}/checkout`, {
@@ -33,7 +35,7 @@ export async function initiateChariowCheckout(input: InitiateChariowCheckoutInpu
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      product_id: getChariowProductId(),
+      product_id: getChariowProductId(input.plan),
       email: input.email,
       first_name: input.firstName,
       last_name: input.lastName,

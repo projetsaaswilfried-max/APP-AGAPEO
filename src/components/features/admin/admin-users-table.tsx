@@ -6,7 +6,9 @@ import { SearchInput } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { updateUserRoleAction, toggleSuspendUserAction, toggleUserPremiumAction } from "@/lib/actions/admin.actions";
+import { PREMIUM_PLANS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
 import type { AppRole, VerificationStatus } from "@/lib/supabase/database.types";
 import { ExternalLink, ShieldOff, ShieldCheck, Download, Crown } from "lucide-react";
 
@@ -19,6 +21,7 @@ export interface AdminUserRow {
   isTestAccount: boolean;
   isSuspended: boolean;
   isPremium: boolean;
+  subscriptionPlan: string | null;
   photoVerificationStatus: VerificationStatus;
   country: string;
   createdAt: string;
@@ -34,10 +37,48 @@ const ROLE_LABELS: Record<AppRole, string> = {
 
 const ASSIGNABLE_ROLES: AppRole[] = ["USER", "MODERATOR", "ADMIN"];
 
+const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
+  VERIFIED: "Validé",
+  PENDING: "En attente",
+  REJECTED: "Refusé",
+  UNVERIFIED: "Non soumis"
+};
+
+function premiumPlanLabel(isPremium: boolean, subscriptionPlan: string | null): string {
+  if (!isPremium) return "Gratuit";
+  const planKey = planKeyFromDbValue(subscriptionPlan);
+  return planKey ? PREMIUM_PLANS[planKey].label : "Premium";
+}
+
+function VerificationBadge({ status }: { status: VerificationStatus }) {
+  if (status === "VERIFIED") {
+    return (
+      <Badge variant="verified" className="text-[10px] px-2 py-0.5">
+        {VERIFICATION_LABELS[status]}
+      </Badge>
+    );
+  }
+  if (status === "REJECTED") {
+    return (
+      <Badge variant="status" className="text-[10px] px-2 py-0.5 bg-destructive/10 text-destructive border-destructive/20">
+        {VERIFICATION_LABELS[status]}
+      </Badge>
+    );
+  }
+  if (status === "PENDING") {
+    return (
+      <Badge variant="status" className="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20">
+        {VERIFICATION_LABELS[status]}
+      </Badge>
+    );
+  }
+  return <span className="text-muted-foreground">{VERIFICATION_LABELS[status]}</span>;
+}
+
 type StatusFilter = "ALL" | "ACTIVE" | "SUSPENDED";
 
 function toCsv(rows: AdminUserRow[]): string {
-  const header = ["Prénom", "Nom", "Email", "Rôle", "Statut", "Premium", "Pays", "Vérification photo", "Inscrit le"];
+  const header = ["Prénom", "Nom", "Email", "Rôle", "Statut", "Premium", "Pays", "Profil validé", "Inscrit le"];
   const lines = rows.map((u) =>
     [
       u.firstName,
@@ -45,9 +86,9 @@ function toCsv(rows: AdminUserRow[]): string {
       u.email,
       u.role,
       u.isSuspended ? "Suspendu" : "Actif",
-      u.isPremium ? "Oui" : "Non",
+      premiumPlanLabel(u.isPremium, u.subscriptionPlan),
       u.country,
-      u.photoVerificationStatus,
+      VERIFICATION_LABELS[u.photoVerificationStatus],
       new Date(u.createdAt).toISOString().slice(0, 10)
     ]
       .map((field) => `"${String(field).replace(/"/g, '""')}"`)
@@ -65,6 +106,8 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
   const [dateTo, setDateTo] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [grantModalUserId, setGrantModalUserId] = useState<string | null>(null);
+  const [grantPlan, setGrantPlan] = useState<PremiumPlanKey>("MONTHLY");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -119,15 +162,33 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
     });
   };
 
-  const handleTogglePremium = (userId: string, grant: boolean) => {
+  const handleOpenGrantModal = (userId: string) => {
+    setGrantPlan("MONTHLY");
+    setGrantModalUserId(userId);
+  };
+
+  const handleConfirmGrantPremium = () => {
+    if (!grantModalUserId) return;
+    const userId = grantModalUserId;
+    const plan = grantPlan;
     setError(null);
-    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isPremium: grant } : u)));
+    setGrantModalUserId(null);
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isPremium: true, subscriptionPlan: PREMIUM_PLANS[plan].dbValue } : u)));
     startTransition(async () => {
-      const result = await toggleUserPremiumAction(userId, grant);
+      const result = await toggleUserPremiumAction(userId, true, plan);
       if (result?.error) {
         setError(result.error);
-        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isPremium: !grant } : u)));
+        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isPremium: false, subscriptionPlan: null } : u)));
       }
+    });
+  };
+
+  const handleRevokePremium = (userId: string) => {
+    setError(null);
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isPremium: false, subscriptionPlan: null } : u)));
+    startTransition(async () => {
+      const result = await toggleUserPremiumAction(userId, false);
+      if (result?.error) setError(result.error);
     });
   };
 
@@ -199,6 +260,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                 <th className="px-4 py-2.5 font-medium">Email</th>
                 <th className="px-4 py-2.5 font-medium">Rôle</th>
                 <th className="px-4 py-2.5 font-medium">Statut</th>
+                <th className="px-4 py-2.5 font-medium">Profil validé</th>
                 <th className="px-4 py-2.5 font-medium">Premium</th>
                 <th className="px-4 py-2.5 font-medium">Inscrit le</th>
                 <th className="px-4 py-2.5 font-medium text-right">Actions</th>
@@ -248,9 +310,12 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                     )}
                   </td>
                   <td className="px-4 py-2.5">
+                    <VerificationBadge status={u.photoVerificationStatus} />
+                  </td>
+                  <td className="px-4 py-2.5">
                     {u.isPremium ? (
                       <Badge variant="premium" className="text-[10px] px-2 py-0.5">
-                        <Crown size={10} className="mr-1" /> Premium
+                        <Crown size={10} className="mr-1" /> {premiumPlanLabel(u.isPremium, u.subscriptionPlan)}
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground">Gratuit</span>
@@ -266,7 +331,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                       </Link>
                       {u.role !== "SUPER_ADMIN" && (
                         <button
-                          onClick={() => handleTogglePremium(u.id, !u.isPremium)}
+                          onClick={() => (u.isPremium ? handleRevokePremium(u.id) : handleOpenGrantModal(u.id))}
                           disabled={isPending}
                           className={`p-1.5 rounded-lg disabled:opacity-60 ${
                             u.isPremium
@@ -294,7 +359,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                     Aucun membre ne correspond à cette recherche.
                   </td>
                 </tr>
@@ -303,6 +368,31 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
           </table>
         </div>
       </div>
+
+      <Modal
+        isOpen={Boolean(grantModalUserId)}
+        onClose={() => setGrantModalUserId(null)}
+        title="Accorder l'accès Premium"
+        description="Choisis le type d'abonnement à attribuer — la durée et l'affichage seront ensuite identiques à un abonnement payé via Chariow."
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setGrantModalUserId(null)} disabled={isPending}>
+              Annuler
+            </Button>
+            <Button variant="primary" size="sm" onClick={handleConfirmGrantPremium} isLoading={isPending} leftIcon={<Crown size={14} />}>
+              Accorder
+            </Button>
+          </>
+        }
+      >
+        <Select value={grantPlan} onChange={(e) => setGrantPlan(e.target.value as PremiumPlanKey)} className="w-full">
+          {(Object.keys(PREMIUM_PLANS) as PremiumPlanKey[]).map((key) => (
+            <option key={key} value={key}>
+              {PREMIUM_PLANS[key].label} — {PREMIUM_PLANS[key].periodDays} jours
+            </option>
+          ))}
+        </Select>
+      </Modal>
     </div>
   );
 }

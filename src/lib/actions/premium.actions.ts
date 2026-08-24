@@ -4,18 +4,24 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PhoneSchema } from "@/lib/validation/profile.schema";
 import { initiateChariowCheckout } from "@/lib/chariow";
-import { env } from "@/config/env";
+import { env, type ChariowPlanKey } from "@/config/env";
 
 export type PremiumCheckoutState = { errors?: Record<string, string[]>; message?: string } | undefined;
 
 /**
- * Ouvre un paiement unique de 30 jours d'accès Premium. Chariow n'a pas de
- * numéro de téléphone enregistré pour un membre qui n'en a jamais renseigné
- * (champ requis par leur API) — le formulaire le demande dans ce cas et
+ * Ouvre un paiement unique d'accès Premium (mensuel ou trimestriel, cf. le
+ * champ caché "plan" porté par chaque formulaire de la page Premium — y
+ * compris celui de la modale de récupération du téléphone, qui doit
+ * reporter le plan en cours de sélection). Chariow n'a pas de numéro de
+ * téléphone enregistré pour un membre qui n'en a jamais renseigné (champ
+ * requis par leur API) — le formulaire le demande dans ce cas et
  * l'enregistre sur `profile_private` en même temps, comme le ferait
  * `updatePhoneAction`.
  */
 export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutState, formData: FormData): Promise<PremiumCheckoutState> {
+  const submittedPlan = formData.get("plan");
+  const plan: ChariowPlanKey = submittedPlan === "QUARTERLY" ? "QUARTERLY" : "MONTHLY";
+
   const supabase = await createClient();
   const {
     data: { user }
@@ -54,13 +60,14 @@ export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutStat
   let alreadyPurchased = false;
   try {
     const result = await initiateChariowCheckout({
+      plan,
       email: user.email,
       firstName: profile.first_name,
       lastName: profile.last_name || "-",
       phoneNumber: phone,
       phoneCountryCode,
       redirectUrl: `${env.siteUrl}/premium/success`,
-      customMetadata: { agapeo_user_id: user.id }
+      customMetadata: { agapeo_user_id: user.id, agapeo_plan: plan }
     });
 
     // "completed" = cette session de paiement vient d'aboutir (redirection

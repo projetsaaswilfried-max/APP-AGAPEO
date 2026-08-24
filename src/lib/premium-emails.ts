@@ -20,7 +20,8 @@ export async function sendPremiumActivatedEmail(
   to: string,
   firstName: string,
   amount: { value: number; currency: string },
-  periodEnd: Date
+  periodEnd: Date,
+  periodDays: number
 ) {
   await sendResendEmail(
     to,
@@ -37,7 +38,7 @@ export async function sendPremiumActivatedEmail(
           consulter les profils sans limite.
         </p>
         <p style="margin:0;color:#94A3B8;font-size:12px;">
-          Ton accès est valable 30 jours — renouvelable à tout moment depuis l'onglet "Mon Plan" de ton compte.
+          Ton accès est valable ${periodDays} jours — renouvelable à tout moment depuis l'onglet "Mon Plan" de ton compte.
         </p>
       `,
       infoRows: [

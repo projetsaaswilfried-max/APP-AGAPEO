@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getChariowPulseSecret } from "@/config/env";
+import { getChariowPulseSecrets, type ChariowPlanKey } from "@/config/env";
 import { sendPremiumActivatedEmail } from "@/lib/premium-emails";
+import { PREMIUM_PLANS } from "@/domain/premium-plans";
 
 interface ChariowMoney {
   value: number;
@@ -25,12 +26,8 @@ const SALE_EVENT_TO_STATUS: Record<string, "SUCCEEDED" | "FAILED"> = {
   "abandoned.sale": "FAILED"
 };
 
-const SUBSCRIPTION_PERIOD_DAYS = 30;
-const PREMIUM_PLAN = "premium_monthly";
-
 /** Comparaison en temps constant — évite qu'une attaque par timing ne révèle le secret. */
-function verifySignature(rawBody: string, signatureHeader: string | null, secret: string): boolean {
-  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return false;
+function matchesSignature(rawBody: string, signatureHeader: string, secret: string): boolean {
   const expected = `sha256=${crypto.createHmac("sha256", secret).update(rawBody, "utf8").digest("hex")}`;
   const received = Buffer.from(signatureHeader);
   const expectedBuf = Buffer.from(expected);
@@ -39,9 +36,25 @@ function verifySignature(rawBody: string, signatureHeader: string | null, secret
 }
 
 /**
+ * Chaque plan a son propre produit ET son propre Pulse (donc son propre
+ * secret) côté Chariow — le secret qui matche identifie donc sans ambiguïté
+ * quel plan a été acheté, sans dépendre du bon retour du `custom_metadata`
+ * "agapeo_plan" par Chariow (conservé côté checkout à titre de traçabilité,
+ * mais jamais la seule source de vérité ici).
+ */
+function verifySignatureAndIdentifyPlan(rawBody: string, signatureHeader: string | null): ChariowPlanKey | null {
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) return null;
+  for (const { plan, secret } of getChariowPulseSecrets()) {
+    if (matchesSignature(rawBody, signatureHeader, secret)) return plan;
+  }
+  return null;
+}
+
+/**
  * Réception des "Pulses" (webhooks) Chariow. Chariow ne gère pas les
  * abonnements récurrents — chaque `successful.sale` correspond à un paiement
- * unique de 30 jours d'accès Premium, qu'on active ici nous-mêmes.
+ * unique d'accès Premium (durée selon le plan acheté, cf. `PREMIUM_PLANS`),
+ * qu'on active ici nous-mêmes.
  * Idempotent via la contrainte unique transactions(provider, provider_reference) :
  * un retry (jusqu'à 5x côté Chariow) ne double jamais l'activation.
  */
@@ -49,17 +62,16 @@ export async function POST(request: Request) {
   const rawBody = await request.text();
   const signature = request.headers.get("x-chariow-signature");
 
-  let secret: string;
-  try {
-    secret = getChariowPulseSecret();
-  } catch {
-    console.error("Webhook Chariow reçu mais CHARIOW_PULSE_SECRET n'est pas configuré.");
+  if (getChariowPulseSecrets().length === 0) {
+    console.error("Webhook Chariow reçu mais aucun CHARIOW_PULSE_SECRET* n'est configuré.");
     return NextResponse.json({ error: "Webhook non configuré." }, { status: 500 });
   }
 
-  if (!verifySignature(rawBody, signature, secret)) {
+  const planKey = verifySignatureAndIdentifyPlan(rawBody, signature);
+  if (!planKey) {
     return NextResponse.json({ error: "Signature invalide." }, { status: 401 });
   }
+  const plan = PREMIUM_PLANS[planKey];
 
   let payload: ChariowSaleEventPayload;
   try {
@@ -111,7 +123,7 @@ export async function POST(request: Request) {
       amount_cents: Math.round(sale.amount.value * 100),
       currency: sale.amount.currency,
       status: transactionStatus,
-      plan: PREMIUM_PLAN,
+      plan: plan.dbValue,
       provider: "chariow",
       provider_reference: sale.id
     },
@@ -132,13 +144,13 @@ export async function POST(request: Request) {
 
     const currentEnd = restricted?.subscription_current_period_end ? new Date(restricted.subscription_current_period_end) : null;
     const base = currentEnd && currentEnd > new Date() ? currentEnd : new Date();
-    const newPeriodEnd = new Date(base.getTime() + SUBSCRIPTION_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+    const newPeriodEnd = new Date(base.getTime() + plan.periodDays * 24 * 60 * 60 * 1000);
 
     const { error: subError } = await admin
       .from("profile_restricted")
       .update({
         subscription_status: "ACTIVE",
-        subscription_plan: PREMIUM_PLAN,
+        subscription_plan: plan.dbValue,
         subscription_current_period_end: newPeriodEnd.toISOString(),
         subscription_reminder_stage: null,
         subscription_expired_at: null,
@@ -156,7 +168,7 @@ export async function POST(request: Request) {
       admin.auth.admin.getUserById(userId)
     ]);
     if (memberProfile && authUser?.user?.email) {
-      await sendPremiumActivatedEmail(authUser.user.email, memberProfile.first_name, sale.amount, newPeriodEnd);
+      await sendPremiumActivatedEmail(authUser.user.email, memberProfile.first_name, sale.amount, newPeriodEnd, plan.periodDays);
     }
   }
 
