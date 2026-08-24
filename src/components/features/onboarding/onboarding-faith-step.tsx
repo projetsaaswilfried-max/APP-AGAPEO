@@ -12,7 +12,8 @@ interface OnboardingFaithStepProps {
 }
 
 const MARITAL_STATUS_OPTIONS: { value: MaritalStatusType; label: string }[] = [
-  { value: "SINGLE", label: "Célibataire" },
+  { value: "SINGLE_NO_CHILDREN", label: "Célibataire sans enfant" },
+  { value: "SINGLE_WITH_CHILDREN", label: "Célibataire avec enfant" },
   { value: "DIVORCED", label: "Divorcé(e)" },
   { value: "WIDOWED", label: "Veuf / Veuve" }
 ];
@@ -49,24 +50,20 @@ export function OnboardingFaithStep({ profile, onNext }: OnboardingFaithStepProp
         onChange={(e) => setDenomination(e.target.value)}
       />
 
-      <div className="space-y-1.5">
+      <div className="space-y-1">
         <label className="text-sm font-medium text-foreground">Situation matrimoniale</label>
-        <div className="grid grid-cols-3 gap-2">
+        <select
+          value={maritalStatus}
+          onChange={(e) => setMaritalStatus(e.target.value as MaritalStatusType)}
+          className="w-full h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">Sélectionner</option>
           {MARITAL_STATUS_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setMaritalStatus(opt.value)}
-              className={`h-11 rounded-xl border text-sm font-medium transition-colors ${
-                maritalStatus === opt.value
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-foreground border-border hover:bg-secondary"
-              }`}
-            >
+            <option key={opt.value} value={opt.value}>
               {opt.label}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       <OnboardingStepFooter onSkip={handleSkip} onSaveAndNext={handleSaveAndNext} isSaving={isPending} isSkipping={isSkipping} />

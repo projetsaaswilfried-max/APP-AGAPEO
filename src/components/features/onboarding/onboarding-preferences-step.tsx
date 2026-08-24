@@ -17,7 +17,8 @@ interface OnboardingPreferencesStepProps {
 }
 
 const MARITAL_STATUS_OPTIONS: { value: MaritalStatusType; label: string }[] = [
-  { value: "SINGLE", label: "Célibataire" },
+  { value: "SINGLE_NO_CHILDREN", label: "Célibataire sans enfant" },
+  { value: "SINGLE_WITH_CHILDREN", label: "Célibataire avec enfant" },
   { value: "DIVORCED", label: "Divorcé(e)" },
   { value: "WIDOWED", label: "Veuf / Veuve" }
 ];
@@ -121,7 +122,7 @@ export function OnboardingPreferencesStep({ profile }: OnboardingPreferencesStep
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-foreground">Situation matrimoniale acceptée</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {MARITAL_STATUS_OPTIONS.map((opt) => (
             <button
               key={opt.value}

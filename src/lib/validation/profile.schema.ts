@@ -22,7 +22,7 @@ export const ProfileEditableSchema = z.object({
   quote: z.string().trim().max(200).nullable(),
   status: z.enum(["AVAILABLE", "IN_DISCUSSION", "ON_PAUSE"]),
 
-  marital_status: z.enum(["SINGLE", "DIVORCED", "WIDOWED"]).nullable(),
+  marital_status: z.enum(["SINGLE_NO_CHILDREN", "SINGLE_WITH_CHILDREN", "DIVORCED", "WIDOWED"]).nullable(),
 
   church_denomination: z.string().trim().max(120).nullable(),
   faith_engagement_level: z.string().trim().max(60).nullable(),
@@ -58,7 +58,7 @@ export const ProfileEditableSchema = z.object({
   desired_denomination: z.string().trim().max(120).nullable(),
   desired_values: tagsArray(12),
   desired_interests: tagsArray(12),
-  desired_marital_statuses: z.array(z.enum(["SINGLE", "DIVORCED", "WIDOWED"])).max(3),
+  desired_marital_statuses: z.array(z.enum(["SINGLE_NO_CHILDREN", "SINGLE_WITH_CHILDREN", "DIVORCED", "WIDOWED"])).max(4),
   wants_children: z.boolean().nullable(),
 
   show_online_status: z.boolean(),

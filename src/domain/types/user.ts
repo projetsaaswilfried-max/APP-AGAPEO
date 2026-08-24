@@ -1,7 +1,7 @@
 import { FeedPublication } from "./feed";
 
 export type GenderType = "MALE" | "FEMALE";
-export type MaritalStatusType = "SINGLE" | "DIVORCED" | "WIDOWED";
+export type MaritalStatusType = "SINGLE_NO_CHILDREN" | "SINGLE_WITH_CHILDREN" | "DIVORCED" | "WIDOWED";
 
 export interface UserFaithProfile {
   churchDenomination: string;

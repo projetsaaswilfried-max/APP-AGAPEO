@@ -8,7 +8,7 @@
 export type AppRole = "USER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN";
 export type GenderType = "MALE" | "FEMALE";
 export type RelationshipStatusDb = "AVAILABLE" | "IN_DISCUSSION" | "ON_PAUSE";
-export type MaritalStatusType = "SINGLE" | "DIVORCED" | "WIDOWED";
+export type MaritalStatusType = "SINGLE_NO_CHILDREN" | "SINGLE_WITH_CHILDREN" | "DIVORCED" | "WIDOWED";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 
 export type PostType = "OFFICIAL" | "PERSONAL";
