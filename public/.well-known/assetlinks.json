@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "love.agapeo.app",
+        "sha256_cert_fingerprints": ["C8:D7:6D:A4:6A:3F:6D:39:DA:B0:DB:32:8E:EA:8A:F2:EA:55:00:86:95:19:93:AF:DC:3D:2D:BE:2A:94:3A:22"]
+      }
+    }]
