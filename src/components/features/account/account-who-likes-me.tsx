@@ -7,14 +7,16 @@ import { UserProfile } from "@/domain/types/user";
 import { RecommendedProfileItem } from "@/domain/types/discover";
 import { discoverService } from "@/domain/services/discover.service";
 import { messageService } from "@/domain/services/message.service";
-import { PremiumRequiredError } from "@/domain/errors";
+import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSession } from "@/core/providers/session-provider";
 import { Heart, Crown } from "lucide-react";
 
 interface AccountWhoLikesMeProps {
@@ -23,6 +25,8 @@ interface AccountWhoLikesMeProps {
 
 export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
   const router = useRouter();
+  const { profile: sessionProfile } = useSession();
+  const canInteract = sessionProfile.photo_verification_status === "VERIFIED" || sessionProfile.is_staff;
   const isPremium = profile.subscriptionStatus === "ACTIVE";
   const [items, setItems] = useState<RecommendedProfileItem[]>([]);
   // Le nombre reste visible pour tous — seul `items` (l'identité de chacun)
@@ -33,6 +37,13 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
   const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
+  const [isVerificationRequiredOpen, setIsVerificationRequiredOpen] = useState(false);
+  const [verificationReason, setVerificationReason] = useState("contacter ce membre");
+
+  const handleRequireVerification = (reason: string) => {
+    setVerificationReason(reason);
+    setIsVerificationRequiredOpen(true);
+  };
 
   useEffect(() => {
     Promise.all([discoverService.getWhoLikesMe(), discoverService.getWhoLikesMeCount()])
@@ -52,6 +63,10 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
       if (err instanceof PremiumRequiredError) {
         setPremiumReason("mettre des profils en favori");
         setIsPremiumRequiredOpen(true);
+        return;
+      }
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("mettre ce membre en favori");
       }
     }
   };
@@ -64,6 +79,10 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
       if (err instanceof PremiumRequiredError) {
         setPremiumReason("contacter ce membre en premier");
         setIsPremiumRequiredOpen(true);
+        return;
+      }
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("contacter ce membre");
         return;
       }
       console.error(err);
@@ -126,12 +145,14 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
             <DiscoverProfileCard
               key={item.profile.id}
               item={item}
+              canInteract={canInteract}
               onInspectProfile={(prof) => {
                 setSelectedProfile(prof);
                 setIsInspectorOpen(true);
               }}
               onToggleFavorite={handleToggleFavorite}
               onSendMessage={handleSendMessage}
+              onRequireVerification={handleRequireVerification}
             />
           ))}
         </div>
@@ -150,6 +171,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
       />
 
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
+      <VerificationRequiredModal isOpen={isVerificationRequiredOpen} onClose={() => setIsVerificationRequiredOpen(false)} reason={verificationReason} />
     </Card>
   );
 }

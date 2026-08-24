@@ -6,12 +6,13 @@ import Link from "next/link";
 import { RecommendedProfileItem, DiscoverFilterCriteria } from "@/domain/types/discover";
 import { discoverService } from "@/domain/services/discover.service";
 import { messageService } from "@/domain/services/message.service";
-import { PremiumRequiredError } from "@/domain/errors";
+import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { CompatibilityCard } from "@/components/features/discover/compatibility-card";
 import { FilterPanel } from "@/components/features/discover/filter-panel";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
 import { SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,25 +24,23 @@ import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, 
 const DEFAULT_FILTERS: DiscoverFilterCriteria = { ageMin: 20, ageMax: 50, status: "ALL" };
 
 // Tant que la photo n'est pas VERIFIED (jamais soumise, en attente, ou
-// refusée), l'accès à Découvrir est bloqué — gratuit comme Premium. Message
-// adapté à chaque cas pour inciter à finaliser la vérification.
-const VERIFICATION_GATE_CONTENT: Record<"UNVERIFIED" | "PENDING" | "REJECTED", { icon: ReactNode; title: string; description: string; cta: string }> = {
+// refusée), Découvrir reste consultable en aperçu (photos floutées, aucune
+// interaction réelle) mais pas exploitable — un bandeau rappelle pourquoi et
+// incite à finaliser la vérification, avec un message adapté à chaque cas.
+const VERIFICATION_BANNER_CONTENT: Record<"UNVERIFIED" | "PENDING" | "REJECTED", { icon: ReactNode; description: string; cta: string }> = {
   UNVERIFIED: {
-    icon: <ShieldAlert size={26} />,
-    title: "Vérifie ton profil pour découvrir les autres membres",
-    description: "Ajoute une photo de profil et soumets-la pour validation : c'est la condition pour commencer à découvrir les autres membres, en formule gratuite comme Premium.",
+    icon: <ShieldAlert size={14} className="text-accent shrink-0" />,
+    description: "Ceci est un aperçu : valide ton profil pour voir les photos nettement et contacter les membres.",
     cta: "Vérifier mon profil"
   },
   PENDING: {
-    icon: <Clock size={26} />,
-    title: "Ton profil est en cours de vérification",
-    description: "Notre équipe examine ta photo de profil. Dès qu'elle sera validée, tu pourras découvrir les autres membres de la communauté.",
+    icon: <Clock size={14} className="text-accent shrink-0" />,
+    description: "Ton profil est en cours de vérification — en attendant, voici un aperçu des membres de la communauté.",
     cta: "Voir ma demande"
   },
   REJECTED: {
-    icon: <ShieldAlert size={26} />,
-    title: "Ta photo de profil n'a pas été validée",
-    description: "Remplace ta photo de profil et soumets une nouvelle demande de vérification pour débloquer Découvrir.",
+    icon: <ShieldAlert size={14} className="text-accent shrink-0" />,
+    description: "Ta photo de profil n'a pas été validée : soumets-en une nouvelle pour contacter les membres que tu découvres ici.",
     cta: "Soumettre une nouvelle photo"
   }
 };
@@ -51,7 +50,10 @@ function DiscoverPageContent() {
   const searchParams = useSearchParams();
   const { profile } = useSession();
   const scoringGaps = getScoringGaps(profile);
-  const isVerificationGated = profile.photo_verification_status !== "VERIFIED" && !profile.is_staff;
+  // Faux tant que le profil n'est pas vérifié : Découvrir reste consultable
+  // (aperçu flouté), seules les interactions réelles (contacter, favori,
+  // fiche complète) restent bloquées — cf. VerificationRequiredModal.
+  const canInteract = profile.photo_verification_status === "VERIFIED" || profile.is_staff;
   const [profiles, setProfiles] = useState<RecommendedProfileItem[]>([]);
   const [filters, setFilters] = useState<DiscoverFilterCriteria>(() => {
     const search = searchParams.get("search");
@@ -65,12 +67,15 @@ function DiscoverPageContent() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
   const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
+  const [isVerificationRequiredOpen, setIsVerificationRequiredOpen] = useState(false);
+  const [verificationReason, setVerificationReason] = useState("contacter ce membre");
+
+  const handleRequireVerification = (reason: string) => {
+    setVerificationReason(reason);
+    setIsVerificationRequiredOpen(true);
+  };
 
   const fetchProfiles = async () => {
-    if (isVerificationGated) {
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
     setIsError(false);
     try {
@@ -87,7 +92,7 @@ function DiscoverPageContent() {
   useEffect(() => {
     fetchProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, isVerificationGated]);
+  }, [filters]);
 
   const handleToggleFavorite = async (profileId: string) => {
     setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isFavorite: !item.isFavorite } : item)));
@@ -98,6 +103,10 @@ function DiscoverPageContent() {
       if (err instanceof PremiumRequiredError) {
         setPremiumReason("mettre des profils en favori");
         setIsPremiumRequiredOpen(true);
+        return;
+      }
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("mettre ce membre en favori");
         return;
       }
       console.error(err);
@@ -114,14 +123,18 @@ function DiscoverPageContent() {
         setIsPremiumRequiredOpen(true);
         return;
       }
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("contacter ce membre");
+        return;
+      }
       setToastMessage(err instanceof Error ? err.message : "Impossible de démarrer la conversation.");
       setTimeout(() => setToastMessage(null), 4000);
     }
   };
 
   const recommendedHighlight = profiles.find((p) => p.compatibilityPercentage >= 90);
-  const gateContent = isVerificationGated
-    ? VERIFICATION_GATE_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
+  const bannerContent = !canInteract
+    ? VERIFICATION_BANNER_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
     : null;
 
   return (
@@ -144,48 +157,38 @@ function DiscoverPageContent() {
           </p>
         </div>
 
-        {!isVerificationGated && (
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <SearchInput
-              placeholder="Rechercher par prénom, ville, profession..."
-              value={filters.searchQuery || ""}
-              onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
-              onClear={() => setFilters({ ...filters, searchQuery: "" })}
-              className="flex-1 md:w-72 text-xs h-10 bg-card shadow-2xs"
-            />
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <SearchInput
+            placeholder="Rechercher par prénom, ville, profession..."
+            value={filters.searchQuery || ""}
+            onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
+            onClear={() => setFilters({ ...filters, searchQuery: "" })}
+            className="flex-1 md:w-72 text-xs h-10 bg-card shadow-2xs"
+          />
 
-            <Button
-              variant={isFilterOpen ? "primary" : "outline"}
-              size="md"
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              leftIcon={<SlidersHorizontal size={16} />}
-              className="shrink-0"
-            >
-              Filtres
-            </Button>
-          </div>
-        )}
+          <Button
+            variant={isFilterOpen ? "primary" : "outline"}
+            size="md"
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            leftIcon={<SlidersHorizontal size={16} />}
+            className="shrink-0"
+          >
+            Filtres
+          </Button>
+        </div>
       </div>
 
-      {gateContent && (
-        <EmptyState
-          icon={gateContent.icon}
-          title={gateContent.title}
-          description={gateContent.description}
-          className="py-16"
-          action={
-            <Link
-              href="/profile?tab=account"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2 shadow-accent-glow"
-            >
-              {gateContent.cta}
-              <ArrowRight size={13} />
-            </Link>
-          }
-        />
+      {bannerContent && (
+        <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
+          {bannerContent.icon}
+          <span>{bannerContent.description}</span>
+          <Link href="/profile?tab=account" className="inline-flex items-center gap-1 font-semibold text-accent hover:underline ml-auto shrink-0">
+            {bannerContent.cta} <ArrowRight size={12} />
+          </Link>
+        </div>
       )}
 
-      {!isVerificationGated && isFilterOpen && (
+      {isFilterOpen && (
         <div className="animate-in fade-in duration-150">
           <FilterPanel
             filters={filters}
@@ -200,7 +203,7 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {!isVerificationGated && isError && !isLoading && (
+      {isError && !isLoading && (
         <EmptyState
           icon={<AlertCircle size={24} className="text-destructive" />}
           title="Impossible de charger les profils"
@@ -213,17 +216,19 @@ function DiscoverPageContent() {
         />
       )}
 
-      {!isVerificationGated && recommendedHighlight && !isLoading && !isError && (
+      {recommendedHighlight && !isLoading && !isError && (
         <CompatibilityCard
           item={recommendedHighlight}
+          canInteract={canInteract}
           onInspectProfile={(prof) => {
             setSelectedProfile(prof);
             setIsInspectorOpen(true);
           }}
+          onRequireVerification={handleRequireVerification}
         />
       )}
 
-      {!isVerificationGated && !isLoading && !isError && scoringGaps.length > 0 && profiles.length > 0 && (
+      {!isLoading && !isError && scoringGaps.length > 0 && profiles.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
           <Heart size={14} className="text-accent shrink-0" />
           <span>
@@ -235,7 +240,7 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {!isVerificationGated && isLoading && (
+      {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-2xs">
@@ -253,7 +258,7 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {!isVerificationGated && !isLoading && !isError && profiles.length === 0 && (
+      {!isLoading && !isError && profiles.length === 0 && (
         <EmptyState
           icon={<Users size={28} />}
           title="Aucun profil ne correspond à vos critères"
@@ -266,7 +271,7 @@ function DiscoverPageContent() {
         />
       )}
 
-      {!isVerificationGated && !isLoading && !isError && profiles.length > 0 && (
+      {!isLoading && !isError && profiles.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Profils recommandés pour vous ({profiles.length})
@@ -277,12 +282,14 @@ function DiscoverPageContent() {
               <DiscoverProfileCard
                 key={item.profile.id}
                 item={item}
+                canInteract={canInteract}
                 onInspectProfile={(prof) => {
                   setSelectedProfile(prof);
                   setIsInspectorOpen(true);
                 }}
                 onToggleFavorite={handleToggleFavorite}
                 onSendMessage={handleSendMessage}
+                onRequireVerification={handleRequireVerification}
               />
             ))}
           </div>
@@ -302,6 +309,7 @@ function DiscoverPageContent() {
       />
 
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
+      <VerificationRequiredModal isOpen={isVerificationRequiredOpen} onClose={() => setIsVerificationRequiredOpen(false)} reason={verificationReason} />
     </div>
   );
 }

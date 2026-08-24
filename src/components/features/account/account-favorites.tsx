@@ -8,15 +8,19 @@ import { messageService } from "@/domain/services/message.service";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
-import { PremiumRequiredError } from "@/domain/errors";
+import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
+import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { SearchInput } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSession } from "@/core/providers/session-provider";
 import { Bookmark, Users } from "lucide-react";
 
 export function AccountFavorites() {
   const router = useRouter();
+  const { profile } = useSession();
+  const canInteract = profile.photo_verification_status === "VERIFIED" || profile.is_staff;
   const [favorites, setFavorites] = useState<RecommendedProfileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,6 +28,13 @@ export function AccountFavorites() {
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
   const [premiumReason, setPremiumReason] = useState("consulter plus de 10 profils ce mois-ci");
+  const [isVerificationRequiredOpen, setIsVerificationRequiredOpen] = useState(false);
+  const [verificationReason, setVerificationReason] = useState("contacter ce membre");
+
+  const handleRequireVerification = (reason: string) => {
+    setVerificationReason(reason);
+    setIsVerificationRequiredOpen(true);
+  };
 
   useEffect(() => {
     discoverService
@@ -34,7 +45,15 @@ export function AccountFavorites() {
 
   const handleToggleFavorite = async (profileId: string) => {
     setFavorites((prev) => prev.filter((item) => item.profile.id !== profileId));
-    await discoverService.toggleFavorite(profileId);
+    try {
+      await discoverService.toggleFavorite(profileId);
+    } catch (err) {
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("mettre ce membre en favori");
+        return;
+      }
+      console.error(err);
+    }
   };
 
   const handleSendMessage = async (profileId: string) => {
@@ -45,6 +64,10 @@ export function AccountFavorites() {
       if (err instanceof PremiumRequiredError) {
         setPremiumReason("contacter ce membre en premier");
         setIsPremiumRequiredOpen(true);
+        return;
+      }
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("contacter ce membre");
         return;
       }
       console.error(err);
@@ -95,12 +118,14 @@ export function AccountFavorites() {
             <DiscoverProfileCard
               key={item.profile.id}
               item={item}
+              canInteract={canInteract}
               onInspectProfile={(prof) => {
                 setSelectedProfile(prof);
                 setIsInspectorOpen(true);
               }}
               onToggleFavorite={handleToggleFavorite}
               onSendMessage={handleSendMessage}
+              onRequireVerification={handleRequireVerification}
             />
           ))}
         </div>
@@ -119,6 +144,7 @@ export function AccountFavorites() {
       />
 
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
+      <VerificationRequiredModal isOpen={isVerificationRequiredOpen} onClose={() => setIsVerificationRequiredOpen(false)} reason={verificationReason} />
     </Card>
   );
 }

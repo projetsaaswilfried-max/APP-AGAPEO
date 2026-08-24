@@ -10,18 +10,35 @@ import { cn } from "@/lib/utils";
 
 interface DiscoverProfileCardProps {
   item: RecommendedProfileItem;
+  /** Faux pour un membre qui n'a pas encore fait valider son profil : aperçu seul, aucune interaction réelle. */
+  canInteract: boolean;
   onInspectProfile: (item: RecommendedProfileItem) => void;
   onToggleFavorite: (id: string) => void;
   onSendMessage: (profileId: string) => void;
+  onRequireVerification: (reason: string) => void;
 }
 
-export function DiscoverProfileCard({ item, onInspectProfile, onToggleFavorite, onSendMessage }: DiscoverProfileCardProps) {
+export function DiscoverProfileCard({
+  item,
+  canInteract,
+  onInspectProfile,
+  onToggleFavorite,
+  onSendMessage,
+  onRequireVerification
+}: DiscoverProfileCardProps) {
   const { profile, compatibilityPercentage, isFavorite } = item;
-  const isBlurred = profile.privacySettings?.isPhotoBlurred;
+  // Floutée soit parce que le membre affiché l'a choisi, soit parce que le
+  // visiteur lui-même n'est pas encore vérifié — dans les deux cas, la photo
+  // nette n'est montrée qu'une fois les deux conditions remplies.
+  const isBlurred = profile.privacySettings?.isPhotoBlurred || !canInteract;
+
+  const handleInspect = () => (canInteract ? onInspectProfile(item) : onRequireVerification("consulter ce profil"));
+  const handleFavorite = () => (canInteract ? onToggleFavorite(profile.id) : onRequireVerification("mettre ce membre en favori"));
+  const handleMessage = () => (canInteract ? onSendMessage(profile.id) : onRequireVerification("contacter ce membre"));
 
   return (
     <Card variant="interactive" className="p-5 flex flex-col justify-between h-full select-none group border-border/60 shadow-2xs">
-      <div className="space-y-4" onClick={() => onInspectProfile(item)}>
+      <div className="space-y-4" onClick={handleInspect}>
         <div className="flex items-start justify-between gap-3">
           <div className="relative shrink-0">
             <div className="relative">
@@ -34,7 +51,7 @@ export function DiscoverProfileCard({ item, onInspectProfile, onToggleFavorite, 
               />
               {isBlurred && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
-                  <span title="Photo floutée par le membre" className="inline-flex">
+                  <span title={canInteract ? "Photo floutée par le membre" : "Valide ton profil pour voir les photos nettement"} className="inline-flex">
                     <Lock size={16} className="text-white" />
                   </span>
                 </div>
@@ -50,7 +67,7 @@ export function DiscoverProfileCard({ item, onInspectProfile, onToggleFavorite, 
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleFavorite(profile.id);
+                handleFavorite();
               }}
               className={cn(
                 "p-2 rounded-full border transition-all shadow-2xs",
@@ -107,7 +124,10 @@ export function DiscoverProfileCard({ item, onInspectProfile, onToggleFavorite, 
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onInspectProfile(item)}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleInspect();
+          }}
           className="h-auto min-h-9 py-2 text-xs whitespace-normal leading-snug text-center"
         >
           Voir le profil
@@ -117,7 +137,7 @@ export function DiscoverProfileCard({ item, onInspectProfile, onToggleFavorite, 
           size="sm"
           onClick={(e) => {
             e.stopPropagation();
-            onSendMessage(profile.id);
+            handleMessage();
           }}
           leftIcon={<MessageSquare size={13} className="shrink-0" />}
           className="h-auto min-h-9 py-2 text-xs whitespace-normal leading-snug text-center"

@@ -4,18 +4,26 @@ import { RecommendedProfileItem } from "@/domain/types/discover";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, CheckCircle2, ArrowRight } from "lucide-react";
+import { Heart, CheckCircle2, ArrowRight, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CompatibilityCardProps {
   item: RecommendedProfileItem;
+  /** Faux pour un membre qui n'a pas encore fait valider son profil : aperçu seul, aucune interaction réelle. */
+  canInteract: boolean;
   onInspectProfile: (item: RecommendedProfileItem) => void;
+  onRequireVerification: (reason: string) => void;
 }
 
 export function CompatibilityCard({
   item,
-  onInspectProfile
+  canInteract,
+  onInspectProfile,
+  onRequireVerification
 }: CompatibilityCardProps) {
   const { profile, compatibilityPercentage, justifications } = item;
+  const isBlurred = profile.privacySettings?.isPhotoBlurred || !canInteract;
+  const handleInspect = () => (canInteract ? onInspectProfile(item) : onRequireVerification("consulter ce profil"));
 
   return (
     <Card variant="interactive" className="p-5 overflow-hidden relative border-accent/20 bg-gradient-to-br from-card via-card to-accent-subtle/50 select-none shadow-soft">
@@ -26,9 +34,16 @@ export function CompatibilityCard({
             <img
               src={profile.avatarUrl}
               alt={profile.firstName}
-              className="w-full h-full object-cover"
+              className={cn("w-full h-full object-cover", isBlurred && "blur-md scale-105")}
             />
           </div>
+          {isBlurred && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
+              <span title={canInteract ? "Photo floutée par le membre" : "Valide ton profil pour voir les photos nettement"} className="inline-flex">
+                <Lock size={20} className="text-white" />
+              </span>
+            </div>
+          )}
           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0">
             <Badge variant="premium" className="text-[10px] px-2.5 py-0.5 shadow-2xs whitespace-nowrap">
               <Heart size={11} className="mr-1 text-primary fill-primary" /> {compatibilityPercentage}%
@@ -72,7 +87,7 @@ export function CompatibilityCard({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onInspectProfile(item)}
+              onClick={handleInspect}
               rightIcon={<ArrowRight size={14} />}
               className="ml-auto"
             >

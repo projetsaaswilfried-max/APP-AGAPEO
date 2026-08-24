@@ -2,7 +2,7 @@ import { ConversationSummary, ChatMessage, MessageAttachment } from "../types/me
 import { createClient } from "@/lib/supabase/client";
 import { uploadMessageFile, getSignedAttachmentUrls, type MessageAttachmentKind } from "@/lib/storage";
 import { mapConversationSummary, mapMessageRow, mapAttachmentRow } from "@/domain/mappers/message.mapper";
-import { PremiumRequiredError, isRlsViolation } from "@/domain/errors";
+import { PremiumRequiredError, VerificationRequiredError, isRlsViolation } from "@/domain/errors";
 import type {
   ConversationParticipantRow,
   MessageRow,
@@ -181,6 +181,14 @@ class MessageServiceSupabase implements IMessageService {
     const supabase = createClient();
     const myId = await getCurrentUserId();
     if (myId === otherProfileId) throw new Error("Impossible de démarrer une conversation avec soi-même.");
+
+    // Vérifié en amont (message d'erreur précis) plutôt que de laisser la
+    // RLS renvoyer une violation générique qu'on ne pourrait pas distinguer
+    // d'un blocage Premium.
+    const { data: viewerRow } = await supabase.from("profiles").select("photo_verification_status, is_staff").eq("id", myId).single();
+    if (viewerRow && viewerRow.photo_verification_status !== "VERIFIED" && !viewerRow.is_staff) {
+      throw new VerificationRequiredError("Valide ton profil pour contacter ce membre.");
+    }
 
     const { data: mine } = await supabase.from("conversation_participants").select("conversation_id").eq("user_id", myId);
     const myConversationIds = (mine ?? []).map((r) => r.conversation_id);

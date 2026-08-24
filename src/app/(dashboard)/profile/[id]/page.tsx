@@ -8,7 +8,7 @@ import { computeCompatibility } from "@/domain/matching/compatibility";
 import { PublicProfileClient } from "@/components/features/profile/public-profile-client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
-import { UserX, Crown } from "lucide-react";
+import { UserX, Crown, ShieldAlert } from "lucide-react";
 import type { ProfileRow, PostRow, PostMediaRow } from "@/lib/supabase/database.types";
 
 const MONTHLY_VIEW_LIMIT = 10;
@@ -22,6 +22,29 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   }
 
   const supabase = await createClient();
+
+  // Un membre qui n'a pas encore fait valider son profil peut voir un aperçu
+  // des membres dans Découvrir (photos floutées) mais pas consulter une
+  // fiche complète — même en connaissant l'URL directe.
+  const isViewerVerified = viewerRow.photo_verification_status === "VERIFIED" || viewerRow.role !== "USER";
+  if (!isViewerVerified) {
+    return (
+      <div className="max-w-md mx-auto py-16">
+        <EmptyState
+          icon={<ShieldAlert size={24} />}
+          title="Valide ton profil pour consulter cette fiche"
+          description="Tu peux découvrir un aperçu des membres depuis Découvrir, mais il faut d'abord faire valider ton profil pour en consulter une fiche complète."
+          action={
+            <Link href="/profile?tab=account">
+              <Button variant="primary" size="sm" leftIcon={<ShieldAlert size={15} />}>
+                Vérifier mon profil
+              </Button>
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
 
   const isPremiumViewer = viewerRow.subscription_status === "ACTIVE" || viewerRow.role !== "USER";
   if (!isPremiumViewer) {

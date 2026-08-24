@@ -2,7 +2,7 @@ import { RecommendedProfileItem, DiscoverFilterCriteria } from "../types/discove
 import { createClient } from "@/lib/supabase/client";
 import { mapProfileRowToUserProfile } from "@/domain/mappers/profile.mapper";
 import { computeCompatibility } from "@/domain/matching/compatibility";
-import { PremiumRequiredError, isRlsViolation } from "@/domain/errors";
+import { PremiumRequiredError, VerificationRequiredError, isRlsViolation } from "@/domain/errors";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
 export interface IDiscoverService {
@@ -32,13 +32,6 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     if (!viewerRow) return [];
     const viewer = viewerRow as ProfileRow;
-
-    // Tant que la photo du viewer lui-même n'est pas validée (soumission
-    // jamais faite, en attente, ou refusée), il ne peut pas découvrir les
-    // autres membres — gratuit comme Premium. Appliqué ici (pas seulement
-    // masqué dans l'UI) pour qu'un appel direct au service ne contourne pas
-    // la restriction.
-    if (viewer.photo_verification_status !== "VERIFIED" && !viewer.is_staff) return [];
 
     const targetGender = viewer.gender === "MALE" ? "FEMALE" : "MALE";
 
@@ -326,6 +319,14 @@ class DiscoverServiceSupabase implements IDiscoverService {
       data: { user }
     } = await supabase.auth.getUser();
     if (!user) throw new Error("Session expirée.");
+
+    // Vérifié en amont (message d'erreur précis) plutôt que de laisser la
+    // RLS renvoyer une violation générique qu'on ne pourrait pas distinguer
+    // d'un blocage Premium.
+    const { data: viewerRow } = await supabase.from("profiles").select("photo_verification_status, is_staff").eq("id", user.id).single();
+    if (viewerRow && viewerRow.photo_verification_status !== "VERIFIED" && !viewerRow.is_staff) {
+      throw new VerificationRequiredError("Valide ton profil pour mettre des membres en favori.");
+    }
 
     const { data: existing } = await supabase
       .from("favorites")
