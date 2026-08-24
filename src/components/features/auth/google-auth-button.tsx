@@ -15,7 +15,7 @@ export function GoogleAuthButton({ label = "Continuer avec Google" }: GoogleAuth
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/` }
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/feed` }
     });
   };
 

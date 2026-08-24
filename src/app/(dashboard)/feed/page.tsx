@@ -4,11 +4,13 @@ import React, { useState, useEffect } from "react";
 import { FeedPublication, FeedCategory } from "@/domain/types/feed";
 import { feedService } from "@/domain/services/feed.service";
 import { PublicationCard } from "@/components/features/feed/publication-card";
+import { OnboardingProgressBanner } from "@/components/features/feed/onboarding-progress-banner";
 import { Tabs } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Megaphone, BookOpen, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/core/providers/session-provider";
 
 const CATEGORY_TABS = [
   { id: "ALL", label: "Tout le fil" },
@@ -20,6 +22,7 @@ const CATEGORY_TABS = [
 ];
 
 export default function HomePage() {
+  const { profile } = useSession();
   const [activeCategory, setActiveCategory] = useState<FeedCategory>("ALL");
   const [publications, setPublications] = useState<FeedPublication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,6 +91,8 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto w-full pb-16 select-none">
+      {!profile.onboarding_completed && <OnboardingProgressBanner />}
+
       {/* En-tête du Fil d'Actualité Officiel */}
       <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between">

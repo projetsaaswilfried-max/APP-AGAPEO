@@ -50,7 +50,7 @@ export async function signUpAction(_prevState: FormState, formData: FormData): P
   }
 
   if (data.session) {
-    redirect("/onboarding");
+    redirect("/feed");
   }
 
   return { message: "CHECK_EMAIL" };
