@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Heart, CheckCircle2, ArrowRight, Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, maskForPreview } from "@/lib/utils";
 
 interface CompatibilityCardProps {
   item: RecommendedProfileItem;
@@ -22,7 +22,14 @@ export function CompatibilityCard({
   onRequireVerification
 }: CompatibilityCardProps) {
   const { profile, compatibilityPercentage, justifications } = item;
-  const isBlurred = profile.privacySettings?.isPhotoBlurred || !canInteract;
+  // La photo reste nette pour tout le monde (seul le choix de flou du membre
+  // lui-même s'applique) — c'est le nom/l'âge/la localisation qui sont
+  // masqués tant que le visiteur n'a pas fait valider son propre profil.
+  const isBlurred = profile.privacySettings?.isPhotoBlurred;
+  const displayName = canInteract ? profile.firstName : maskForPreview(profile.firstName, 2);
+  const displayAge = canInteract ? String(profile.age) : maskForPreview(String(profile.age));
+  const displayCity = canInteract ? profile.city : maskForPreview(profile.city);
+  const displayCountry = canInteract ? profile.country : maskForPreview(profile.country);
   const handleInspect = () => (canInteract ? onInspectProfile(item) : onRequireVerification("consulter ce profil"));
 
   return (
@@ -39,7 +46,7 @@ export function CompatibilityCard({
           </div>
           {isBlurred && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
-              <span title={canInteract ? "Photo floutée par le membre" : "Valide ton profil pour voir les photos nettement"} className="inline-flex">
+              <span title="Photo floutée par le membre" className="inline-flex">
                 <Lock size={20} className="text-white" />
               </span>
             </div>
@@ -56,9 +63,9 @@ export function CompatibilityCard({
           <div>
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-2 gap-y-0.5">
               <h3 className="text-base font-display font-semibold text-foreground tracking-tight">
-                {profile.firstName}, {profile.age} ans
+                {displayName}, {displayAge} ans
               </h3>
-              <span className="text-xs text-muted-foreground">• {profile.city}, {profile.country}</span>
+              <span className="text-xs text-muted-foreground">• {displayCity}, {displayCountry}</span>
             </div>
             <p className="text-xs font-medium text-muted-foreground">{profile.profession}</p>
           </div>

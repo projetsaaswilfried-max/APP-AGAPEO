@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Bookmark, Heart, MapPin, MessageSquare, Lock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, maskForPreview } from "@/lib/utils";
 
 interface DiscoverProfileCardProps {
   item: RecommendedProfileItem;
@@ -27,10 +27,14 @@ export function DiscoverProfileCard({
   onRequireVerification
 }: DiscoverProfileCardProps) {
   const { profile, compatibilityPercentage, isFavorite } = item;
-  // Floutée soit parce que le membre affiché l'a choisi, soit parce que le
-  // visiteur lui-même n'est pas encore vérifié — dans les deux cas, la photo
-  // nette n'est montrée qu'une fois les deux conditions remplies.
-  const isBlurred = profile.privacySettings?.isPhotoBlurred || !canInteract;
+  // La photo reste nette pour tout le monde (seul le choix de flou du membre
+  // lui-même s'applique) — c'est le nom/l'âge/la localisation qui sont
+  // masqués tant que le visiteur n'a pas fait valider son propre profil.
+  const isBlurred = profile.privacySettings?.isPhotoBlurred;
+  const displayName = canInteract ? profile.firstName : maskForPreview(profile.firstName, 2);
+  const displayAge = canInteract ? String(profile.age) : maskForPreview(String(profile.age));
+  const displayCity = canInteract ? profile.city : maskForPreview(profile.city);
+  const displayCountry = canInteract ? profile.country : maskForPreview(profile.country);
 
   const handleInspect = () => (canInteract ? onInspectProfile(item) : onRequireVerification("consulter ce profil"));
   const handleFavorite = () => (canInteract ? onToggleFavorite(profile.id) : onRequireVerification("mettre ce membre en favori"));
@@ -51,7 +55,7 @@ export function DiscoverProfileCard({
               />
               {isBlurred && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
-                  <span title={canInteract ? "Photo floutée par le membre" : "Valide ton profil pour voir les photos nettement"} className="inline-flex">
+                  <span title="Photo floutée par le membre" className="inline-flex">
                     <Lock size={16} className="text-white" />
                   </span>
                 </div>
@@ -85,7 +89,7 @@ export function DiscoverProfileCard({
         <div className="space-y-1">
           <div className="flex items-center gap-1.5">
             <h3 className="text-base font-display font-semibold tracking-tight text-foreground">
-              {profile.firstName}, {profile.age} ans
+              {displayName}, {displayAge} ans
             </h3>
           </div>
 
@@ -94,8 +98,8 @@ export function DiscoverProfileCard({
           <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
             <MapPin size={12} className="shrink-0 text-primary" />
             <span className="truncate">
-              {profile.city ? `${profile.city}, ` : ""}
-              {profile.country}
+              {displayCity ? `${displayCity}, ` : ""}
+              {displayCountry}
             </span>
           </div>
         </div>

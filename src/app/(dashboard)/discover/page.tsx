@@ -30,7 +30,7 @@ const DEFAULT_FILTERS: DiscoverFilterCriteria = { ageMin: 20, ageMax: 50, status
 const VERIFICATION_BANNER_CONTENT: Record<"UNVERIFIED" | "PENDING" | "REJECTED", { icon: ReactNode; description: string; cta: string }> = {
   UNVERIFIED: {
     icon: <ShieldAlert size={14} className="text-accent shrink-0" />,
-    description: "Ceci est un aperçu : valide ton profil pour voir les photos nettement et contacter les membres.",
+    description: "Ceci est un aperçu : valide ton profil pour voir les noms, âges, villes complets et contacter les membres.",
     cta: "Vérifier mon profil"
   },
   PENDING: {
