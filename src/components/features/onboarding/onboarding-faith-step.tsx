@@ -23,9 +23,10 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
   const [denomination, setDenomination] = useState(profile.church_denomination ?? "");
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatusType | "">(profile.marital_status ?? "");
   const [isPending, startTransition] = useTransition();
-  const [isSkipping, startSkipTransition] = useTransition();
+  const isComplete = Boolean(denomination.trim()) && Boolean(maritalStatus);
 
   const handleSaveAndNext = () => {
+    if (!isComplete) return;
     startTransition(async () => {
       await updateProfileAction({
         church_denomination: denomination || null,
@@ -35,13 +36,13 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
     });
   };
 
-  const handleSkip = () => startSkipTransition(async () => onNext());
-
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-display font-semibold text-foreground">Ma foi & ma situation</h2>
-        <p className="text-sm text-muted-foreground mt-1">L&apos;essentiel pour te présenter à la communauté.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          L&apos;essentiel pour te présenter à la communauté — les deux champs sont obligatoires pour continuer.
+        </p>
       </div>
 
       <Input
@@ -67,7 +68,7 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
         </select>
       </div>
 
-      <OnboardingStepFooter onSkip={handleSkip} onSaveAndNext={handleSaveAndNext} onBack={onBack} isSaving={isPending} isSkipping={isSkipping} />
+      <OnboardingStepFooter onSaveAndNext={handleSaveAndNext} onBack={onBack} isSaving={isPending} isNextDisabled={!isComplete} />
     </div>
   );
 }

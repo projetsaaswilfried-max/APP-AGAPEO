@@ -34,10 +34,12 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
   const [desiredMaritalStatuses, setDesiredMaritalStatuses] = useState<MaritalStatusType[]>(profile.desired_marital_statuses);
   const [desiredCountries, setDesiredCountries] = useState(profile.desired_countries);
   const [isPending, startTransition] = useTransition();
-  const [isSkipping, startSkipTransition] = useTransition();
   const [isFinishing, startFinishTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
+  // Seul champ réellement requis pour la vérification (cf. isProfileComplete côté serveur) —
+  // évite de faire capturer un selfie pour un profil qu'on sait déjà incomplet.
+  const isComplete = Boolean(whyMarriage.trim());
 
   const toggleMaritalStatus = (value: MaritalStatusType) => {
     setDesiredMaritalStatuses((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
@@ -57,6 +59,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
 
   /** Bouton principal : enregistre le profil, puis ouvre la capture du selfie de vérification. */
   const handleSubmit = () => {
+    if (!isComplete) return;
     setSubmitError(null);
     startTransition(async () => {
       await savePreferences();
@@ -84,8 +87,6 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
     });
   };
 
-  const handleSkip = () => startSkipTransition(async () => completeOnboardingAction());
-
   return (
     <div className="space-y-5">
       <div>
@@ -104,7 +105,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       <TagInput label="Loisirs" placeholder="Ex : Randonnée, Cuisine..." value={hobbies} onChange={setHobbies} maxTags={12} />
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-foreground">Pourquoi recherches-tu le mariage ?</label>
+        <label className="text-sm font-medium text-foreground">Pourquoi recherches-tu le mariage ? *</label>
         <Textarea value={whyMarriage} onChange={(e) => setWhyMarriage(e.target.value)} maxLength={1000} />
       </div>
 
@@ -171,12 +172,10 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       </p>
 
       <OnboardingStepFooter
-        onSkip={handleSkip}
         onSaveAndNext={handleSubmit}
         onBack={onBack}
         isSaving={isPending || isFinishing}
-        isSkipping={isSkipping}
-        skipLabel="Terminer plus tard"
+        isNextDisabled={!isComplete}
         saveLabel="Soumettre"
       />
 

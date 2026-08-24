@@ -53,16 +53,14 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
 
   return (
     <div className="space-y-6">
-      {isRevisit && (
-        <div className="flex justify-end">
-          <Link
-            href="/profile"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            <X size={14} /> Fermer
-          </Link>
-        </div>
-      )}
+      <div className="flex justify-end">
+        <Link
+          href={isRevisit ? "/profile" : "/feed"}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          <X size={14} /> {isRevisit ? "Fermer" : "Revenir plus tard"}
+        </Link>
+      </div>
 
       <div className="text-center select-none space-y-1">
         <h1 className="font-display font-bold text-xl tracking-tight text-foreground">
@@ -71,11 +69,21 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
         <p className="text-sm text-muted-foreground">
           {isRevisit
             ? "Reviens sur n'importe quelle étape ci-dessous pour compléter ou corriger une section."
-            : `Bienvenue ${profile.first_name} — quelques étapes avant de découvrir la communauté. Chaque section peut être renseignée maintenant ou plus tard.`}
+            : `Bienvenue ${profile.first_name} — chaque étape est obligatoire pour passer à la suivante, mais tu peux revenir plus tard si besoin.`}
         </p>
       </div>
 
-      <OnboardingProgress currentStep={stepIndex} labels={stepLabels} onStepClick={goTo} />
+      <OnboardingProgress
+        currentStep={stepIndex}
+        labels={stepLabels}
+        // Un membre déjà onboardé peut sauter librement entre les étapes pour
+        // corriger n'importe quelle section ; un nouveau compte doit les
+        // remplir dans l'ordre — cliquer devant l'étape courante ne fait
+        // donc rien tant qu'elle n'a pas été atteinte via "Continuer".
+        onStepClick={(index) => {
+          if (isRevisit || index <= stepIndex) goTo(index);
+        }}
+      />
 
       <Card variant="base">
         <CardContent className="p-6">
@@ -96,8 +104,8 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
       </Card>
 
       <p className="text-center text-sm text-muted-foreground">
-        Ton profil ne sera visible par les autres membres qu&apos;une fois les informations essentielles renseignées
-        (photo, foi, vision du mariage).
+        Si tu quittes avant la fin, ton profil reste incomplet et invisible pour les autres membres — reviens à tout
+        moment depuis Accueil pour reprendre où tu t&apos;étais arrêté(e).
       </p>
     </div>
   );

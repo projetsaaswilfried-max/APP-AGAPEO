@@ -13,11 +13,20 @@ interface PhotoManagerProps {
   userId: string;
   initialPhotos: ProfilePhotoRow[];
   photoVerificationStatus?: VerificationStatus;
+  /** Utilisé par l'onboarding pour savoir si au moins une photo existe déjà (étape obligatoire). */
+  onPhotosChange?: (photos: ProfilePhotoRow[]) => void;
 }
 
 /** Gestion des photos réutilisée par l'onboarding ET par "Mon Profil" (pour les ajouter/retirer à tout moment). */
-export function PhotoManager({ userId, initialPhotos, photoVerificationStatus }: PhotoManagerProps) {
-  const [photos, setPhotos] = useState(initialPhotos);
+export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, onPhotosChange }: PhotoManagerProps) {
+  const [photos, setPhotosState] = useState(initialPhotos);
+  const setPhotos = (updater: ProfilePhotoRow[] | ((prev: ProfilePhotoRow[]) => ProfilePhotoRow[])) => {
+    setPhotosState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      onPhotosChange?.(next);
+      return next;
+    });
+  };
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoPendingDelete, setPhotoPendingDelete] = useState<ProfilePhotoRow | null>(null);
