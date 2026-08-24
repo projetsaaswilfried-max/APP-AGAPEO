@@ -7,8 +7,6 @@ import { OnboardingProgress } from "./onboarding-progress";
 import { OnboardingEssentialInfoStep } from "./onboarding-essential-info-step";
 import { OnboardingPhotosStep } from "./onboarding-photos-step";
 import { OnboardingFaithStep } from "./onboarding-faith-step";
-import { OnboardingPersonalityStep } from "./onboarding-personality-step";
-import { OnboardingMarriageVisionStep } from "./onboarding-marriage-vision-step";
 import { OnboardingPreferencesStep } from "./onboarding-preferences-step";
 import { saveOnboardingStepAction } from "@/lib/actions/profile.actions";
 import { trackMetaEventOnce } from "@/lib/meta-pixel";
@@ -20,8 +18,8 @@ interface OnboardingWizardProps {
   initialPhotos: ProfilePhotoRow[];
 }
 
-const BASE_STEP_KEYS = ["photos", "faith", "personality", "marriage", "preferences"] as const;
-const BASE_STEP_LABELS = ["Photos", "Ma foi", "Personnalité", "Vision du mariage", "Ce que je recherche"];
+const BASE_STEP_KEYS = ["photos", "faith", "preferences"] as const;
+const BASE_STEP_LABELS = ["Photos", "Ma foi", "Ce que je recherche"];
 
 export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardProps) {
   // Uniquement vrai pour un compte créé via Google (OAuth) : le fournisseur
@@ -30,7 +28,7 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
   const stepKeys = needsEssentialInfo ? (["essential", ...BASE_STEP_KEYS] as const) : BASE_STEP_KEYS;
   const stepLabels = needsEssentialInfo ? ["Tes informations", ...BASE_STEP_LABELS] : BASE_STEP_LABELS;
 
-  const [stepIndex, setStepIndex] = useState(() => (needsEssentialInfo ? 0 : Math.min(profile.onboarding_step, 4)));
+  const [stepIndex, setStepIndex] = useState(() => (needsEssentialInfo ? 0 : Math.min(profile.onboarding_step, 2)));
   const isRevisit = profile.onboarding_completed;
 
   // Arrivée sur l'onboarding = confirmation que le compte vient d'être créé
@@ -45,8 +43,8 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
 
   const goTo = (next: number) => {
     setStepIndex(next);
-    // `onboarding_step` en base ne connaît que les 5 étapes historiques (0-4) —
-    // l'étape "essential" (uniquement pour Google) ne décale pas cette numérotation.
+    // `onboarding_step` en base ne connaît que les 3 étapes (0-2) — l'étape
+    // "essential" (uniquement pour Google) ne décale pas cette numérotation.
     const persistedStep = needsEssentialInfo ? Math.max(next - 1, 0) : next;
     void saveOnboardingStepAction(persistedStep);
   };
@@ -91,8 +89,6 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
             />
           )}
           {currentKey === "faith" && <OnboardingFaithStep profile={profile} onNext={() => goTo(stepIndex + 1)} />}
-          {currentKey === "personality" && <OnboardingPersonalityStep profile={profile} onNext={() => goTo(stepIndex + 1)} />}
-          {currentKey === "marriage" && <OnboardingMarriageVisionStep profile={profile} onNext={() => goTo(stepIndex + 1)} />}
           {currentKey === "preferences" && <OnboardingPreferencesStep profile={profile} />}
         </CardContent>
       </Card>

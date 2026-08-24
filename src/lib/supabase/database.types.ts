@@ -8,6 +8,7 @@
 export type AppRole = "USER" | "MODERATOR" | "ADMIN" | "SUPER_ADMIN";
 export type GenderType = "MALE" | "FEMALE";
 export type RelationshipStatusDb = "AVAILABLE" | "IN_DISCUSSION" | "ON_PAUSE";
+export type MaritalStatusType = "SINGLE" | "DIVORCED" | "WIDOWED";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 
 export type PostType = "OFFICIAL" | "PERSONAL";
@@ -56,6 +57,8 @@ export interface ProfileRow {
   quote: string | null;
   status: RelationshipStatusDb;
 
+  marital_status: MaritalStatusType | null;
+
   church_denomination: string | null;
   faith_engagement_level: string | null;
   ministry: string | null;
@@ -90,6 +93,7 @@ export interface ProfileRow {
   desired_denomination: string | null;
   desired_values: string[];
   desired_interests: string[];
+  desired_marital_statuses: MaritalStatusType[];
   wants_children: boolean | null;
 
   show_online_status: boolean;

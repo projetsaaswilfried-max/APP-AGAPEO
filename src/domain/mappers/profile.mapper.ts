@@ -50,6 +50,7 @@ export function mapProfileRowToUserProfile(
   return {
     id: row.id,
     gender: row.gender,
+    maritalStatus: row.marital_status,
     firstName: row.first_name,
     lastName: row.last_name,
     email: opts.email,
@@ -107,6 +108,7 @@ export function mapProfileRowToUserProfile(
       desiredInterests: row.desired_interests,
       desiredCountries: row.desired_countries,
       desiredDenomination: row.desired_denomination ?? undefined,
+      desiredMaritalStatuses: row.desired_marital_statuses,
       wantsChildren: row.wants_children ?? undefined
     },
     privacySettings: {

@@ -68,6 +68,15 @@ class DiscoverServiceSupabase implements IDiscoverService {
     if (filters.country) query = query.eq("country", filters.country);
     if (filters.status && filters.status !== "ALL") query = query.eq("status", filters.status as ProfileRow["status"]);
 
+    // Situation matrimoniale acceptée par le viewer — filtre strict (comme le
+    // genre/l'âge), pas un critère de score. Les candidats n'ayant pas encore
+    // renseigné leur situation restent affichés (rétrocompatibilité) : seul
+    // un candidat ayant EXPLICITEMENT une situation NON acceptée est exclu.
+    if (viewer.desired_marital_statuses.length > 0) {
+      const accepted = viewer.desired_marital_statuses.join(",");
+      query = query.or(`marital_status.is.null,marital_status.in.(${accepted})`);
+    }
+
     const canUseAdvancedFilters = viewer.is_premium || viewer.is_staff;
     if (canUseAdvancedFilters) {
       if (filters.city) query = query.ilike("city", `%${filters.city}%`);
@@ -79,8 +88,6 @@ class DiscoverServiceSupabase implements IDiscoverService {
       if (filters.language) query = query.contains("languages", [filters.language]);
       if (filters.hasChildren !== undefined) query = query.eq("has_children", filters.hasChildren);
       if (filters.wantsChildren !== undefined) query = query.eq("wants_children", filters.wantsChildren);
-      if (filters.relocationReady !== undefined) query = query.eq("relocation_ready", filters.relocationReady);
-      if (filters.passion) query = query.contains("passions", [filters.passion]);
       if (filters.coreValue) query = query.contains("core_values", [filters.coreValue]);
       if (filters.verifiedOnly) query = query.eq("photo_verification_status", "VERIFIED");
     }

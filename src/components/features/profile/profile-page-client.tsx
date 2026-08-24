@@ -15,6 +15,7 @@ import { UserPublicationsSection } from "@/components/features/profile/user-publ
 
 import { AccountProfileForm } from "@/components/features/account/account-profile-form";
 import { AccountFaithForm } from "@/components/features/account/account-faith-form";
+import { AccountAdditionalInfoForm, type AdditionalInfoUpdate } from "@/components/features/account/account-additional-info-form";
 import { AccountMyPosts } from "@/components/features/account/account-my-posts";
 import { AccountFavorites } from "@/components/features/account/account-favorites";
 import { AccountWhoLikesMe } from "@/components/features/account/account-who-likes-me";
@@ -31,7 +32,7 @@ interface ProfilePageClientProps {
   initialPhotos: ProfilePhotoRow[];
 }
 
-const VALID_TABS = ["profile-edit", "faith-edit", "my-posts", "favorites", "who-likes-me", "privacy", "account"];
+const VALID_TABS = ["profile-edit", "faith-edit", "additional-info", "my-posts", "favorites", "who-likes-me", "privacy", "account"];
 
 function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageClientProps) {
   const searchParams = useSearchParams();
@@ -71,6 +72,28 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
       favorite_verse: faith.favoriteVerse || null,
       testimony: faith.testimony || null,
       current_god_action: faith.currentGodAction || null
+    });
+  };
+
+  const handleUpdateAdditionalInfo = async (updated: AdditionalInfoUpdate) => {
+    setProfile((prev) => ({
+      ...prev,
+      aboutMe: { ...prev.aboutMe, qualities: updated.qualities, passions: updated.passions },
+      marriageVision: {
+        ...prev.marriageVision,
+        familyVision: updated.familyVision,
+        desiredChildrenCount: updated.desiredChildrenCount,
+        timelineYears: updated.marriageTimeline
+      },
+      preferences: { ...prev.preferences, desiredValues: updated.desiredValues }
+    }));
+    await updateProfileAction({
+      qualities: updated.qualities,
+      passions: updated.passions,
+      family_vision: updated.familyVision || null,
+      desired_children_count: updated.desiredChildrenCount || null,
+      marriage_timeline: updated.marriageTimeline || null,
+      desired_values: updated.desiredValues
     });
   };
 
@@ -140,6 +163,7 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
               tabs={[
                 { id: "profile-edit", label: "Mon Profil" },
                 { id: "faith-edit", label: "Ma Foi" },
+                { id: "additional-info", label: "Plus d'infos" },
                 { id: "my-posts", label: "Mes Publications", count: personalPosts.length },
                 { id: "favorites", label: "Mes Favoris" },
                 { id: "who-likes-me", label: "Qui s'intéresse à moi" },
@@ -155,6 +179,7 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
             <AccountProfileForm profile={profile} initialPhotos={initialPhotos} onSave={handleUpdateProfile} />
           )}
           {activeTab === "faith-edit" && <AccountFaithForm faith={profile.faith} onSave={handleUpdateFaith} />}
+          {activeTab === "additional-info" && <AccountAdditionalInfoForm profile={profile} onSave={handleUpdateAdditionalInfo} />}
           {activeTab === "my-posts" && <AccountMyPosts publications={personalPosts} />}
           {activeTab === "favorites" && <AccountFavorites />}
           {activeTab === "who-likes-me" && <AccountWhoLikesMe profile={profile} />}

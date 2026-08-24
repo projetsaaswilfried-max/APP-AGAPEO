@@ -168,18 +168,6 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose,
           </div>
         </AdvancedField>
 
-        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Centre d&apos;intérêt</label>
-            <input
-              placeholder="Ex : Musique, Voyage..."
-              value={filters.passion ?? ""}
-              onChange={(e) => update({ passion: e.target.value || undefined })}
-              className={inputClass}
-            />
-          </div>
-        </AdvancedField>
-
         <div className="space-y-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Statut</label>
           <select value={filters.status ?? "ALL"} onChange={(e) => update({ status: e.target.value })} className={selectClass}>
@@ -196,13 +184,6 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose,
             checked={filters.verifiedOnly ?? false}
             onCheckedChange={(checked) => update({ verifiedOnly: checked })}
             label="Photo vérifiée uniquement"
-          />
-        </AdvancedField>
-        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
-          <Checkbox
-            checked={filters.relocationReady ?? false}
-            onCheckedChange={(checked) => update({ relocationReady: checked || undefined })}
-            label="Disponible à déménager"
           />
         </AdvancedField>
         <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>

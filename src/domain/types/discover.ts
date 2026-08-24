@@ -14,8 +14,6 @@ export interface DiscoverFilterCriteria {
   language?: string;
   hasChildren?: boolean;
   wantsChildren?: boolean;
-  relocationReady?: boolean;
-  passion?: string;
   coreValue?: string;
   status?: string;
   verifiedOnly?: boolean;

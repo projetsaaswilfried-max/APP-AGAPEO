@@ -1,6 +1,7 @@
 import { FeedPublication } from "./feed";
 
 export type GenderType = "MALE" | "FEMALE";
+export type MaritalStatusType = "SINGLE" | "DIVORCED" | "WIDOWED";
 
 export interface UserFaithProfile {
   churchDenomination: string;
@@ -39,6 +40,7 @@ export interface UserPartnerPreferences {
   desiredInterests: string[];
   desiredCountries: string[];
   desiredDenomination?: string;
+  desiredMaritalStatuses: MaritalStatusType[];
   wantsChildren?: boolean;
 }
 
@@ -78,6 +80,7 @@ export interface UserBadge {
 export interface UserProfile {
   id: string;
   gender: GenderType;
+  maritalStatus: MaritalStatusType | null;
   firstName: string;
   lastName: string;
   email?: string;

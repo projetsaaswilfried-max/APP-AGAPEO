@@ -82,37 +82,15 @@ function computeCompatibility(viewer: ProfileRow, candidate: ProfileRow): { scor
     }
   }
 
-  if (viewer.desired_children_count && candidate.desired_children_count) {
-    if (normalize(viewer.desired_children_count) === normalize(candidate.desired_children_count)) {
-      score += 8;
-      reasons.push("Une vision similaire du nombre d'enfants souhaité");
-    }
-  }
-  if (viewer.marriage_timeline && candidate.marriage_timeline) {
-    if (normalize(viewer.marriage_timeline) === normalize(candidate.marriage_timeline)) {
-      score += 6;
-      reasons.push("Un projet de mariage dans un délai similaire");
-    }
-  }
-  if (viewer.relocation_ready === candidate.relocation_ready) {
-    score += 6;
-    reasons.push("Une disponibilité similaire à déménager pour le mariage");
-  }
-
   const sharedValues = intersection(viewer.core_values, candidate.core_values);
   if (sharedValues.length > 0) {
     score += Math.round(overlapRatio(viewer.core_values, candidate.core_values) * 20);
     reasons.push(`Des valeurs communes : ${sharedValues.slice(0, 3).join(", ")}`);
   }
 
-  const sharedInterests = intersection(
-    [...viewer.passions, ...viewer.hobbies],
-    [...candidate.passions, ...candidate.hobbies]
-  );
+  const sharedInterests = intersection(viewer.hobbies, candidate.hobbies);
   if (sharedInterests.length > 0) {
-    score += Math.round(
-      overlapRatio([...viewer.passions, ...viewer.hobbies], [...candidate.passions, ...candidate.hobbies]) * 15
-    );
+    score += Math.round(overlapRatio(viewer.hobbies, candidate.hobbies) * 15);
     reasons.push(`Des centres d'intérêt communs : ${sharedInterests.slice(0, 3).join(", ")}`);
   }
 
