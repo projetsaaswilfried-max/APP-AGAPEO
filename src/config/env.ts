@@ -48,14 +48,13 @@ export function getChariowProductId(plan: ChariowPlanKey): string {
 }
 
 /**
- * Secrets de signature des Pulses (webhooks) Chariow — un Pulse (et donc un
- * secret) distinct par produit/plan côté Chariow. Non-bloquant si le
- * trimestriel n'est pas encore configuré (`CHARIOW_PULSE_SECRET_QUARTERLY`
- * absent) : le webhook continue de fonctionner pour le mensuel en attendant.
+ * Secret de signature du Pulse (webhook) Chariow pour ce plan — Chariow
+ * interdit de réutiliser une même URL sur deux Pulses différents, chaque
+ * plan a donc sa propre route (`/api/webhooks/chariow` pour le mensuel,
+ * `/api/webhooks/chariow/quarterly` pour le trimestriel) et donc son propre
+ * secret, distinct de celui de l'autre plan.
  */
-export function getChariowPulseSecrets(): { plan: ChariowPlanKey; secret: string }[] {
-  const secrets: { plan: ChariowPlanKey; secret: string }[] = [];
-  if (process.env.CHARIOW_PULSE_SECRET) secrets.push({ plan: "MONTHLY", secret: process.env.CHARIOW_PULSE_SECRET });
-  if (process.env.CHARIOW_PULSE_SECRET_QUARTERLY) secrets.push({ plan: "QUARTERLY", secret: process.env.CHARIOW_PULSE_SECRET_QUARTERLY });
-  return secrets;
+export function getChariowPulseSecret(plan: ChariowPlanKey): string {
+  const varName = plan === "QUARTERLY" ? "CHARIOW_PULSE_SECRET_QUARTERLY" : "CHARIOW_PULSE_SECRET";
+  return requireEnv(varName, process.env[varName]);
 }
