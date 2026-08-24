@@ -8,6 +8,7 @@
 // Comptes de test (is_test_account) toujours exclus, comme les campagnes admin.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@agapeo.love>";
@@ -160,7 +161,10 @@ function applicableMilestone(daysSince: number): number | undefined {
   return [...MILESTONES].reverse().find((m) => daysSince >= m);
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const unauthorized = requireServiceRole(req);
+  if (unauthorized) return unauthorized;
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceRoleKey);

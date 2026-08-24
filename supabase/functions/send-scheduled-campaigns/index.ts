@@ -3,6 +3,7 @@
 // (cf. migration 20260808210000_schedule_campaign_cron.sql).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 interface ProfileRow {
   id: string;
@@ -99,7 +100,10 @@ async function sendBatch(admin: ReturnType<typeof createClient>, recipients: { e
   return { sent, failed };
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const unauthorized = requireServiceRole(req);
+  if (unauthorized) return unauthorized;
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceRoleKey);

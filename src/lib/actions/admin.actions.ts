@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireSuperAdminSession, requireAdminSession, requireStaffSession } from "@/lib/supabase/session";
 import { logAdminAction } from "@/lib/audit-log";
-import { sendVerificationEmail } from "@/lib/actions/verification.actions";
+import { sendVerificationEmail } from "@/lib/verification-emails";
 import { sendPremiumRemovedEmail } from "@/lib/premium-emails";
 import { sendRoleChangedEmail } from "@/lib/role-emails";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";

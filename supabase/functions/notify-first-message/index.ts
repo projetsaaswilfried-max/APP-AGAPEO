@@ -4,12 +4,16 @@
 // à chaque insertion dans `messages`, filtré côté DB au premier message.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@agapeo.love>";
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 
 Deno.serve(async (req) => {
+  const unauthorized = requireServiceRole(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const { recipientId, senderId, conversationId } = await req.json();
     if (!recipientId || !senderId || !conversationId) {

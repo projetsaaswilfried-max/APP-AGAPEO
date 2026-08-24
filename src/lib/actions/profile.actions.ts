@@ -182,7 +182,14 @@ export async function removeProfilePhotoAction(photoId: string) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée." };
 
-  const { data: photo } = await supabase.from("profile_photos").select("storage_path, is_primary").eq("id", photoId).single();
+  const { data: photo } = await supabase
+    .from("profile_photos")
+    .select("storage_path, is_primary")
+    .eq("id", photoId)
+    .eq("profile_id", user.id)
+    .single();
+  if (!photo) return { error: "Photo introuvable." };
+
   await supabase.from("profile_photos").delete().eq("id", photoId).eq("profile_id", user.id);
   if (photo?.storage_path) {
     await supabase.storage.from("avatars").remove([photo.storage_path]);

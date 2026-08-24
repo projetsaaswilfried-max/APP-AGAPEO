@@ -9,6 +9,7 @@
 // la pondération change côté application.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 interface ProfileRow {
   id: string;
@@ -212,7 +213,10 @@ async function buildMatchesForViewer(viewer: ProfileRow, candidates: ProfileRow[
     .slice(0, TOP_N);
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const unauthorized = requireServiceRole(req);
+  if (unauthorized) return unauthorized;
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceRoleKey);

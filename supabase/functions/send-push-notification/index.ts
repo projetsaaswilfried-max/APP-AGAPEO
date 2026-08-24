@@ -7,6 +7,7 @@
 // que si le membre les a activées.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3";
+import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY");
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY");
@@ -17,6 +18,9 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 }
 
 Deno.serve(async (req) => {
+  const unauthorized = requireServiceRole(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const { recipientId, title, body, targetUrl } = await req.json();
     if (!recipientId || !title) {

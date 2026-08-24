@@ -95,21 +95,13 @@ export async function handleChariowWebhook(request: Request, planKey: ChariowPla
 
   const admin = createAdminClient();
 
-  // Idempotence à deux niveaux : Chariow relivre un même évènement jusqu'à 5x
-  // s'il ne reçoit pas 200 assez vite, ET un même sale.id peut légitimement
-  // passer par plusieurs statuts (ex. failed.sale puis successful.sale si le
-  // client retente son paiement sur la même session). On ne doit donc étendre
-  // l'abonnement QUE lors de la transition vers SUCCEEDED — jamais sur un
-  // simple retry d'un évènement déjà traité, sous peine d'offrir des mois
-  // d'accès gratuits à chaque nouvelle tentative de livraison du webhook.
-  const { data: existingTx } = await admin
-    .from("transactions")
-    .select("status")
-    .eq("provider", "chariow")
-    .eq("provider_reference", sale.id)
-    .maybeSingle();
-
-  const alreadySucceeded = existingTx?.status === "SUCCEEDED";
+  // Garde-fou de configuration : si le Pulse déclenché ne correspond pas au
+  // prix attendu pour ce plan (mauvais produit branché sur ce Pulse, remise
+  // appliquée côté Chariow, etc.), on enregistre la transaction pour
+  // investigation mais on n'accorde PAS l'accès Premium sur la seule foi
+  // que l'évènement s'est déclenché ici.
+  const amountMatchesPlan =
+    sale.amount.currency.toUpperCase() === "USD" && Math.round(sale.amount.value) === plan.priceUsd;
 
   const { error: txError } = await admin.from("transactions").upsert(
     {
@@ -129,7 +121,36 @@ export async function handleChariowWebhook(request: Request, planKey: ChariowPla
     return NextResponse.json({ error: "Échec d'enregistrement." }, { status: 500 });
   }
 
-  if (transactionStatus === "SUCCEEDED" && !alreadySucceeded) {
+  if (transactionStatus === "SUCCEEDED" && !amountMatchesPlan) {
+    console.error(
+      `Webhook Chariow ${sale.id} (${planKey}) : montant reçu ${sale.amount.value} ${sale.amount.currency} ne correspond pas au prix attendu (${plan.priceUsd} USD) — transaction enregistrée mais accès Premium NON accordé.`
+    );
+    return NextResponse.json({ received: true });
+  }
+
+  // Revendication atomique : deux livraisons concurrentes du même évènement
+  // (Chariow relivre jusqu'à 5x si notre 200 n'arrive pas assez vite) peuvent
+  // toutes deux passer le contrôle ci-dessus si on lisait le statut avant
+  // l'upsert — seule la requête qui réussit à faire passer
+  // premium_granted_at de NULL à une date a le droit d'étendre l'abonnement.
+  let wonClaim = false;
+  if (transactionStatus === "SUCCEEDED") {
+    const { data: claimedRows, error: claimError } = await admin
+      .from("transactions")
+      .update({ premium_granted_at: new Date().toISOString() })
+      .eq("provider", "chariow")
+      .eq("provider_reference", sale.id)
+      .is("premium_granted_at", null)
+      .select("id");
+
+    if (claimError) {
+      console.error(`Échec de la revendication d'activation pour ${sale.id} :`, claimError.message);
+      return NextResponse.json({ error: "Échec d'activation." }, { status: 500 });
+    }
+    wonClaim = (claimedRows?.length ?? 0) > 0;
+  }
+
+  if (transactionStatus === "SUCCEEDED" && wonClaim) {
     const { data: restricted } = await admin
       .from("profile_restricted")
       .select("subscription_current_period_end")
