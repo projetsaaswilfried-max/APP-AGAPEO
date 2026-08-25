@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_CONFIG.url}/login`, lastModified, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_CONFIG.url}/cgv`, lastModified, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_CONFIG.url}/mentions-legales`, lastModified, changeFrequency: "yearly", priority: 0.2 },
-    { url: `${SITE_CONFIG.url}/politique-de-confidentialite`, lastModified, changeFrequency: "yearly", priority: 0.2 }
+    { url: `${SITE_CONFIG.url}/politique-de-confidentialite`, lastModified, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE_CONFIG.url}/normes-securite-enfants`, lastModified, changeFrequency: "yearly", priority: 0.2 }
   ];
 }
