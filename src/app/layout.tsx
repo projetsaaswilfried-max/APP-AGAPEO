@@ -46,7 +46,18 @@ export const metadata: Metadata = {
       { url: "/favicon.ico", sizes: "any" }
     ],
     shortcut: "/icon.png",
-    apple: "/icon.png"
+    // Dédiée et opaque (fond blanc) — contrairement à /icon.png (transparent,
+    // pensé pour le masquage adaptatif Android), une icône transparente pour
+    // "Ajouter à l'écran d'accueil" sur iOS s'affiche avec un fond noir imprévisible.
+    apple: "/apple-touch-icon.png"
+  },
+  // Sans ceci, "Ajouter à l'écran d'accueil" sur iOS ouvre l'appli dans un
+  // onglet Safari classique (barre d'adresse visible) au lieu du plein écran
+  // façon appli native.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: SITE_CONFIG.name
   },
   openGraph: {
     type: "website",
