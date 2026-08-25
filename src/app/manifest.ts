@@ -37,6 +37,39 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
         purpose: "maskable"
       }
+    ],
+    // Visuels promotionnels (pas des captures brutes de l'interface) —
+    // utilisés par le navigateur/l'OS pour l'aperçu d'installation enrichi,
+    // et repris par PWABuilder pour la fiche Play Store.
+    screenshots: [
+      {
+        src: "/screenshots/welcome.png",
+        sizes: "1080x1920",
+        type: "image/png",
+        form_factor: "narrow",
+        label: "Bienvenue sur Agapeo"
+      },
+      {
+        src: "/screenshots/create-profile.png",
+        sizes: "1080x1920",
+        type: "image/png",
+        form_factor: "narrow",
+        label: "Crée ton profil"
+      },
+      {
+        src: "/screenshots/messages.png",
+        sizes: "1080x1920",
+        type: "image/png",
+        form_factor: "narrow",
+        label: "Une messagerie riche pour des échanges sincères"
+      },
+      {
+        src: "/screenshots/verified-matches.png",
+        sizes: "1080x1920",
+        type: "image/png",
+        form_factor: "narrow",
+        label: "Match avec des profils certifiés"
+      }
     ]
   };
 }
