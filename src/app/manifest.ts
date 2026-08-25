@@ -8,7 +8,10 @@ export default function manifest(): MetadataRoute.Manifest {
     name: SITE_CONFIG.fullName,
     short_name: SITE_CONFIG.name,
     description: SITE_CONFIG.description,
-    start_url: "/",
+    // Sépare volontairement l'entrée de l'appli installée (TWA Android /
+    // "Ajouter à l'écran d'accueil") de la page d'accueil marketing du site
+    // (toujours "/" pour un visiteur web classique) — cf. src/app/bienvenue.
+    start_url: "/bienvenue",
     display: "standalone",
     background_color: "#FFFFFF",
     theme_color: "#FE70B2",

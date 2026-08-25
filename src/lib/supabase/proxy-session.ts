@@ -4,6 +4,7 @@ import { env } from "@/config/env";
 
 const PUBLIC_ROUTES = [
   "/",
+  "/bienvenue",
   "/login",
   "/register",
   "/forgot-password",
@@ -68,7 +69,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
+  if (user && (pathname === "/" || pathname === "/bienvenue" || pathname === "/login" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/feed", request.url));
   }
 

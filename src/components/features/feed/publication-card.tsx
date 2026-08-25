@@ -5,6 +5,7 @@ import { FeedPublication } from "@/domain/types/feed";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { Button } from "@/components/ui/button";
 import { MediaGallery } from "@/components/ui/media-gallery";
 import { YouTubePlayer } from "@/components/ui/youtube-player";
@@ -232,13 +233,13 @@ export function PublicationCard({
             size="md"
             src={publication.author.avatarUrl}
             fallback="AG"
-            isVerified={publication.author.isVerified}
           />
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="text-sm font-semibold text-foreground tracking-tight">
                 {publication.author.name}
               </span>
+              {publication.author.isVerified && <VerifiedBadge size="xs" ring={false} title="Membre Authentifié" />}
               {publication.author.isOfficialTeam && (
                 <Badge variant="verified" className="text-[10px] px-2 py-0">
                   {publication.author.badgeLabel}
@@ -270,7 +271,7 @@ export function PublicationCard({
       {/* Titre + texte de la publication, tronqué avec "Voir plus" façon Facebook */}
       <CardContent className="px-5 pt-1 pb-3 space-y-2">
         {publication.title && (
-          <h2 className="text-lg font-display font-bold tracking-tight text-foreground leading-snug">
+          <h2 className="text-sm sm:text-lg font-display font-bold tracking-tight text-foreground leading-snug">
             {publication.title}
           </h2>
         )}
@@ -293,7 +294,7 @@ export function PublicationCard({
             <p
               ref={contentRef}
               className={cn(
-                "text-sm text-foreground/90 leading-relaxed whitespace-pre-line",
+                "text-[13px] sm:text-sm text-foreground/90 leading-relaxed whitespace-pre-line",
                 !isTextExpanded && "line-clamp-2"
               )}
             >
@@ -303,7 +304,7 @@ export function PublicationCard({
               <button
                 type="button"
                 onClick={() => setIsTextExpanded((expanded) => !expanded)}
-                className="mt-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                className="mt-1 text-[11px] sm:text-xs font-semibold text-muted-foreground hover:text-foreground"
               >
                 {isTextExpanded ? "Voir moins" : "Voir plus"}
               </button>
