@@ -87,8 +87,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`h-full antialiased ${fraunces.variable} ${bricolage.variable}`}>
-      <body className="min-h-full bg-background text-foreground font-sans">
+    <html lang="fr" className={`antialiased ${fraunces.variable} ${bricolage.variable}`}>
+      {/*
+        `min-h-dvh` (hauteur de viewport DYNAMIQUE) plutôt que `min-h-full`
+        (= 100%, calculé comme `100vh`) : sur mobile, la barre d'adresse du
+        navigateur peut être visible ou rétractée, et `100vh`/`100%` réserve
+        systématiquement la hauteur "barre rétractée" (la plus grande) même
+        quand elle est affichée — ça laisse un espace blanc vide et
+        scrollable en bas de page. `dvh` suit la hauteur réellement visible.
+      */}
+      <body className="min-h-dvh bg-background text-foreground font-sans">
         <MetaPixel />
         <AppProvider>
           {children}

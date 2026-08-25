@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  */
 export default function BienvenuePage() {
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-between p-8 pb-10 bg-gradient-to-br from-[#FF8FC7] via-[#FE70B2] to-[#DE4A97] text-center select-none">
+    <div className="min-h-dvh w-full flex flex-col items-center justify-between p-8 pb-10 bg-gradient-to-br from-[#FF8FC7] via-[#FE70B2] to-[#DE4A97] text-center select-none">
       <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm">
         <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-xl p-4">
           <AgapeoLogo size="lg" iconOnly />
