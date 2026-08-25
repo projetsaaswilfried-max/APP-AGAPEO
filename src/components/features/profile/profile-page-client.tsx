@@ -141,17 +141,19 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
 
       {mode === "ACCOUNT_SETTINGS" && (
         <div className="space-y-6">
-          <div className="flex flex-wrap items-center gap-4 rounded-3xl bg-accent-subtle/80 border border-accent/20 px-5 py-3.5 shadow-soft select-none">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0 shadow-accent-glow">
-              <Pencil size={18} />
-            </div>
-            <div className="flex-1 min-w-0 sm:min-w-[220px]">
-              <p className="text-sm font-semibold text-foreground">Personnalité, vision du mariage, préférences</p>
-              <p className="text-xs text-muted-foreground">Reviens à tout moment corriger ou compléter tes réponses d&apos;inscription.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-3xl bg-accent-subtle/80 border border-accent/20 px-5 py-4 sm:py-3.5 shadow-soft select-none">
+            <div className="flex items-center gap-3 sm:contents">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0 shadow-accent-glow">
+                <Pencil size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Personnalité, vision du mariage, préférences</p>
+                <p className="text-xs text-muted-foreground">Reviens à tout moment corriger ou compléter tes réponses d&apos;inscription.</p>
+              </div>
             </div>
             <Link
               href="/onboarding"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2 shrink-0 shadow-accent-glow"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2.5 sm:py-2 w-full sm:w-auto shrink-0 shadow-accent-glow"
             >
               Modifier
               <ArrowRight size={13} />

@@ -51,7 +51,7 @@ export function AccountAdditionalInfoForm({ profile, onSave }: AccountAdditional
   return (
     <form onSubmit={handleSubmit} className="space-y-6 select-none">
       <Card variant="base" className="p-6 space-y-6 border-border/60 shadow-2xs">
-        <div className="flex items-center justify-between border-b border-border/60 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <h2 className="text-base font-display font-semibold text-foreground tracking-tight">Informations complémentaires</h2>

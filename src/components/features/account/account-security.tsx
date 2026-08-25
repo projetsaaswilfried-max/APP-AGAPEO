@@ -222,7 +222,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
       <BlockedUsersCard />
 
       <Card variant="base" className="p-6 space-y-6 border-border/60 shadow-2xs">
-        <div className="flex items-center justify-between border-b border-border/60 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-4">
           <div className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
             <h2 className="text-base font-display font-semibold text-foreground tracking-tight">
@@ -239,7 +239,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
           <Input label="Numéro de téléphone" value={profile.phone || "Non renseigné"} disabled />
         </div>
 
-        <div className="pt-2 flex flex-wrap items-center justify-between gap-4 border-t border-border/40">
+        <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border/40">
           <div>
             <h4 className="text-xs font-semibold text-foreground">Adresse e-mail</h4>
             <p className="text-xs text-muted-foreground">Un email de confirmation sera envoyé à la nouvelle adresse.</p>
@@ -249,7 +249,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
           </Button>
         </div>
 
-        <div className="pt-3 flex flex-wrap items-center justify-between gap-4 border-t border-border/40">
+        <div className="pt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border/40">
           <div>
             <h4 className="text-xs font-semibold text-foreground">Mot de passe</h4>
             <p className="text-xs text-muted-foreground">Modifie ton mot de passe à tout moment.</p>

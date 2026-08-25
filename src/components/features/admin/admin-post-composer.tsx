@@ -398,12 +398,12 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
           </CardHeader>
           <CardContent className="space-y-3">
             {pinnedPosts.map((post, index) => (
-              <div key={post.id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-primary/30 bg-primary/5">
-                <div className="min-w-0">
+              <div key={post.id} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 p-3 rounded-xl border border-primary/30 bg-primary/5">
+                <div className="min-w-0 flex-1">
                   {post.title && <p className="text-sm font-semibold text-foreground">{post.title}</p>}
                   <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
                 </div>
-                <div className="flex gap-1.5 shrink-0">
+                <div className="flex flex-wrap gap-1.5 shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
@@ -451,12 +451,12 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
         <CardContent className="space-y-3">
           {otherPosts.length === 0 && <p className="text-xs text-muted-foreground">Aucune publication officielle pour le moment.</p>}
           {otherPosts.map((post) => (
-            <div key={post.id} className="flex items-start justify-between gap-3 p-3 rounded-xl border border-border/60">
-              <div className="min-w-0">
+            <div key={post.id} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 p-3 rounded-xl border border-border/60">
+              <div className="min-w-0 flex-1">
                 {post.title && <p className="text-sm font-semibold text-foreground">{post.title}</p>}
                 <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex flex-wrap gap-2 shrink-0">
                 {isVideoPost(post) && (
                   <Button
                     variant="outline"
