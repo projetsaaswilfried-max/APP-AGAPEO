@@ -16,10 +16,22 @@ export default function manifest(): MetadataRoute.Manifest {
     // "Ajouter à l'écran d'accueil") de la page d'accueil marketing du site
     // (toujours "/" pour un visiteur web classique) — cf. src/app/bienvenue.
     start_url: "/bienvenue",
+    // Tout le site reste "dans" l'appli installée (aucune section à part).
+    scope: "/",
+    lang: "fr",
+    dir: "ltr",
     display: "standalone",
+    display_override: ["standalone"],
     orientation: "portrait",
+    categories: ["social", "lifestyle"],
     background_color: "#FFFFFF",
     theme_color: "#FE70B2",
+    // Une fois l'appli disponible sur le Play Store, on privilégie sa
+    // proposition d'installation à celle du PWA depuis le navigateur.
+    related_applications: [
+      { platform: "play", url: "https://play.google.com/store/apps/details?id=love.agapeo.app", id: "love.agapeo.app" }
+    ],
+    prefer_related_applications: true,
     icons: [
       {
         src: "/icon-192.png",
