@@ -8,6 +8,7 @@ import { logAdminAction } from "@/lib/audit-log";
 import { sendVerificationEmail } from "@/lib/verification-emails";
 import { sendPremiumRemovedEmail } from "@/lib/premium-emails";
 import { sendRoleChangedEmail } from "@/lib/role-emails";
+import { sendPhotoEmail } from "@/lib/photo-emails";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
 import { z } from "zod";
@@ -418,7 +419,7 @@ export async function approvePhotoAction(photoId: string, userId: string) {
     .single();
   if (photoError || !photo) return { error: photoError?.message ?? "Photo introuvable." };
 
-  const { data: target } = await admin.from("profiles").select("avatar_url").eq("id", userId).single();
+  const { data: target } = await admin.from("profiles").select("first_name, avatar_url").eq("id", userId).single();
   if (photo.is_primary || !target?.avatar_url) {
     await admin.from("profiles").update({ avatar_url: photo.url }).eq("id", userId);
   }
@@ -431,6 +432,11 @@ export async function approvePhotoAction(photoId: string, userId: string) {
     body: "Elle est maintenant visible par les autres membres.",
     target_url: "/profile"
   });
+
+  const { data: authUser } = await admin.auth.admin.getUserById(userId);
+  if (target && authUser?.user?.email) {
+    await sendPhotoEmail({ to: authUser.user.email, firstName: target.first_name, kind: "APPROVED" });
+  }
 
   await logAdminAction(user.id, "APPROVE_PHOTO", { targetType: "profile_photo", targetId: photoId, details: { userId } });
   revalidatePath("/admin/photos");
@@ -459,6 +465,14 @@ export async function rejectPhotoAction(photoId: string, userId: string, reason:
     body: trimmedReason,
     target_url: "/profile"
   });
+
+  const [{ data: target }, { data: authUser }] = await Promise.all([
+    admin.from("profiles").select("first_name").eq("id", userId).single(),
+    admin.auth.admin.getUserById(userId)
+  ]);
+  if (target && authUser?.user?.email) {
+    await sendPhotoEmail({ to: authUser.user.email, firstName: target.first_name, kind: "REJECTED", rejectionReason: trimmedReason });
+  }
 
   await logAdminAction(user.id, "REJECT_PHOTO", { targetType: "profile_photo", targetId: photoId, details: { userId, reason: trimmedReason } });
   revalidatePath("/admin/photos");

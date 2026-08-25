@@ -36,28 +36,48 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
-
-    if (photos.length >= photoLimit) {
-      setError(`Limite de ${photoLimit} photos atteinte.`);
-      return;
-    }
+    if (files.length === 0) return;
 
     setError(null);
     setIsUploading(true);
-    try {
-      const { url, path } = await uploadAvatar(userId, file);
-      const isPrimary = photos.length === 0;
-      const result = await addProfilePhotoAction(url, path, isPrimary);
-      if (result.error) throw new Error(result.error);
-      if (result.photo) setPhotos((prev) => [...prev, result.photo!]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "L'upload a échoué. Réessaie.");
-    } finally {
-      setIsUploading(false);
+
+    // Upload séquentiel (pas Promise.all) : chaque envoi dépend du compteur
+    // de photos à jour pour savoir si la limite est atteinte et si la photo
+    // suivante doit devenir la principale par défaut.
+    let currentCount = photos.length;
+    let uploadedCount = 0;
+    let errorMessage: string | null = null;
+
+    for (const file of files) {
+      if (currentCount >= photoLimit) {
+        errorMessage = uploadedCount > 0
+          ? `Limite de ${photoLimit} photos atteinte — ${uploadedCount} photo(s) ajoutée(s), les suivantes n'ont pas pu l'être.`
+          : `Limite de ${photoLimit} photos atteinte.`;
+        break;
+      }
+      try {
+        const { url, path } = await uploadAvatar(userId, file);
+        const isPrimary = currentCount === 0;
+        const result = await addProfilePhotoAction(url, path, isPrimary);
+        if (result.error) {
+          errorMessage = result.error;
+          break;
+        }
+        if (result.photo) {
+          setPhotos((prev) => [...prev, result.photo!]);
+          currentCount += 1;
+          uploadedCount += 1;
+        }
+      } catch (err) {
+        errorMessage = err instanceof Error ? err.message : "L'upload a échoué. Réessaie.";
+        break;
+      }
     }
+
+    if (errorMessage) setError(errorMessage);
+    setIsUploading(false);
   };
 
   const handleSetPrimary = async (photoId: string) => {
@@ -80,7 +100,14 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
 
   return (
     <div className="space-y-3">
-      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFileChange} className="hidden" />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        onChange={handleFileChange}
+        className="hidden"
+      />
 
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-muted-foreground">
@@ -128,16 +155,20 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
               <Trash2 size={12} />
             </button>
             {photo.moderation_status === "PENDING" && (
-              <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1.5 py-1 bg-amber-500/90 text-white text-[9px] font-semibold">
-                <Hourglass size={9} className="shrink-0" /> En attente
+              <div className="absolute inset-x-0 bottom-0 flex justify-center pb-1.5 px-1">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500 text-white text-[10px] font-semibold shadow-2xs whitespace-nowrap">
+                  <Hourglass size={10} className="shrink-0" /> En attente
+                </span>
               </div>
             )}
             {photo.moderation_status === "REJECTED" && (
-              <div
-                className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1.5 py-1 bg-destructive/90 text-white text-[9px] font-semibold"
-                title={photo.rejection_reason ?? undefined}
-              >
-                <Ban size={9} className="shrink-0" /> Refusée
+              <div className="absolute inset-x-0 bottom-0 flex justify-center pb-1.5 px-1">
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-destructive text-white text-[10px] font-semibold shadow-2xs whitespace-nowrap"
+                  title={photo.rejection_reason ?? undefined}
+                >
+                  <Ban size={10} className="shrink-0" /> Refusée
+                </span>
               </div>
             )}
           </div>
@@ -157,7 +188,8 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Chaque photo est revue par notre équipe avant d&apos;être visible par les autres membres.
+        Tu peux sélectionner plusieurs photos à la fois. Chacune est revue individuellement par notre équipe avant d&apos;être
+        visible par les autres membres.
       </p>
 
       <FileSizeHint maxSizeMb={15} formats="JPG, PNG, WEBP, GIF" />

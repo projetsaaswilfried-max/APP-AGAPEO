@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ProfileEditablePartialSchema, PhoneSchema, EssentialInfoSchema } from "@/lib/validation/profile.schema";
+import { sendPhotoEmail } from "@/lib/photo-emails";
 import type { ProfileUpdate } from "@/lib/supabase/database.types";
 
 export async function updateProfileAction(updates: Partial<ProfileUpdate>) {
@@ -123,7 +124,7 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
 
   // Vérifié en amont (message précis) plutôt que de laisser la RLS
   // `profile_photos_insert_own` renvoyer une violation générique.
-  const { data: viewerRow } = await supabase.from("profiles").select("is_staff, is_premium").eq("id", user.id).single();
+  const { data: viewerRow } = await supabase.from("profiles").select("first_name, is_staff, is_premium").eq("id", user.id).single();
   if (!viewerRow?.is_staff) {
     const { count } = await supabase.from("profile_photos").select("id", { count: "exact", head: true }).eq("profile_id", user.id);
     const limit = viewerRow?.is_premium ? 10 : 2;
@@ -153,6 +154,10 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
     .single();
 
   if (error) return { error: error.message };
+
+  if (user.email) {
+    await sendPhotoEmail({ to: user.email, firstName: viewerRow?.first_name ?? "", kind: "SUBMITTED" });
+  }
 
   revalidatePath("/profile");
   return { success: true, photo: data };

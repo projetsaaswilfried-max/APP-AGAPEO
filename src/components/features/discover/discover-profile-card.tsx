@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
-import { VerifiedBadge } from "@/components/ui/verified-badge";
+import { VerifiedMemberBadge } from "@/components/ui/verified-member-badge";
 import { MARITAL_STATUS_LABELS } from "@/domain/marital-status";
 import { Bookmark, Heart, MapPin, MessageSquare, Lock, Users, Ruler } from "lucide-react";
 import { cn, maskForPreview } from "@/lib/utils";
@@ -92,9 +92,7 @@ export function DiscoverProfileCard({
             <h3 className="text-base font-display font-semibold tracking-tight text-foreground">
               {displayName}, {displayAge} ans
             </h3>
-            {canInteract && profile.badges.some((b) => b.code === "VERIFIED_FAITH") && (
-              <VerifiedBadge size="xs" ring={false} title="Membre Authentifié" />
-            )}
+            {profile.badges.some((b) => b.code === "VERIFIED_FAITH") && <VerifiedMemberBadge size="xs" />}
           </div>
 
           <p className="text-xs font-medium text-muted-foreground truncate">{profile.profession}</p>
