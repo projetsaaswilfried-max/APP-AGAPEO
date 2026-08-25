@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { MediaGallery } from "@/components/ui/media-gallery";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { createClient } from "@/lib/supabase/client";
@@ -97,13 +98,13 @@ export function ProfileDrawerInspector({
             size="xl"
             src={profile.avatarUrl}
             fallback={profile.firstName.charAt(0)}
-            isVerified={isVerified}
           />
           <div className="flex-1 text-center sm:text-left space-y-1">
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <h2 className="text-lg font-display font-semibold tracking-tight">
                 {profile.firstName} {profile.lastName}
               </h2>
+              {isVerified && <VerifiedBadge size="sm" ring={false} title="Membre Authentifié" />}
             </div>
             <p className="text-xs font-medium text-muted-foreground">{profile.profession}</p>
             <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-muted-foreground pt-1">

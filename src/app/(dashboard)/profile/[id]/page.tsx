@@ -97,12 +97,13 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   const target = targetRow as ProfileRow;
 
-  // Un profil en cours d'examen ou dont la photo a été refusée ne doit
-  // jamais être accessible aux autres membres (cohérent avec le filtre
-  // appliqué dans Découvrir) — même en connaissant l'URL directe. L'équipe
-  // (staff) reste exemptée pour pouvoir modérer/consulter ces profils.
+  // Liste blanche stricte (VERIFIED uniquement), cohérente avec Découvrir —
+  // un profil non validé (jamais soumis, en cours d'examen, ou refusé) ne
+  // doit jamais être accessible aux autres membres, même en connaissant
+  // l'URL directe. L'équipe (staff) reste exemptée pour pouvoir
+  // modérer/consulter ces profils.
   const isStaffViewer = viewerRow.role !== "USER";
-  if (!isStaffViewer && (target.photo_verification_status === "PENDING" || target.photo_verification_status === "REJECTED")) {
+  if (!isStaffViewer && target.photo_verification_status !== "VERIFIED") {
     return (
       <div className="max-w-2xl mx-auto py-16">
         <EmptyState

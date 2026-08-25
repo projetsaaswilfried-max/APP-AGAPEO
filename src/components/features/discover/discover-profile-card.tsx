@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { Bookmark, Heart, MapPin, MessageSquare, Lock } from "lucide-react";
 import { cn, maskForPreview } from "@/lib/utils";
 
@@ -50,7 +51,6 @@ export function DiscoverProfileCard({
                 size="xl"
                 src={profile.avatarUrl}
                 fallback={profile.firstName.charAt(0)}
-                isVerified={profile.badges.some((b) => b.code === "VERIFIED_FAITH")}
                 className={cn("ring-2 ring-primary/20 shadow-md transition-all", isBlurred && "blur-md scale-105")}
               />
               {isBlurred && (
@@ -91,6 +91,9 @@ export function DiscoverProfileCard({
             <h3 className="text-base font-display font-semibold tracking-tight text-foreground">
               {displayName}, {displayAge} ans
             </h3>
+            {canInteract && profile.badges.some((b) => b.code === "VERIFIED_FAITH") && (
+              <VerifiedBadge size="xs" ring={false} title="Membre Authentifié" />
+            )}
           </div>
 
           <p className="text-xs font-medium text-muted-foreground truncate">{profile.profession}</p>

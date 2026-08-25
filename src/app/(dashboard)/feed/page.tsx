@@ -42,6 +42,18 @@ export default function HomePage() {
     fetchPublications(activeCategory);
   }, [activeCategory]);
 
+  useEffect(() => {
+    const unsubscribe = feedService.subscribeToNewPosts(activeCategory, (newPost) => {
+      setPublications((prev) => {
+        if (prev.some((pub) => pub.id === newPost.id)) return prev;
+        const pinned = prev.filter((pub) => pub.isPinned);
+        const rest = prev.filter((pub) => !pub.isPinned);
+        return [...pinned, newPost, ...rest];
+      });
+    });
+    return unsubscribe;
+  }, [activeCategory]);
+
   const handleLikeToggle = async (id: string) => {
     // Optimistic UI update
     setPublications((prev) =>

@@ -203,6 +203,28 @@ class MessageServiceSupabase implements IMessageService {
       throw new VerificationRequiredError("Valide ton profil pour contacter ce membre.");
     }
 
+    // Les invitations sont gratuites (contrairement à la messagerie une fois
+    // acceptée) mais plafonnées à 10/mois pour un membre gratuit — la RLS
+    // `conversations_insert` applique la même règle en dernier rempart,
+    // ceci ne sert qu'à afficher un message précis plutôt qu'une violation
+    // RLS générique.
+    if (!viewerRow?.is_staff) {
+      const { data: restrictedRow } = await supabase.from("profile_restricted").select("subscription_status").eq("id", myId).single();
+      if (restrictedRow?.subscription_status !== "ACTIVE") {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+        const { count } = await supabase
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("initiated_by", myId)
+          .gte("created_at", startOfMonth.toISOString());
+        if ((count ?? 0) >= 10) {
+          throw new PremiumRequiredError("Tu as atteint la limite de 10 invitations gratuites ce mois-ci. Passe Premium pour en envoyer en illimité.");
+        }
+      }
+    }
+
     const { data: mine } = await supabase.from("conversation_participants").select("conversation_id").eq("user_id", myId);
     const myConversationIds = (mine ?? []).map((r) => r.conversation_id);
 

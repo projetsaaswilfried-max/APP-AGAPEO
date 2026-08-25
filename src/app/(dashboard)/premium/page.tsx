@@ -22,7 +22,8 @@ const FREE_FEATURES = [
   { label: "Consulter 10 profils par mois", included: true },
   { label: "Recevoir des messages", included: true },
   { label: "Vérification de profil sous 48h", included: true },
-  { label: "Répondre aux messages / initier une conversation", included: false },
+  { label: "Envoyer jusqu'à 10 invitations par mois", included: true },
+  { label: "Répondre aux messages", included: false },
   { label: "Mettre des profils en favori", included: false },
   { label: "Voir qui s'intéresse à toi", included: false },
   { label: "Filtres de recherche avancés", included: false },
@@ -32,7 +33,7 @@ const FREE_FEATURES = [
 const PREMIUM_FEATURES = [
   "Tout ce qui est inclus dans le plan Gratuit",
   "Consultation illimitée de profils",
-  "Répondre aux messages et initier une conversation en premier",
+  "Invitations illimitées et réponse aux messages",
   "Mettre des profils en favori",
   "Voir qui a consulté ou mis ton profil en favori",
   "Filtres de recherche avancés (ville, confession, engagement, profession, centres d'intérêt...)",

@@ -12,6 +12,8 @@ export interface PersonalPublicationInput {
 
 export interface IFeedService {
   getPublications(category?: FeedCategory): Promise<FeedPublication[]>;
+  /** Pousse en temps réel toute nouvelle publication officielle (Realtime) — le fil n'attendait avant que le prochain rechargement manuel de la page. */
+  subscribeToNewPosts(category: FeedCategory, onNewPost: (post: FeedPublication) => void): () => void;
   getPersonalPublications(profileId: string): Promise<FeedPublication[]>;
   createPersonalPublication(input: PersonalPublicationInput): Promise<FeedPublication>;
   updatePersonalPublication(id: string, input: PersonalPublicationInput & { removeMedia?: boolean }): Promise<FeedPublication>;
@@ -111,6 +113,28 @@ class FeedServiceSupabase implements IFeedService {
     const combined = [...(pinned ?? []), ...(recent ?? [])] as PostRow[];
     if (combined.length === 0) return [];
     return this.hydrate(combined);
+  }
+
+  subscribeToNewPosts(category: FeedCategory, onNewPost: (post: FeedPublication) => void): () => void {
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel("feed:official-posts")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "posts", filter: "post_type=eq.OFFICIAL" },
+        async (payload) => {
+          const row = payload.new as PostRow;
+          if (category !== "ALL" && row.category !== category) return;
+          const [hydrated] = await this.hydrate([row]);
+          onNewPost(hydrated);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }
 
   async getPersonalPublications(profileId: string): Promise<FeedPublication[]> {

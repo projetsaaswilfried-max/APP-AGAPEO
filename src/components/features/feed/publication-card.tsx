@@ -239,12 +239,7 @@ export function PublicationCard({
               <span className="text-sm font-semibold text-foreground tracking-tight">
                 {publication.author.name}
               </span>
-              {publication.author.isVerified && <VerifiedBadge size="xs" ring={false} title="Membre Authentifié" />}
-              {publication.author.isOfficialTeam && (
-                <Badge variant="verified" className="text-[10px] px-2 py-0">
-                  {publication.author.badgeLabel}
-                </Badge>
-              )}
+              {publication.author.isVerified && <VerifiedBadge size="xs" color="blue" ring={false} title="Compte officiel Agapeo" />}
               {publication.isPinned && (
                 <Badge variant="status" className="text-[10px] px-2 py-0 gap-1">
                   <Pin size={10} /> Épinglé

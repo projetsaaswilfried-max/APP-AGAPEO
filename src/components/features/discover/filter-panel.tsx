@@ -181,13 +181,6 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose,
       <div className="pt-2 border-t border-border/40 flex flex-wrap gap-x-8 gap-y-3">
         <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
           <Checkbox
-            checked={filters.verifiedOnly ?? false}
-            onCheckedChange={(checked) => update({ verifiedOnly: checked })}
-            label="Photo vérifiée uniquement"
-          />
-        </AdvancedField>
-        <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
-          <Checkbox
             checked={filters.wantsChildren ?? false}
             onCheckedChange={(checked) => update({ wantsChildren: checked || undefined })}
             label="Souhaite des enfants"

@@ -16,7 +16,6 @@ export interface DiscoverFilterCriteria {
   wantsChildren?: boolean;
   coreValue?: string;
   status?: string;
-  verifiedOnly?: boolean;
 }
 
 export interface RecommendedProfileItem {

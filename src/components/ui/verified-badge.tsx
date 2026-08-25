@@ -9,21 +9,31 @@ const SIZES = {
   lg: { box: "h-5 w-5", icon: 12, stroke: 3 }
 };
 
+const COLORS = {
+  // Rose Agapeo — badge "membre vérifié" par défaut, partout sur la plateforme.
+  pink: "bg-[#FE70B2]",
+  // Bleu Facebook — réservé exclusivement au badge "officiel" du fil d'actualité,
+  // pour le distinguer visuellement d'un simple membre vérifié.
+  blue: "bg-[#1877F2]"
+};
+
 interface VerifiedBadgeProps {
   size?: keyof typeof SIZES;
+  color?: keyof typeof COLORS;
   ring?: boolean;
   className?: string;
   title?: string;
 }
 
-/** Badge de vérification certifié (Bleu Facebook #1877F2, cercle bleu avec coche blanche) */
-export function VerifiedBadge({ size = "md", ring = true, className, title = "Profil certifié et vérifié" }: VerifiedBadgeProps) {
+/** Badge de vérification certifié (façon coche Facebook, rose par défaut — bleu réservé au fil d'actualité) */
+export function VerifiedBadge({ size = "md", color = "pink", ring = true, className, title = "Profil certifié et vérifié" }: VerifiedBadgeProps) {
   const { box, icon, stroke } = SIZES[size];
   return (
     <span
       title={title}
       className={cn(
-        "inline-flex items-center justify-center rounded-full bg-[#1877F2] text-white shrink-0 shadow-xs",
+        "inline-flex items-center justify-center rounded-full text-white shrink-0 shadow-xs",
+        COLORS[color],
         ring && "ring-2 ring-background",
         box,
         className

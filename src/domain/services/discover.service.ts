@@ -38,11 +38,10 @@ class DiscoverServiceSupabase implements IDiscoverService {
     // Un profil n'est proposé aux autres que lorsqu'il est "actif" (cf.
     // isProfileComplete côté client) — indépendant de `onboarding_completed`,
     // qui ne fait que suivre si l'assistant d'inscription a été vu/quitté.
-    // PENDING/REJECTED exclus : un profil en cours d'examen ou dont la photo
-    // a été refusée par l'équipe ne doit jamais être proposé aux autres
-    // membres tant qu'il n'a pas été (re)validé — cf. email "SUBMITTED" qui
-    // promet déjà "tant que la vérification est en cours, ton profil n'est
-    // pas encore proposé aux autres membres dans Découvrir".
+    // Liste blanche stricte (VERIFIED uniquement), jamais une liste noire :
+    // `.not(...,"in","(PENDING,REJECTED)")` laissait passer UNVERIFIED (photo
+    // jamais soumise) — bug réel trouvé en prod où des profils n'ayant ni
+    // soumis ni obtenu de validation apparaissaient dans Découvrir.
     let query = supabase
       .from("profiles")
       .select("*")
@@ -51,7 +50,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .not("avatar_url", "is", null)
       .not("church_denomination", "is", null)
       .not("why_marriage", "is", null)
-      .not("photo_verification_status", "in", "(PENDING,REJECTED)")
+      .eq("photo_verification_status", "VERIFIED")
       .eq("is_matched", false)
       .order("last_active_at", { ascending: false })
       .limit(60);
@@ -90,7 +89,6 @@ class DiscoverServiceSupabase implements IDiscoverService {
       if (filters.hasChildren !== undefined) query = query.eq("has_children", filters.hasChildren);
       if (filters.wantsChildren !== undefined) query = query.eq("wants_children", filters.wantsChildren);
       if (filters.coreValue) query = query.contains("core_values", [filters.coreValue]);
-      if (filters.verifiedOnly) query = query.eq("photo_verification_status", "VERIFIED");
     }
 
     const { data: candidates, error } = await query;
@@ -188,13 +186,15 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const favoriteIds = (favoriteRows ?? []).map((f) => f.favorite_profile_id);
     if (favoriteIds.length === 0) return [];
 
-    // Un profil favori qui passe ensuite en PENDING/REJECTED disparaît de la
-    // liste tant qu'il n'est pas (re)validé — même raison que dans Découvrir.
+    // Liste blanche stricte (VERIFIED uniquement) — même règle que Découvrir.
+    // Un profil favori qui perd son statut VERIFIED (photo jamais soumise,
+    // en cours d'examen, ou refusée) disparaît de la liste tant qu'il n'est
+    // pas (re)validé.
     const { data: candidates } = await supabase
       .from("profiles")
       .select("*")
       .in("id", favoriteIds)
-      .not("photo_verification_status", "in", "(PENDING,REJECTED)");
+      .eq("photo_verification_status", "VERIFIED");
     if (!candidates || candidates.length === 0) return [];
 
     const { data: photos } = await supabase.from("profile_photos").select("*").in("profile_id", favoriteIds);
@@ -254,13 +254,13 @@ class DiscoverServiceSupabase implements IDiscoverService {
     ];
     if (candidateIds.length === 0) return [];
 
-    // Même exclusion PENDING/REJECTED que Découvrir/Favoris : ne pas
-    // présenter un profil non validé, même dans "qui s'intéresse à moi".
+    // Même liste blanche VERIFIED que Découvrir/Favoris : ne pas présenter un
+    // profil non validé, même dans "qui s'intéresse à moi".
     const { data: candidates } = await supabase
       .from("profiles")
       .select("*")
       .in("id", candidateIds)
-      .not("photo_verification_status", "in", "(PENDING,REJECTED)");
+      .eq("photo_verification_status", "VERIFIED");
     if (!candidates || candidates.length === 0) return [];
 
     const { data: photos } = await supabase.from("profile_photos").select("*").in("profile_id", candidateIds);
@@ -310,13 +310,13 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const candidateIds = [...new Set([...(favoritedByRows ?? []).map((r) => r.user_id), ...(viewedByRows ?? []).map((r) => r.viewer_id)])];
     if (candidateIds.length === 0) return 0;
 
-    // Même exclusion que getWhoLikesMe() : le compte doit correspondre à ce
-    // qui sera effectivement affiché en détail (profils PENDING/REJECTED exclus).
+    // Même liste blanche que getWhoLikesMe() : le compte doit correspondre à
+    // ce qui sera effectivement affiché en détail (VERIFIED uniquement).
     const { data: visibleCandidates } = await supabase
       .from("profiles")
       .select("id")
       .in("id", candidateIds)
-      .not("photo_verification_status", "in", "(PENDING,REJECTED)");
+      .eq("photo_verification_status", "VERIFIED");
 
     return visibleCandidates?.length ?? 0;
   }
