@@ -40,7 +40,12 @@ export function AppShell({ children }: AppShellProps) {
   const { profile } = useSession();
   const initials = getInitials(profile.first_name, profile.last_name);
   const { unreadMessages, unreadNotifications } = useUnreadCounts();
-  const navigation = withUnreadBadges(unreadMessages, unreadNotifications);
+  // "Notifications" (barre du bas + cloche du header) et "Mon Profil" (avatar
+  // du header) sont déjà accessibles ailleurs sur mobile — les répéter dans
+  // ce tiroir n'existe pas côté desktop (Sidebar) et n'apporte rien ici.
+  const navigation = withUnreadBadges(unreadMessages, unreadNotifications).filter(
+    (item) => item.id !== "notifications" && item.id !== "profile"
+  );
   useRestoreScrollMemory(pathname);
 
   return (
