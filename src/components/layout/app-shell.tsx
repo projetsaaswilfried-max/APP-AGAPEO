@@ -17,7 +17,6 @@ import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
 import { useRestoreScrollMemory } from "@/core/hooks/use-scroll-memory";
 import { IncompleteProfileBanner } from "./incomplete-profile-banner";
 import { PremiumUpsellBanner } from "./premium-upsell-banner";
-import { IosInstallBanner } from "./ios-install-banner";
 import { AgapeoLogo } from "@/components/ui/logo";
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -140,7 +139,6 @@ export function AppShell({ children }: AppShellProps) {
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
         <IncompleteProfileBanner />
         <PremiumUpsellBanner />
-        <IosInstallBanner />
 
         <main className="flex-1 w-full px-5 py-4 md:py-6 lg:py-8">
           <AnimatePresence mode="wait">

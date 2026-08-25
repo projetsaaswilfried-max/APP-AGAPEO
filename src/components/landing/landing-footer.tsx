@@ -1,15 +1,17 @@
 import Link from "next/link";
+import { AppleStoreBadge, GooglePlayBadge } from "@/components/shared/store-badges";
 
 const NAV_LINKS = [
   { href: "/", label: "Accueil" },
   { href: "#decouvrir", label: "Découvrir" },
   { href: "#comment-ca-marche", label: "Comment ça marche" },
-  { href: "#tarifs", label: "AGAPEO+" }
+  { href: "#tarifs", label: "AGAPEO+" },
+  { href: "#telecharger", label: "App" }
 ];
 
 export function LandingFooter() {
   return (
-    <footer className="bg-zinc-50 pt-10 pb-6">
+    <footer id="telecharger" className="bg-zinc-50 pt-10 pb-6 scroll-mt-24 sm:scroll-mt-28">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row gap-10 md:gap-16 lg:gap-24 mb-10 border-b border-zinc-100 pb-10">
           <div className="flex-[2] max-w-sm">
@@ -24,6 +26,10 @@ export function LandingFooter() {
               Une plateforme destinée aux célibataires chrétiens qui souhaitent rencontrer, aimer et construire sans mettre
               leur foi de côté.
             </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <AppleStoreBadge />
+              <GooglePlayBadge />
+            </div>
           </div>
 
           <div className="flex-1">

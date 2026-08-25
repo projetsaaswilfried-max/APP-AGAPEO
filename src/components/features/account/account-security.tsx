@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Avatar } from "@/components/ui/avatar";
 import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
+import { InstallAppCard } from "@/components/shared/install-app-card";
 import { ShieldCheck, ShieldQuestion, Lock, LogOut, Trash2, KeyRound, Mail, AlertCircle, CheckCircle2, Clock, Download, ArrowRight, UserX } from "lucide-react";
 import { changePasswordAction, changeEmailAction, signOutAction, type FormState } from "@/lib/actions/auth.actions";
 import { deleteAccountAction, exportMyDataAction } from "@/lib/actions/profile.actions";
@@ -219,6 +220,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
   return (
     <div className="space-y-6 select-none">
       <VerificationStatusCard profile={profile} />
+      <InstallAppCard />
       <BlockedUsersCard />
 
       <Card variant="base" className="p-6 space-y-6 border-border/60 shadow-2xs">

@@ -8,7 +8,8 @@ const NAV_LINKS = [
   { href: "/", label: "Accueil" },
   { href: "#decouvrir", label: "Découvrir AGAPEO" },
   { href: "#comment-ca-marche", label: "Comment ça marche" },
-  { href: "#tarifs", label: "Tarifs" }
+  { href: "#tarifs", label: "Tarifs" },
+  { href: "#telecharger", label: "App" }
 ];
 
 export function LandingNavbar() {

@@ -13,7 +13,6 @@ import { LandingTestimonials } from "@/components/landing/landing-testimonials";
 import { LandingVerse } from "@/components/landing/landing-verse";
 import { LandingFaq } from "@/components/landing/landing-faq";
 import { LandingFooter } from "@/components/landing/landing-footer";
-import { LandingIosInstallBanner } from "@/components/landing/landing-ios-install-banner";
 
 const FAQ_STRUCTURED_DATA_ITEMS: Array<{ q: string; a: string }> = [
   {
@@ -99,7 +98,6 @@ export default function LandingPage() {
         <LandingFaq />
       </main>
       <LandingFooter />
-      <LandingIosInstallBanner />
     </div>
   );
 }

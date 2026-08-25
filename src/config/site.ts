@@ -10,5 +10,9 @@ export const SITE_CONFIG = {
     privacy: "/politique-de-confidentialite",
     legal: "/mentions-legales",
     ethics: "/charter"
+  },
+  apps: {
+    // Doit rester identique à `related_applications` dans src/app/manifest.ts.
+    playStoreUrl: "https://play.google.com/store/apps/details?id=love.agapeo.app"
   }
 };
