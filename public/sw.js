@@ -1,6 +1,8 @@
 const STATIC_CACHE = "agapeo-static-v1";
+const OFFLINE_URL = "/offline.html";
 
-self.addEventListener("install", () => {
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.add(OFFLINE_URL)));
   self.skipWaiting();
 });
 
@@ -17,10 +19,26 @@ self.addEventListener("activate", (event) => {
  * appels Supabase/API, qui doivent toujours rester à jour (fil, messages,
  * Découvrir). Une app dynamique comme celle-ci ne doit jamais servir de
  * données périmées depuis le cache.
+ *
+ * Les NAVIGATIONS (changement de page/URL) restent, elles aussi, toujours
+ * réseau — jamais de HTML en cache — mais si le réseau échoue au moment
+ * précis où l'app reprend en premier plan (ex : un testeur qui revient de
+ * son appli mail après avoir confirmé son adresse), on sert une page
+ * hors-ligne dédiée plutôt que de laisser Chrome afficher son écran
+ * générique "This page couldn't load" : cette page-là se recharge toute
+ * seule dès que la connexion revient (voir offline.html), sans que la
+ * personne ait à appuyer sur "Actualiser".
  */
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(OFFLINE_URL))
+    );
+    return;
+  }
 
   const url = new URL(request.url);
   const isStaticAsset =

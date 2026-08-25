@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Connexion indisponible — AGAPEO</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: #FFFFFF;
+    color: #1A1D21;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+  }
+  .card {
+    max-width: 360px;
+  }
+  .icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 20px;
+    border-radius: 9999px;
+    background: #FDE8F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  h1 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+  }
+  p {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6B7280;
+    margin: 0 0 22px 0;
+  }
+  button {
+    appearance: none;
+    border: none;
+    background: #E83E75;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 11px 22px;
+    border-radius: 9999px;
+    cursor: pointer;
+  }
+  button:active { opacity: 0.85; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E83E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20h.01" />
+        <path d="M2 8.82a15 15 0 0 1 20 0" />
+        <path d="M5 12.859a10 10 0 0 1 14 0" />
+        <path d="M8.5 16.429a5 5 0 0 1 7 0" />
+        <line x1="2" y1="2" x2="22" y2="22" />
+      </svg>
+    </div>
+    <h1>Pas de connexion internet</h1>
+    <p>Reconnecte-toi pour continuer sur AGAPEO — cette page se rechargera automatiquement dès que le réseau revient.</p>
+    <button onclick="location.reload()">Réessayer</button>
+  </div>
+  <script>
+    window.addEventListener("online", () => location.reload());
+  </script>
+</body>
+</html>

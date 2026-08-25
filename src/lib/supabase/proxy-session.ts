@@ -30,7 +30,12 @@ const PUBLIC_ROUTES = [
   "/.well-known",
   // Service worker (notifications push) : un navigateur refuse d'enregistrer
   // un service worker si la reponse est une redirection — doit rester public.
-  "/sw.js"
+  "/sw.js",
+  // Page hors-ligne mise en cache par le service worker (cf. public/sw.js) :
+  // si elle redirigeait vers /login pour un visiteur non connecté, le
+  // service worker mettrait en cache la page de connexion à la place, et la
+  // servirait ensuite à tort en cas de coupure réseau.
+  "/offline.html"
 ];
 
 function isPublicRoute(pathname: string) {
