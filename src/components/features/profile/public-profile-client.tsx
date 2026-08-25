@@ -112,7 +112,7 @@ export function PublicProfileClient({
       <CompatibilityExplainedSection percentage={compatibilityPercentage} reasons={compatibilityReasons} />
       <FaithSection faith={profile.faith} />
       <MarriageVisionSection marriageVision={profile.marriageVision} aboutMe={profile.aboutMe} preferences={profile.preferences} />
-      <UserPublicationsSection userName={profile.firstName} publications={personalPublications} isOwner={false} />
+      <UserPublicationsSection userName={profile.firstName} profileId={profile.id} publications={personalPublications} isOwner={false} />
 
       <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} targetType="PROFILE" targetId={profile.id} />
       <BlockConfirmModal

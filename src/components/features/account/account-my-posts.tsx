@@ -90,7 +90,13 @@ export function AccountMyPosts({ publications }: AccountMyPostsProps) {
           <div className="space-y-6 w-full">
             {posts.map((pub) => (
               <div key={pub.id} className="relative group">
-                <PublicationCard publication={pub} onLikeToggle={handleLikeToggle} onBookmarkToggle={() => {}} onAddComment={handleAddComment} />
+                <PublicationCard
+                  publication={pub}
+                  onLikeToggle={handleLikeToggle}
+                  onBookmarkToggle={() => {}}
+                  onAddComment={handleAddComment}
+                  sharePath="/profile"
+                />
                 <div className="mt-2 flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEdit(pub)} leftIcon={<Pencil size={13} />}>
                     Modifier

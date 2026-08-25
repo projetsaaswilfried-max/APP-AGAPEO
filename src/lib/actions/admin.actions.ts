@@ -401,6 +401,51 @@ export async function rejectVerificationRequestAction(requestId: string, userId:
 }
 
 /**
+ * Retire le badge de vérification d'un profil déjà validé (ex : erreur
+ * d'approbation). Le membre redevient invisible dans Découvrir (toutes les
+ * requêtes y filtrent déjà strictement sur `photo_verification_status ===
+ * "VERIFIED"`) et doit soumettre une nouvelle demande pour être re-vérifié —
+ * même mécanique qu'un refus classique, ré-utilisée ici plutôt que dupliquée.
+ * On insère une nouvelle ligne `verification_requests` (plutôt que de
+ * réécrire une ancienne ligne déjà "VERIFIED", ce qui falsifierait
+ * l'historique) pour que l'écran "Mon Compte & Sécurité" du membre retrouve
+ * le motif exactement comme pour un refus.
+ */
+export async function revokeVerificationAction(userId: string) {
+  const { user } = await requireStaffSession();
+  const admin = createAdminClient();
+
+  const reason =
+    "Ton badge de vérification a été retiré par l'équipe Agapeo après un nouvel examen de ton profil. Merci de soumettre une nouvelle demande de vérification.";
+
+  const { data: target, error: profileError } = await admin
+    .from("profiles")
+    .update({ photo_verification_status: "REJECTED" })
+    .eq("id", userId)
+    .select("first_name")
+    .single();
+  if (profileError || !target) return { error: profileError?.message ?? "Profil introuvable." };
+
+  const { error: requestError } = await admin.from("verification_requests").insert({
+    user_id: userId,
+    status: "REJECTED",
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: user.id,
+    rejection_reason: reason
+  });
+  if (requestError) return { error: requestError.message };
+
+  const { data: authUser } = await admin.auth.admin.getUserById(userId);
+  if (authUser?.user?.email) {
+    await sendVerificationEmail({ to: authUser.user.email, firstName: target.first_name, kind: "REVOKED", rejectionReason: reason });
+  }
+
+  await logAdminAction(user.id, "REVOKE_VERIFICATION", { targetType: "profile", targetId: userId });
+  revalidatePath("/admin/users");
+  return { success: true };
+}
+
+/**
  * Valide une photo (plateforme chrétienne : chaque photo est revue avant
  * d'être visible par quiconque d'autre que son propriétaire). Si c'est la
  * photo principale choisie par le membre, ou qu'il n'a encore aucun avatar

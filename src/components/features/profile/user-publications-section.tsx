@@ -12,12 +12,17 @@ import { BookOpen, Plus, Pencil, Trash2, Info } from "lucide-react";
 
 interface UserPublicationsSectionProps {
   userName: string;
+  profileId: string;
   publications: FeedPublication[];
   isOwner?: boolean;
 }
 
-export function UserPublicationsSection({ userName, publications, isOwner = false }: UserPublicationsSectionProps) {
+export function UserPublicationsSection({ userName, profileId, publications, isOwner = false }: UserPublicationsSectionProps) {
   const [items, setItems] = useState<FeedPublication[]>(publications);
+  // `/profile/{son-propre-id}` redirige vers `/profile` (cf. profile/[id]/page.tsx)
+  // et perdrait l'ancre du post partagé — on pointe donc directement vers la
+  // bonne URL selon qu'on regarde son propre profil ou celui de quelqu'un d'autre.
+  const sharePath = isOwner ? "/profile" : `/profile/${profileId}`;
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<FeedPublication | null>(null);
 
@@ -98,7 +103,13 @@ export function UserPublicationsSection({ userName, publications, isOwner = fals
         <div className="space-y-6">
           {items.map((pub) => (
             <div key={pub.id}>
-              <PublicationCard publication={pub} onLikeToggle={handleLikeToggle} onBookmarkToggle={handleBookmarkToggle} onAddComment={handleAddComment} />
+              <PublicationCard
+                publication={pub}
+                onLikeToggle={handleLikeToggle}
+                onBookmarkToggle={handleBookmarkToggle}
+                onAddComment={handleAddComment}
+                sharePath={sharePath}
+              />
               {isOwner && (
                 <div className="mt-2 flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEdit(pub)} leftIcon={<Pencil size={13} />}>

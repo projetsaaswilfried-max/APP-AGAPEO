@@ -42,6 +42,18 @@ export default function HomePage() {
     fetchPublications(activeCategory);
   }, [activeCategory]);
 
+  // Un lien partagé (`/feed#post-xxx`) doit amener directement sur ce post
+  // précis — sans ça, "copier le lien" ne fait qu'ouvrir le haut du fil.
+  useEffect(() => {
+    if (isLoading || !window.location.hash) return;
+    const el = document.getElementById(window.location.hash.slice(1));
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("ring-2", "ring-accent");
+    const timeout = setTimeout(() => el.classList.remove("ring-2", "ring-accent"), 2500);
+    return () => clearTimeout(timeout);
+  }, [isLoading, publications]);
+
   useEffect(() => {
     const unsubscribe = feedService.subscribeToNewPosts(activeCategory, (newPost) => {
       setPublications((prev) => {
@@ -181,6 +193,7 @@ export default function HomePage() {
                   onLikeToggle={handleLikeToggle}
                   onBookmarkToggle={handleBookmarkToggle}
                   onAddComment={handleAddComment}
+                  sharePath="/feed"
                 />
               ))}
             </div>

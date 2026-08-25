@@ -7,10 +7,10 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { updateUserRoleAction, toggleSuspendUserAction, toggleUserPremiumAction } from "@/lib/actions/admin.actions";
+import { updateUserRoleAction, toggleSuspendUserAction, toggleUserPremiumAction, revokeVerificationAction } from "@/lib/actions/admin.actions";
 import { PREMIUM_PLANS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
 import type { AppRole, VerificationStatus } from "@/lib/supabase/database.types";
-import { ExternalLink, ShieldOff, ShieldCheck, Download, Crown } from "lucide-react";
+import { ExternalLink, ShieldOff, ShieldCheck, ShieldX, Download, Crown } from "lucide-react";
 
 export interface AdminUserRow {
   id: string;
@@ -108,6 +108,8 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
   const [error, setError] = useState<string | null>(null);
   const [grantModalUserId, setGrantModalUserId] = useState<string | null>(null);
   const [grantPlan, setGrantPlan] = useState<PremiumPlanKey>("MONTHLY");
+  const [revokeModalUserId, setRevokeModalUserId] = useState<string | null>(null);
+  const [isRevoking, setIsRevoking] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -189,6 +191,23 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
     startTransition(async () => {
       const result = await toggleUserPremiumAction(userId, false);
       if (result?.error) setError(result.error);
+    });
+  };
+
+  const handleConfirmRevokeVerification = () => {
+    if (!revokeModalUserId) return;
+    const userId = revokeModalUserId;
+    setError(null);
+    setIsRevoking(true);
+    startTransition(async () => {
+      const result = await revokeVerificationAction(userId);
+      setIsRevoking(false);
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+      setRevokeModalUserId(null);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, photoVerificationStatus: "REJECTED" } : u)));
     });
   };
 
@@ -329,6 +348,16 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                       <Link href={`/profile/${u.id}`} target="_blank" className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary" title="Voir le profil">
                         <ExternalLink size={14} />
                       </Link>
+                      {u.photoVerificationStatus === "VERIFIED" && (
+                        <button
+                          onClick={() => setRevokeModalUserId(u.id)}
+                          disabled={isPending}
+                          className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 disabled:opacity-60"
+                          title="Retirer le badge de vérification"
+                        >
+                          <ShieldX size={14} />
+                        </button>
+                      )}
                       {u.role !== "SUPER_ADMIN" && (
                         <button
                           onClick={() => (u.isPremium ? handleRevokePremium(u.id) : handleOpenGrantModal(u.id))}
@@ -392,6 +421,27 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
             </option>
           ))}
         </Select>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(revokeModalUserId)}
+        onClose={() => setRevokeModalUserId(null)}
+        title="Retirer le badge de vérification"
+        description="Le membre disparaît immédiatement de Découvrir et devra soumettre une nouvelle demande de vérification pour réapparaître. Un email lui est envoyé pour l'en informer."
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setRevokeModalUserId(null)} disabled={isRevoking}>
+              Annuler
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmRevokeVerification} isLoading={isRevoking} leftIcon={<ShieldX size={14} />}>
+              Retirer le badge
+            </Button>
+          </>
+        }
+      >
+        <p className="text-xs text-muted-foreground">
+          Cette action est réversible : le membre peut soumettre une nouvelle demande à tout moment, que vous pourrez valider à nouveau.
+        </p>
       </Modal>
     </div>
   );

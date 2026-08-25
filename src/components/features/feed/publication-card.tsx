@@ -32,6 +32,8 @@ interface PublicationCardProps {
   onLikeToggle: (id: string) => void;
   onBookmarkToggle: (id: string) => void;
   onAddComment: (id: string, content: string, parentCommentId?: string) => void;
+  /** Chemin de la page où cette publication est affichée (`/feed`, `/profile`, `/profile/{id}`) — sert à construire un lien de partage qui pointe vraiment vers ce post, pas juste vers la page courante. */
+  sharePath: string;
 }
 
 interface OptionsMenuProps {
@@ -80,12 +82,13 @@ function OptionsMenu({ isOpen, onToggle, onClose, onCopyLink, onReport }: Option
 
 interface ShareMenuProps {
   shareText: string;
+  shareUrl: string;
   sharesCount: number;
   onCopyLink: () => void;
   onPlatformShare: () => void;
 }
 
-function ShareMenu({ shareText, sharesCount, onCopyLink, onPlatformShare }: ShareMenuProps) {
+function ShareMenu({ shareText, shareUrl, sharesCount, onCopyLink, onPlatformShare }: ShareMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const openShareWindow = (url: string) => {
@@ -95,18 +98,15 @@ function ShareMenu({ shareText, sharesCount, onCopyLink, onPlatformShare }: Shar
   };
 
   const shareOnFacebook = () => {
-    const pageUrl = window.location.href;
-    openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`);
+    openShareWindow(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`);
   };
 
   const shareOnWhatsapp = () => {
-    const pageUrl = window.location.href;
-    openShareWindow(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${pageUrl}`)}`);
+    openShareWindow(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`);
   };
 
   const shareOnTelegram = () => {
-    const pageUrl = window.location.href;
-    openShareWindow(`https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(shareText)}`);
+    openShareWindow(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`);
   };
 
   return (
@@ -168,7 +168,8 @@ export function PublicationCard({
   publication,
   onLikeToggle,
   onBookmarkToggle,
-  onAddComment
+  onAddComment,
+  sharePath
 }: PublicationCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -201,9 +202,12 @@ export function PublicationCard({
     }
   }, [publication.content]);
 
+  const anchorId = `post-${publication.id}`;
+  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}${sharePath}#${anchorId}` : "";
+
   const handleShare = () => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(shareUrl);
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
     }
@@ -225,7 +229,7 @@ export function PublicationCard({
   };
 
   return (
-    <Card variant="base" className="select-none transition-all">
+    <Card id={anchorId} variant="base" className="select-none transition-all scroll-mt-20">
       {/* En-tête de publication : Auteur officiel, Badge, Date, Menu */}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 p-5 pb-4">
         <div className="flex items-center gap-3">
@@ -386,6 +390,7 @@ export function PublicationCard({
             {/* Bouton Partager */}
             <ShareMenu
               shareText={publication.title || publication.content.slice(0, 100)}
+              shareUrl={shareUrl}
               sharesCount={publication.sharesCount}
               onCopyLink={handleShare}
               onPlatformShare={() => void feedService.recordShare(publication.id)}

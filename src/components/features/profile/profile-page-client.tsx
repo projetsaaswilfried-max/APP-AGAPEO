@@ -21,6 +21,7 @@ import { AccountFavorites } from "@/components/features/account/account-favorite
 import { AccountWhoLikesMe } from "@/components/features/account/account-who-likes-me";
 import { AccountPrivacySettings } from "@/components/features/account/account-privacy-settings";
 import { AccountSecurity } from "@/components/features/account/account-security";
+import { InstallAppBanner } from "@/components/shared/install-app-banner";
 
 import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -157,6 +158,8 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
             </Link>
           </div>
 
+          <InstallAppBanner />
+
           <div className="overflow-x-auto pb-1 no-scrollbar">
             <Tabs
               variant="pill"
@@ -199,7 +202,7 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
           <ProfileHero profile={profile} isFavorite={false} onToggleFavorite={() => {}} onSendMessage={() => {}} isOwnProfile />
           <FaithSection faith={profile.faith} />
           <MarriageVisionSection marriageVision={profile.marriageVision} aboutMe={profile.aboutMe} preferences={profile.preferences} />
-          <UserPublicationsSection userName={profile.firstName} publications={personalPosts} isOwner />
+          <UserPublicationsSection userName={profile.firstName} profileId={profile.id} publications={personalPosts} isOwner />
         </div>
       )}
     </div>
