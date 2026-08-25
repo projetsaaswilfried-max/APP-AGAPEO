@@ -61,7 +61,23 @@ export default function PrivacyPolicyPage() {
 
             <h2 className="text-2xl font-medium text-zinc-900 mt-12 mb-6">6. Vos droits (RGPD)</h2>
             <p>
-              Conformément à la réglementation européenne, vous disposez d&apos;un droit d&apos;accès, de rectification, de suppression et de portabilité de vos données. Vous pouvez supprimer définitivement votre compte et l&apos;intégralité de vos données directement depuis les paramètres de l&apos;application. Pour toute autre demande, contactez-nous via notre support.
+              Conformément à la réglementation européenne, vous disposez d&apos;un droit d&apos;accès, de rectification, de suppression et de portabilité de vos données.
+            </p>
+
+            <h3 className="text-lg font-medium text-zinc-900 mt-8 mb-3">Comment supprimer ton compte Agapeo</h3>
+            <p>
+              Connecte-toi sur Agapeo (site ou application), puis rends-toi dans <strong>Mon Profil → Mon Compte &amp; Sécurité</strong>, et
+              sélectionne <strong>Supprimer mon compte</strong>. La suppression est immédiate et définitive.
+            </p>
+            <p>
+              Cette action supprime intégralement et sans délai de conservation : ton profil, tes photos, tes messages et conversations, tes
+              favoris, tes notifications, ton historique de transactions, ainsi que ton compte de connexion. Aucune de ces données n&apos;est
+              conservée après la suppression.
+            </p>
+            <p>
+              Si tu ne peux pas te connecter à ton compte, écris-nous depuis l&apos;espace Support de l&apos;application ou à{" "}
+              <a href="mailto:support@agapeo.love" className="text-pink-600 hover:underline">support@agapeo.love</a> en précisant l&apos;adresse email
+              associée à ton compte — nous traiterons ta demande de suppression manuellement.
             </p>
           </div>
         </div>
