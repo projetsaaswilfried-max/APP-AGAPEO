@@ -93,6 +93,7 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
               userId={profile.id}
               initialPhotos={initialPhotos}
               photoVerificationStatus={profile.photo_verification_status}
+              photoLimit={profile.is_premium ? 10 : 2}
               onNext={() => goTo(stepIndex + 1)}
             />
           )}

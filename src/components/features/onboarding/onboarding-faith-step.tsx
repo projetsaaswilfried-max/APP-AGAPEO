@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { OnboardingStepFooter } from "./onboarding-step-footer";
 import { updateProfileAction } from "@/lib/actions/profile.actions";
+import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
 import type { ProfileRow, MaritalStatusType } from "@/lib/supabase/database.types";
 
 interface OnboardingFaithStepProps {
@@ -12,25 +13,21 @@ interface OnboardingFaithStepProps {
   onBack?: () => void;
 }
 
-const MARITAL_STATUS_OPTIONS: { value: MaritalStatusType; label: string }[] = [
-  { value: "SINGLE_NO_CHILDREN", label: "Célibataire sans enfant" },
-  { value: "SINGLE_WITH_CHILDREN", label: "Célibataire avec enfant" },
-  { value: "DIVORCED", label: "Divorcé(e)" },
-  { value: "WIDOWED", label: "Veuf / Veuve" }
-];
-
 export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaithStepProps) {
   const [denomination, setDenomination] = useState(profile.church_denomination ?? "");
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatusType | "">(profile.marital_status ?? "");
+  const [heightCm, setHeightCm] = useState(profile.height_cm ? String(profile.height_cm) : "");
   const [isPending, startTransition] = useTransition();
   const isComplete = Boolean(denomination.trim()) && Boolean(maritalStatus);
 
   const handleSaveAndNext = () => {
     if (!isComplete) return;
+    const parsedHeight = heightCm.trim() ? Number(heightCm) : null;
     startTransition(async () => {
       await updateProfileAction({
         church_denomination: denomination || null,
-        marital_status: maritalStatus || null
+        marital_status: maritalStatus || null,
+        height_cm: parsedHeight && parsedHeight >= 120 && parsedHeight <= 230 ? parsedHeight : null
       });
       onNext();
     });
@@ -41,7 +38,7 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
       <div>
         <h2 className="text-lg font-display font-semibold text-foreground">Ma foi & ma situation</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          L&apos;essentiel pour te présenter à la communauté — les deux champs sont obligatoires pour continuer.
+          L&apos;essentiel pour te présenter à la communauté — confession et situation matrimoniale sont obligatoires, la taille est facultative.
         </p>
       </div>
 
@@ -67,6 +64,17 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
           ))}
         </select>
       </div>
+
+      <Input
+        label="Taille (en cm)"
+        type="number"
+        inputMode="numeric"
+        min={120}
+        max={230}
+        placeholder="Ex : 175"
+        value={heightCm}
+        onChange={(e) => setHeightCm(e.target.value)}
+      />
 
       <OnboardingStepFooter onSaveAndNext={handleSaveAndNext} onBack={onBack} isSaving={isPending} isNextDisabled={!isComplete} />
     </div>

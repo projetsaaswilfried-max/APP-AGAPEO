@@ -92,6 +92,7 @@ export interface UserProfile {
   profession: string;
   educationLevel: string;
   languages: string[];
+  heightCm: number | null;
   status: "AVAILABLE" | "IN_DISCUSSION" | "ON_PAUSE";
   statusLabel: string;
   compatibilityPercentage: number;

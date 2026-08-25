@@ -25,9 +25,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const space = SPACE_LABELS[profile.role as keyof typeof SPACE_LABELS] ?? SPACE_LABELS.MODERATOR;
 
   const admin = createAdminClient();
-  const [{ count: pendingReports }, { count: pendingVerifications }, { count: openTickets }] = await Promise.all([
+  const [{ count: pendingReports }, { count: pendingVerifications }, { count: pendingPhotos }, { count: openTickets }] = await Promise.all([
     admin.from("reports").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
     admin.from("verification_requests").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
+    admin.from("profile_photos").select("id", { count: "exact", head: true }).eq("moderation_status", "PENDING"),
     admin.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "OPEN")
   ]);
 
@@ -41,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <AdminTabsNav
             role={profile.role}
-            badgeCounts={{ reports: pendingReports ?? 0, verifications: pendingVerifications ?? 0, support: openTickets ?? 0 }}
+            badgeCounts={{ reports: pendingReports ?? 0, verifications: pendingVerifications ?? 0, photos: pendingPhotos ?? 0, support: openTickets ?? 0 }}
           />
           {children}
         </div>

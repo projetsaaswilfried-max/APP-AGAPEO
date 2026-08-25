@@ -15,6 +15,7 @@ const TABS = [
   { href: "/admin", label: "Vue d'ensemble", minRole: "MODERATOR" },
   { href: "/admin/reports", label: "Signalements", badgeKey: "reports", minRole: "MODERATOR" },
   { href: "/admin/verifications", label: "Vérifications", badgeKey: "verifications", minRole: "MODERATOR" },
+  { href: "/admin/photos", label: "Photos", badgeKey: "photos", minRole: "MODERATOR" },
   { href: "/admin/support", label: "Support", badgeKey: "support", minRole: "MODERATOR" },
   { href: "/admin/users", label: "Utilisateurs", minRole: "ADMIN" },
   { href: "/admin/posts", label: "Fil officiel", minRole: "ADMIN" },
@@ -28,6 +29,7 @@ const ROLE_RANK: Record<AppRole, number> = { USER: 0, MODERATOR: 1, ADMIN: 2, SU
 export interface AdminTabBadgeCounts {
   reports?: number;
   verifications?: number;
+  photos?: number;
   support?: number;
 }
 

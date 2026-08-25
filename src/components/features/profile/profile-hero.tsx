@@ -14,8 +14,11 @@ import {
   Bookmark,
   MessageSquare,
   Heart,
-  Calendar
+  Calendar,
+  Users,
+  Ruler
 } from "lucide-react";
+import { MARITAL_STATUS_LABELS } from "@/domain/marital-status";
 import { cn } from "@/lib/utils";
 
 interface ProfileHeroProps {
@@ -123,6 +126,16 @@ export function ProfileHero({
 
       {/* Badges d'Informations Rapides */}
       <div className="flex flex-wrap items-center gap-2 pt-2 text-xs">
+        {profile.maritalStatus && (
+          <Badge variant="status">
+            <Users size={12} className="mr-1" /> {MARITAL_STATUS_LABELS[profile.maritalStatus]}
+          </Badge>
+        )}
+        {profile.heightCm && (
+          <Badge variant="status">
+            <Ruler size={12} className="mr-1" /> {profile.heightCm} cm
+          </Badge>
+        )}
         <Badge variant="status">
           <Languages size={12} className="mr-1" /> {profile.languages.join(", ")}
         </Badge>

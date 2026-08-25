@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Loader2, Check, Trash2, AlertCircle, ShieldAlert, Clock3 } from "lucide-react";
+import { Camera, Loader2, Check, Trash2, AlertCircle, ShieldAlert, Clock3, Hourglass, Ban } from "lucide-react";
 import { FileSizeHint } from "@/components/ui/file-size-hint";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,14 @@ interface PhotoManagerProps {
   userId: string;
   initialPhotos: ProfilePhotoRow[];
   photoVerificationStatus?: VerificationStatus;
+  /** 2 pour un membre gratuit, 10 pour Premium (cf. carte de l'offre Premium) — l'équipe (is_staff) n'est jamais limitée côté serveur, indépendamment de ce qui est affiché ici. */
+  photoLimit?: number;
   /** Utilisé par l'onboarding pour savoir si au moins une photo existe déjà (étape obligatoire). */
   onPhotosChange?: (photos: ProfilePhotoRow[]) => void;
 }
 
 /** Gestion des photos réutilisée par l'onboarding ET par "Mon Profil" (pour les ajouter/retirer à tout moment). */
-export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, onPhotosChange }: PhotoManagerProps) {
+export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, photoLimit = 2, onPhotosChange }: PhotoManagerProps) {
   const [photos, setPhotosState] = useState(initialPhotos);
   const setPhotos = (updater: ProfilePhotoRow[] | ((prev: ProfilePhotoRow[]) => ProfilePhotoRow[])) => {
     setPhotosState((prev) => {
@@ -37,6 +39,11 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, o
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+
+    if (photos.length >= photoLimit) {
+      setError(`Limite de ${photoLimit} photos atteinte.`);
+      return;
+    }
 
     setError(null);
     setIsUploading(true);
@@ -69,10 +76,17 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, o
   };
 
   const deletingPrimaryWhileVerified = photoPendingDelete?.is_primary && photoVerificationStatus === "VERIFIED";
+  const atLimit = photos.length >= photoLimit;
 
   return (
     <div className="space-y-3">
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFileChange} className="hidden" />
+
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">
+          {photos.length}/{photoLimit} photos
+        </span>
+      </div>
 
       {photoVerificationStatus === "PENDING" && (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700">
@@ -113,19 +127,38 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, o
             >
               <Trash2 size={12} />
             </button>
+            {photo.moderation_status === "PENDING" && (
+              <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1.5 py-1 bg-amber-500/90 text-white text-[9px] font-semibold">
+                <Hourglass size={9} className="shrink-0" /> En attente
+              </div>
+            )}
+            {photo.moderation_status === "REJECTED" && (
+              <div
+                className="absolute inset-x-0 bottom-0 flex items-center gap-1 px-1.5 py-1 bg-destructive/90 text-white text-[9px] font-semibold"
+                title={photo.rejection_reason ?? undefined}
+              >
+                <Ban size={9} className="shrink-0" /> Refusée
+              </div>
+            )}
           </div>
         ))}
 
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
-        >
-          {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
-          <span className="text-xs font-medium">{isUploading ? "Envoi..." : "Ajouter"}</span>
-        </button>
+        {!atLimit && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+          >
+            {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+            <span className="text-xs font-medium">{isUploading ? "Envoi..." : "Ajouter"}</span>
+          </button>
+        )}
       </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        Chaque photo est revue par notre équipe avant d&apos;être visible par les autres membres.
+      </p>
 
       <FileSizeHint maxSizeMb={15} formats="JPG, PNG, WEBP, GIF" />
 

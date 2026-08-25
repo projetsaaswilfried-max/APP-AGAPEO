@@ -62,6 +62,7 @@ export function mapProfileRowToUserProfile(
     profession: row.profession ?? "",
     educationLevel: row.education_level ?? "",
     languages: row.languages,
+    heightCm: row.height_cm,
     status: row.status,
     statusLabel: STATUS_LABELS[row.status],
     compatibilityPercentage: opts.compatibilityPercentage ?? 0,

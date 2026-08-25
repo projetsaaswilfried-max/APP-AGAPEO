@@ -10,11 +10,12 @@ interface OnboardingPhotosStepProps {
   userId: string;
   initialPhotos: ProfilePhotoRow[];
   photoVerificationStatus?: VerificationStatus;
+  photoLimit: number;
   onNext: () => void;
 }
 
 /** Étape obligatoire : au moins une photo est requise pour avancer, aucun moyen de la différer. */
-export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationStatus, onNext }: OnboardingPhotosStepProps) {
+export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationStatus, photoLimit, onNext }: OnboardingPhotosStepProps) {
   const [photos, setPhotos] = useState(initialPhotos);
   const hasPhoto = photos.length > 0;
 
@@ -32,6 +33,7 @@ export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationS
         userId={userId}
         initialPhotos={initialPhotos}
         photoVerificationStatus={photoVerificationStatus}
+        photoLimit={photoLimit}
         onPhotosChange={setPhotos}
       />
 

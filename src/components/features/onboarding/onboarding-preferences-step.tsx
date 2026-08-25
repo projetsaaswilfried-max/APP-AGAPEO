@@ -9,6 +9,7 @@ import { OnboardingStepFooter } from "./onboarding-step-footer";
 import { updateProfileAction, completeOnboardingAction } from "@/lib/actions/profile.actions";
 import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
 import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
+import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import type { ProfileRow, MaritalStatusType } from "@/lib/supabase/database.types";
 
@@ -16,13 +17,6 @@ interface OnboardingPreferencesStepProps {
   profile: ProfileRow;
   onBack?: () => void;
 }
-
-const MARITAL_STATUS_OPTIONS: { value: MaritalStatusType; label: string }[] = [
-  { value: "SINGLE_NO_CHILDREN", label: "Célibataire sans enfant" },
-  { value: "SINGLE_WITH_CHILDREN", label: "Célibataire avec enfant" },
-  { value: "DIVORCED", label: "Divorcé(e)" },
-  { value: "WIDOWED", label: "Veuf / Veuve" }
-];
 
 export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPreferencesStepProps) {
   const [bio, setBio] = useState(profile.bio ?? "");

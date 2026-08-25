@@ -399,6 +399,72 @@ export async function rejectVerificationRequestAction(requestId: string, userId:
   return { success: true };
 }
 
+/**
+ * Valide une photo (plateforme chrétienne : chaque photo est revue avant
+ * d'être visible par quiconque d'autre que son propriétaire). Si c'est la
+ * photo principale choisie par le membre, ou qu'il n'a encore aucun avatar
+ * approuvé, elle devient `profiles.avatar_url` — jamais fait ailleurs pour
+ * une photo encore PENDING (cf. addProfilePhotoAction/setPrimaryPhotoAction).
+ */
+export async function approvePhotoAction(photoId: string, userId: string) {
+  const { user } = await requireStaffSession();
+  const admin = createAdminClient();
+
+  const { data: photo, error: photoError } = await admin
+    .from("profile_photos")
+    .update({ moderation_status: "APPROVED", reviewed_at: new Date().toISOString(), reviewed_by: user.id })
+    .eq("id", photoId)
+    .select("url, is_primary")
+    .single();
+  if (photoError || !photo) return { error: photoError?.message ?? "Photo introuvable." };
+
+  const { data: target } = await admin.from("profiles").select("avatar_url").eq("id", userId).single();
+  if (photo.is_primary || !target?.avatar_url) {
+    await admin.from("profiles").update({ avatar_url: photo.url }).eq("id", userId);
+  }
+
+  await admin.from("notifications").insert({
+    recipient_id: userId,
+    actor_id: user.id,
+    type: "PHOTO_APPROVED",
+    title: "Une de tes photos a été validée",
+    body: "Elle est maintenant visible par les autres membres.",
+    target_url: "/profile"
+  });
+
+  await logAdminAction(user.id, "APPROVE_PHOTO", { targetType: "profile_photo", targetId: photoId, details: { userId } });
+  revalidatePath("/admin/photos");
+  return { success: true };
+}
+
+/** Refuse une photo : jamais rendue visible, la raison est envoyée en notification au membre. */
+export async function rejectPhotoAction(photoId: string, userId: string, reason: string) {
+  const { user } = await requireStaffSession();
+  const trimmedReason = reason.trim();
+  if (!trimmedReason) return { error: "Le motif du refus est obligatoire." };
+
+  const admin = createAdminClient();
+
+  const { error: photoError } = await admin
+    .from("profile_photos")
+    .update({ moderation_status: "REJECTED", rejection_reason: trimmedReason, reviewed_at: new Date().toISOString(), reviewed_by: user.id })
+    .eq("id", photoId);
+  if (photoError) return { error: photoError.message };
+
+  await admin.from("notifications").insert({
+    recipient_id: userId,
+    actor_id: user.id,
+    type: "PHOTO_REJECTED",
+    title: "Une de tes photos n'a pas été validée",
+    body: trimmedReason,
+    target_url: "/profile"
+  });
+
+  await logAdminAction(user.id, "REJECT_PHOTO", { targetType: "profile_photo", targetId: photoId, details: { userId, reason: trimmedReason } });
+  revalidatePath("/admin/photos");
+  return { success: true };
+}
+
 const REPORT_STATUSES = ["PENDING", "REVIEWED", "DISMISSED", "ACTION_TAKEN"] as const;
 
 export async function updateReportStatusAction(reportId: string, status: (typeof REPORT_STATUSES)[number]) {

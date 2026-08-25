@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { VerifiedBadge } from "@/components/ui/verified-badge";
-import { Bookmark, Heart, MapPin, MessageSquare, Lock } from "lucide-react";
+import { MARITAL_STATUS_LABELS } from "@/domain/marital-status";
+import { Bookmark, Heart, MapPin, MessageSquare, Lock, Users, Ruler } from "lucide-react";
 import { cn, maskForPreview } from "@/lib/utils";
 
 interface DiscoverProfileCardProps {
@@ -105,6 +106,21 @@ export function DiscoverProfileCard({
               {displayCountry}
             </span>
           </div>
+
+          {(profile.maritalStatus || profile.heightCm) && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {profile.maritalStatus && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary/70 text-foreground/80">
+                  <Users size={10} className="text-primary shrink-0" /> {MARITAL_STATUS_LABELS[profile.maritalStatus]}
+                </span>
+              )}
+              {profile.heightCm && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary/70 text-foreground/80">
+                  <Ruler size={10} className="text-primary shrink-0" /> {profile.heightCm} cm
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="p-3 rounded-2xl bg-secondary/50 border border-border/40 space-y-1">

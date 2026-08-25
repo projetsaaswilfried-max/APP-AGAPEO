@@ -121,10 +121,31 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expirée." };
 
+  // Vérifié en amont (message précis) plutôt que de laisser la RLS
+  // `profile_photos_insert_own` renvoyer une violation générique.
+  const { data: viewerRow } = await supabase.from("profiles").select("is_staff, is_premium").eq("id", user.id).single();
+  if (!viewerRow?.is_staff) {
+    const { count } = await supabase.from("profile_photos").select("id", { count: "exact", head: true }).eq("profile_id", user.id);
+    const limit = viewerRow?.is_premium ? 10 : 2;
+    if ((count ?? 0) >= limit) {
+      return {
+        error: viewerRow?.is_premium
+          ? `Limite de ${limit} photos atteinte.`
+          : `Limite de ${limit} photos atteinte sur l'offre gratuite. Passe Premium pour en ajouter jusqu'à 10.`
+      };
+    }
+  }
+
   if (isPrimary) {
     await supabase.from("profile_photos").update({ is_primary: false }).eq("profile_id", user.id);
   }
 
+  // Chaque photo ajoutée démarre PENDING (colonne par défaut) — plateforme
+  // chrétienne, aucune photo n'apparaît aux autres membres avant d'avoir été
+  // revue par l'équipe. `profiles.avatar_url` (lu partout, y compris hors
+  // RLS de profile_photos) ne doit donc JAMAIS être mis à jour ici, même si
+  // `isPrimary` est demandé — seule `approvePhotoAction` peut le faire, une
+  // fois la photo réellement validée.
   const { data, error } = await supabase
     .from("profile_photos")
     .insert({ profile_id: user.id, url, storage_path: storagePath, is_primary: isPrimary })
@@ -132,17 +153,6 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
     .single();
 
   if (error) return { error: error.message };
-
-  if (isPrimary) {
-    await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
-
-    // Pas de ré-abonnement automatique à la vérification ici : depuis
-    // l'ajout du selfie live obligatoire (cf. submitVerificationRequestAction),
-    // une soumission ne peut plus se faire "en silence" côté serveur — il
-    // faut une caméra et une personne en face. Un profil qui avait perdu sa
-    // photo (voir removeProfilePhotoAction) reste donc UNVERIFIED jusqu'à ce
-    // que le membre soumette lui-même une nouvelle demande depuis "Mon Compte".
-  }
 
   revalidatePath("/profile");
   return { success: true, photo: data };
@@ -163,7 +173,7 @@ export async function setPrimaryPhotoAction(photoId: string) {
 
   const { data: photo, error: fetchError } = await supabase
     .from("profile_photos")
-    .select("url")
+    .select("url, moderation_status")
     .eq("id", photoId)
     .eq("profile_id", user.id)
     .single();
@@ -173,7 +183,11 @@ export async function setPrimaryPhotoAction(photoId: string) {
   const { error } = await supabase.from("profile_photos").update({ is_primary: true }).eq("id", photoId);
   if (error) return { error: error.message };
 
-  await supabase.from("profiles").update({ avatar_url: photo.url }).eq("id", user.id);
+  // `avatar_url` (visible par tout le monde, hors RLS de profile_photos) ne
+  // doit jamais refléter une photo pas encore validée par l'équipe.
+  if (photo.moderation_status === "APPROVED") {
+    await supabase.from("profiles").update({ avatar_url: photo.url }).eq("id", user.id);
+  }
 
   revalidatePath("/profile");
   revalidatePath("/discover");

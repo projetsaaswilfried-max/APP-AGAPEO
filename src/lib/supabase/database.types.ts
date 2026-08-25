@@ -10,6 +10,7 @@ export type GenderType = "MALE" | "FEMALE";
 export type RelationshipStatusDb = "AVAILABLE" | "IN_DISCUSSION" | "ON_PAUSE";
 export type MaritalStatusType = "SINGLE_NO_CHILDREN" | "SINGLE_WITH_CHILDREN" | "DIVORCED" | "WIDOWED";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
+export type PhotoModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export type PostType = "OFFICIAL" | "PERSONAL";
 export type PostCategory = "TEACHING" | "TESTIMONY" | "WORKSHOP" | "ADVICE" | "ANNOUNCEMENT" | "QUOTE" | "VERSE" | "NEWS";
@@ -32,7 +33,9 @@ export type NotificationTypeDb =
   | "NEW_RECOMMENDATION"
   | "OFFICIAL_POST"
   | "SUPPORT_REPLY"
-  | "NEW_RESOURCE";
+  | "NEW_RESOURCE"
+  | "PHOTO_APPROVED"
+  | "PHOTO_REJECTED";
 
 export type ConversationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 export type MatchStatus = "PENDING" | "ACCEPTED" | "CANCELLED";
@@ -203,6 +206,11 @@ export interface ProfilePhotoRow {
   is_primary: boolean;
   caption: string | null;
   position: number;
+  /** PENDING tant que l'équipe n'a pas revu la photo — jamais visible par quelqu'un d'autre que le propriétaire avant APPROVED. */
+  moderation_status: PhotoModerationStatus;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  rejection_reason: string | null;
   created_at: string;
 }
 export type ProfilePhotoInsert = Pick<ProfilePhotoRow, "profile_id" | "url" | "storage_path"> &
