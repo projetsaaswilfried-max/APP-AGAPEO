@@ -13,6 +13,9 @@ const PUBLIC_ROUTES = [
   "/cgv",
   "/politique-de-confidentialite",
   "/mentions-legales",
+  // Exigée par Google Play pour toute appli sociale/rencontre — doit rester
+  // accessible publiquement sans connexion (renseignée dans la Play Console).
+  "/normes-securite-enfants",
   // Fichiers de convention Next.js (robots.txt, sitemap.xml, images de
   // partage) : sans cette exclusion, Googlebot et les crawlers de reseaux
   // sociaux (WhatsApp, etc.), qui n'ont pas de cookie de session, etaient
