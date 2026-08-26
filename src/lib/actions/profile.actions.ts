@@ -124,7 +124,11 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
 
   // Vérifié en amont (message précis) plutôt que de laisser la RLS
   // `profile_photos_insert_own` renvoyer une violation générique.
-  const { data: viewerRow } = await supabase.from("profiles").select("first_name, is_staff, is_premium").eq("id", user.id).single();
+  const { data: viewerRow } = await supabase
+    .from("profiles")
+    .select("first_name, is_staff, is_premium, photo_verification_status")
+    .eq("id", user.id)
+    .single();
   if (!viewerRow?.is_staff) {
     const { count } = await supabase.from("profile_photos").select("id", { count: "exact", head: true }).eq("profile_id", user.id);
     const limit = viewerRow?.is_premium ? 10 : 2;
@@ -142,11 +146,8 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
   }
 
   // Chaque photo ajoutée démarre PENDING (colonne par défaut) — plateforme
-  // chrétienne, aucune photo n'apparaît aux autres membres avant d'avoir été
-  // revue par l'équipe. `profiles.avatar_url` (lu partout, y compris hors
-  // RLS de profile_photos) ne doit donc JAMAIS être mis à jour ici, même si
-  // `isPrimary` est demandé — seule `approvePhotoAction` peut le faire, une
-  // fois la photo réellement validée.
+  // chrétienne, aucune photo n'apparaît aux AUTRES membres avant d'avoir été
+  // revue par l'équipe.
   const { data, error } = await supabase
     .from("profile_photos")
     .insert({ profile_id: user.id, url, storage_path: storagePath, is_primary: isPrimary })
@@ -154,6 +155,18 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
     .single();
 
   if (error) return { error: error.message };
+
+  // Avant toute première vérification, personne d'autre ne peut voir ce
+  // profil (Découvrir et la fiche publique exigent VERIFIED) — refléter tout
+  // de suite la photo choisie dans `avatar_url` ne l'expose donc à personne,
+  // et évite de bloquer la première soumission pour vérification derrière
+  // une modération qui n'a pas encore eu lieu (isProfileComplete() exige
+  // avatar_url). Une fois déjà VERIFIED, un changement de photo doit en
+  // revanche repasser par `approvePhotoAction` avant de remplacer ce que
+  // voient les autres membres.
+  if (isPrimary && viewerRow?.photo_verification_status !== "VERIFIED") {
+    await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+  }
 
   if (user.email) {
     await sendPhotoEmail({ to: user.email, firstName: viewerRow?.first_name ?? "", kind: "SUBMITTED" });
@@ -184,13 +197,17 @@ export async function setPrimaryPhotoAction(photoId: string) {
     .single();
   if (fetchError || !photo) return { error: "Photo introuvable." };
 
+  const { data: viewerRow } = await supabase.from("profiles").select("photo_verification_status").eq("id", user.id).single();
+
   await supabase.from("profile_photos").update({ is_primary: false }).eq("profile_id", user.id);
   const { error } = await supabase.from("profile_photos").update({ is_primary: true }).eq("id", photoId);
   if (error) return { error: error.message };
 
   // `avatar_url` (visible par tout le monde, hors RLS de profile_photos) ne
-  // doit jamais refléter une photo pas encore validée par l'équipe.
-  if (photo.moderation_status === "APPROVED") {
+  // doit jamais refléter une photo pas encore validée par l'équipe UNE FOIS
+  // déjà vérifié — mais avant cette première vérification, personne d'autre
+  // ne peut de toute façon voir ce profil (même règle que addProfilePhotoAction).
+  if (photo.moderation_status === "APPROVED" || viewerRow?.photo_verification_status !== "VERIFIED") {
     await supabase.from("profiles").update({ avatar_url: photo.url }).eq("id", user.id);
   }
 

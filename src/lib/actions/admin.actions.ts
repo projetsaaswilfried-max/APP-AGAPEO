@@ -355,6 +355,17 @@ export async function approveVerificationRequestAction(requestId: string, userId
     .eq("id", requestId);
   if (requestError) return { error: requestError.message };
 
+  // Les photos soumises avec cette toute première vérification sont encore
+  // PENDING (cf. addProfilePhotoAction) — valider le profil doit aussi les
+  // approuver, sinon la galerie resterait invisible pour les autres membres
+  // malgré le badge VERIFIED. Un ajout de photo ULTÉRIEUR (une fois déjà
+  // vérifié) repassera, lui, par la modération individuelle habituelle.
+  await admin
+    .from("profile_photos")
+    .update({ moderation_status: "APPROVED", reviewed_at: new Date().toISOString(), reviewed_by: user.id })
+    .eq("profile_id", userId)
+    .eq("moderation_status", "PENDING");
+
   // Repart de zéro pour la séquence email "passe Premium" (cf. migration
   // activation_email_sequences) — utile si ce membre avait déjà été vérifié
   // puis avait perdu son statut (photo supprimée) : une nouvelle validation
