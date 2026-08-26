@@ -1,6 +1,23 @@
 import { SITE_CONFIG } from "@/config/site";
 
 /**
+ * `recipientFirstName` et `infoRows` sont toujours censés être du texte brut
+ * (un prénom, un montant...), jamais du HTML — contrairement à `contentHtml`,
+ * qui lui est délibérément conçu pour recevoir du HTML riche et reste donc
+ * la responsabilité de chaque appelant de son propre échappement. Sans ce
+ * garde-fou ici, le prénom d'un membre contenant du HTML/JS s'afficherait
+ * tel quel dans CHAQUE email généré par ce gabarit partagé.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+/**
  * Hébergé sur Supabase Storage (bucket public `avatars`) plutôt que servi par
  * l'app Next.js elle-même : un client email externe ne peut pas atteindre
  * `NEXT_PUBLIC_SITE_URL` tant que l'app n'est pas déployée sur un vrai domaine
@@ -53,15 +70,15 @@ export function buildAgapeoEmailHtml({
 }: EmailTemplateOptions): string {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || SITE_CONFIG.url;
   const primaryCtaUrl = ctaUrl || siteUrl;
-  const greeting = recipientFirstName ? `Bonjour ${recipientFirstName},` : "Bonjour,";
+  const greeting = recipientFirstName ? `Bonjour ${escapeHtml(recipientFirstName)},` : "Bonjour,";
 
   const infoRowsHtml = infoRows?.length
     ? `<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0; border: 1px solid #E2E8F0; border-radius: 14px; overflow: hidden;">
         ${infoRows
           .map(
             (row, i) => `<tr>
-              <td style="padding: 13px 16px; ${i > 0 ? "border-top: 1px solid #E2E8F0;" : ""} font-size: 12px; color: #94A3B8;">${row.label}</td>
-              <td style="padding: 13px 16px; ${i > 0 ? "border-top: 1px solid #E2E8F0;" : ""} font-size: 13px; font-weight: 700; color: #1A1D21; text-align: right;">${row.value}</td>
+              <td style="padding: 13px 16px; ${i > 0 ? "border-top: 1px solid #E2E8F0;" : ""} font-size: 12px; color: #94A3B8;">${escapeHtml(row.label)}</td>
+              <td style="padding: 13px 16px; ${i > 0 ? "border-top: 1px solid #E2E8F0;" : ""} font-size: 13px; font-weight: 700; color: #1A1D21; text-align: right;">${escapeHtml(row.value)}</td>
             </tr>`
           )
           .join("")}

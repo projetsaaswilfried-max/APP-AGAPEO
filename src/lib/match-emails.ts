@@ -2,6 +2,16 @@ import "server-only";
 import { getResendApiKey, env } from "@/config/env";
 import { buildAgapeoEmailHtml } from "@/lib/email-template";
 
+/** Le prénom du partenaire est injecté tel quel dans le HTML de l'email — sans échappement, un prénom contenant du HTML/JS s'afficherait mal ou s'exécuterait dans la boîte mail du destinataire. */
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 /** Best-effort — jamais bloquant : le match en base est déjà acté, que l'email parte ou non. */
 async function sendResendEmail(to: string, subject: string, html: string) {
   try {
@@ -24,17 +34,19 @@ async function sendResendEmail(to: string, subject: string, html: string) {
  * pour le couple.
  */
 export async function sendMatchAcceptedEmail(to: string, firstName: string, partnerFirstName: string) {
+  const safeFirstName = escapeHtml(firstName);
+  const safePartnerFirstName = escapeHtml(partnerFirstName);
   await sendResendEmail(
     to,
     "Félicitations, votre match est confirmé ! 🎉",
     buildAgapeoEmailHtml({
       title: "Votre match est confirmé",
       eyebrow: "MATCH",
-      headline: `${partnerFirstName} et toi venez de matcher !`,
+      headline: `${safePartnerFirstName} et toi venez de matcher !`,
       recipientFirstName: firstName,
       contentHtml: `
         <p style="margin:0 0 14px 0;">
-          C'est une magnifique nouvelle : toi et <strong>${partnerFirstName}</strong> avez tous les deux confirmé
+          C'est une magnifique nouvelle : toi et <strong>${safePartnerFirstName}</strong> avez tous les deux confirmé
           vouloir avancer ensemble. Vous démarrez officiellement une relation, et toute l'équipe Agapeo s'en réjouit
           avec vous. Depuis cet instant, vos deux profils ne sont plus visibles dans Découvrir — vous restez ainsi
           l'un pour l'autre tant que votre relation dure.
@@ -59,7 +71,7 @@ export async function sendMatchAcceptedEmail(to: string, firstName: string, part
 
         <p style="margin:0 0 6px 0;font-weight:700;color:#1A1D21;">Une prière pour vous deux</p>
         <p style="margin:0;font-style:italic;">
-          « Seigneur, nous te confions ${firstName} et ${partnerFirstName} en ce début d'histoire. Que ta présence
+          « Seigneur, nous te confions ${safeFirstName} et ${safePartnerFirstName} en ce début d'histoire. Que ta présence
           guide chacun de leurs pas, que ton amour soit le modèle du leur, et que leur relation grandisse dans la
           vérité, la patience et le respect. Donne-leur le discernement à chaque étape, et entoure-les de
           personnes sages pour les accompagner. Amen. »
