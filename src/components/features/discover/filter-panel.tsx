@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SUPPORTED_COUNTRIES } from "@/config/countries";
 import { FAITH_ENGAGEMENT_LEVELS } from "@/config/faith-options";
+import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
 import { SlidersHorizontal, RefreshCw, X, Lock } from "lucide-react";
 
 interface FilterPanelProps {
@@ -174,6 +175,22 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose,
             <option value="ALL">Tous les statuts</option>
             <option value="AVAILABLE">Disponible uniquement</option>
             <option value="IN_DISCUSSION">En discussion</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Situation matrimoniale</label>
+          <select
+            value={filters.maritalStatus ?? ""}
+            onChange={(e) => update({ maritalStatus: e.target.value || undefined })}
+            className={selectClass}
+          >
+            <option value="">Toutes situations</option>
+            {MARITAL_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </div>
       </div>

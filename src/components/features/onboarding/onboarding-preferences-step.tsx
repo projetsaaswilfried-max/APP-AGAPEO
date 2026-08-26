@@ -34,6 +34,13 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
   // Seul champ réellement requis pour la vérification (cf. isProfileComplete côté serveur) —
   // évite de faire capturer un selfie pour un profil qu'on sait déjà incomplet.
   const isComplete = Boolean(whyMarriage.trim());
+  // Un membre déjà VERIFIED (ou dont la demande est déjà PENDING) qui revient
+  // ici juste pour ajuster ses préférences ne doit jamais repasser par un
+  // selfie/une nouvelle soumission — seul UNVERIFIED (jamais soumis) ou
+  // REJECTED (refusé, doit resoumettre) en ont réellement besoin. Supprimer
+  // sa photo de profil repasse justement le statut à UNVERIFIED (cf.
+  // removeProfilePhotoAction), ce qui redéclenchera naturellement ce flux.
+  const needsVerificationSubmission = profile.photo_verification_status === "UNVERIFIED" || profile.photo_verification_status === "REJECTED";
 
   const toggleMaritalStatus = (value: MaritalStatusType) => {
     setDesiredMaritalStatuses((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
@@ -51,13 +58,22 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       desired_countries: desiredCountries
     });
 
-  /** Bouton principal : enregistre le profil, puis ouvre la capture du selfie de vérification. */
+  /**
+   * Bouton principal : enregistre le profil, puis n'ouvre la capture du
+   * selfie que si une (nouvelle) vérification est réellement nécessaire —
+   * sinon ça se termine directement, sans jamais redemander de selfie à
+   * quelqu'un qui a déjà son badge pour un simple ajustement de préférences.
+   */
   const handleSubmit = () => {
     if (!isComplete) return;
     setSubmitError(null);
     startTransition(async () => {
       await savePreferences();
-      setIsSelfieModalOpen(true);
+      if (needsVerificationSubmission) {
+        setIsSelfieModalOpen(true);
+      } else {
+        await completeOnboardingAction();
+      }
     });
   };
 
@@ -156,13 +172,19 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       )}
 
       <p className="text-xs text-muted-foreground">
-        En soumettant, on te demandera un selfie en direct (comparé à tes photos par notre équipe), puis ton profil
-        sera envoyé pour vérification — tu recevras un email de confirmation. Retrouve aussi ce bouton à tout moment
-        depuis{" "}
-        <Link href="/profile" className="text-accent underline underline-offset-2">
-          Mon Compte & Sécurité
-        </Link>
-        .
+        {needsVerificationSubmission ? (
+          <>
+            En soumettant, on te demandera un selfie en direct (comparé à tes photos par notre équipe), puis ton
+            profil sera envoyé pour vérification — tu recevras un email de confirmation. Retrouve aussi ce bouton à
+            tout moment depuis{" "}
+            <Link href="/profile" className="text-accent underline underline-offset-2">
+              Mon Compte & Sécurité
+            </Link>
+            .
+          </>
+        ) : (
+          "Ton profil est déjà vérifié — ces modifications sont enregistrées directement, sans nouvelle demande de vérification."
+        )}
       </p>
 
       <OnboardingStepFooter
@@ -170,7 +192,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
         onBack={onBack}
         isSaving={isPending || isFinishing}
         isNextDisabled={!isComplete}
-        saveLabel="Soumettre"
+        saveLabel={needsVerificationSubmission ? "Soumettre" : "Enregistrer"}
       />
 
       <SelfieCaptureModal

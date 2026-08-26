@@ -28,12 +28,15 @@ function overlapRatio(a: string[], b: string[]): number {
 
 /**
  * Moteur de compatibilité — déterministe et explicable (règle 7 du cahier
- * des charges). Chaque dimension a un poids fixe (20+20+15+15+10 = 80 pts
- * max) ; le détail est isolé ici pour pouvoir faire évoluer la pondération
- * ou brancher un futur modèle plus sophistiqué sans toucher au reste de
- * l'application. La situation matrimoniale (acceptée/recherchée) n'est
- * volontairement pas notée ici : c'est un filtre strict appliqué en amont
- * (cf. discover.service.ts), pas un critère de score.
+ * des charges). Chaque dimension a un poids fixe (20+20+15+15+10+20 = 100
+ * pts max) ; le détail est isolé ici pour pouvoir faire évoluer la
+ * pondération ou brancher un futur modèle plus sophistiqué sans toucher au
+ * reste de l'application. La situation matrimoniale réciproque est notée
+ * ici comme les autres critères plutôt qu'appliquée comme un filtre strict
+ * (cf. discover.service.ts) : un désaccord ne doit plus masquer purement et
+ * simplement un profil, seulement le faire apparaître comme moins compatible
+ * — Découvrir propose déjà un filtre de recherche pour qui veut vraiment
+ * restreindre sur ce critère.
  */
 export function computeCompatibility(viewer: ProfileRow, candidate: ProfileRow): CompatibilityResult {
   let score = 0;
@@ -90,6 +93,22 @@ export function computeCompatibility(viewer: ProfileRow, candidate: ProfileRow):
     reasons.push("Vous correspondez tous les deux à la tranche d'âge recherchée");
   } else if (candidateInViewerRange || viewerInCandidateRange) {
     score += 5;
+  }
+
+  // Situation matrimoniale réciproque — 20 pts
+  const candidateMaritalOk =
+    viewer.desired_marital_statuses.length === 0 ||
+    !candidate.marital_status ||
+    viewer.desired_marital_statuses.includes(candidate.marital_status);
+  const viewerMaritalOk =
+    candidate.desired_marital_statuses.length === 0 ||
+    !viewer.marital_status ||
+    candidate.desired_marital_statuses.includes(viewer.marital_status);
+  if (candidateMaritalOk && viewerMaritalOk) {
+    score += 20;
+    reasons.push("Votre situation matrimoniale correspond à ce que vous recherchez tous les deux");
+  } else if (candidateMaritalOk || viewerMaritalOk) {
+    score += 10;
   }
 
   if (reasons.length === 0) {

@@ -68,14 +68,11 @@ class DiscoverServiceSupabase implements IDiscoverService {
     if (filters.country) query = query.eq("country", filters.country);
     if (filters.status && filters.status !== "ALL") query = query.eq("status", filters.status as ProfileRow["status"]);
 
-    // Situation matrimoniale acceptée par le viewer — filtre strict (comme le
-    // genre/l'âge), pas un critère de score. Les candidats n'ayant pas encore
-    // renseigné leur situation restent affichés (rétrocompatibilité) : seul
-    // un candidat ayant EXPLICITEMENT une situation NON acceptée est exclu.
-    if (viewer.desired_marital_statuses.length > 0) {
-      const accepted = viewer.desired_marital_statuses.join(",");
-      query = query.or(`marital_status.is.null,marital_status.in.(${accepted})`);
-    }
+    // La situation matrimoniale acceptée n'exclut plus personne de la
+    // requête — c'est désormais un critère de score (cf. compatibility.ts),
+    // pas un filtre strict. Qui veut vraiment restreindre là-dessus peut
+    // utiliser le filtre de recherche ci-dessous.
+    if (filters.maritalStatus) query = query.eq("marital_status", filters.maritalStatus);
 
     const canUseAdvancedFilters = viewer.is_premium || viewer.is_staff;
     if (canUseAdvancedFilters) {

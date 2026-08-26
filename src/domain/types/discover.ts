@@ -16,6 +16,7 @@ export interface DiscoverFilterCriteria {
   wantsChildren?: boolean;
   coreValue?: string;
   status?: string;
+  maritalStatus?: string;
 }
 
 export interface RecommendedProfileItem {
