@@ -133,6 +133,13 @@ function DiscoverPageContent() {
   };
 
   const recommendedHighlight = profiles.find((p) => p.compatibilityPercentage >= 90);
+  // Le reste de la liste se scinde en deux groupes affichés l'un après
+  // l'autre : les mieux compatibles d'abord (même seuil que les
+  // notifications "nouvelle recommandation"), puis tous les autres profils
+  // correspondant aux critères — jamais masqués, juste affichés en second.
+  const remainingProfiles = profiles.filter((p) => p.profile.id !== recommendedHighlight?.profile.id);
+  const recommendedProfiles = remainingProfiles.filter((p) => p.compatibilityPercentage >= 85);
+  const otherProfiles = remainingProfiles.filter((p) => p.compatibilityPercentage < 85);
   const bannerContent = !canInteract
     ? VERIFICATION_BANNER_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
     : null;
@@ -271,14 +278,39 @@ function DiscoverPageContent() {
         />
       )}
 
-      {!isLoading && !isError && profiles.length > 0 && (
+      {!isLoading && !isError && recommendedProfiles.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Profils recommandés pour vous ({profiles.length})
+            Profils recommandés pour vous ({recommendedProfiles.length})
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {profiles.map((item) => (
+            {recommendedProfiles.map((item) => (
+              <DiscoverProfileCard
+                key={item.profile.id}
+                item={item}
+                canInteract={canInteract}
+                onInspectProfile={(prof) => {
+                  setSelectedProfile(prof);
+                  setIsInspectorOpen(true);
+                }}
+                onToggleFavorite={handleToggleFavorite}
+                onSendMessage={handleSendMessage}
+                onRequireVerification={handleRequireVerification}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isLoading && !isError && otherProfiles.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Autres profils ({otherProfiles.length})
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {otherProfiles.map((item) => (
               <DiscoverProfileCard
                 key={item.profile.id}
                 item={item}
