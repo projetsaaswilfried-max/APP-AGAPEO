@@ -349,9 +349,7 @@ export function PublicationCard({
         </div>
       )}
 
-      {publication.mediaType === "YOUTUBE" && publication.videoUrl && (
-        <YouTubePlayer videoId={publication.videoUrl} thumbnailUrl={publication.videoThumbnail} />
-      )}
+      {publication.mediaType === "YOUTUBE" && publication.videoUrl && <YouTubePlayer videoId={publication.videoUrl} />}
 
       {/* Barre d'Actions & Compteurs */}
       <CardFooter className="px-5 py-3 border-t border-border/40 flex flex-col space-y-3">
