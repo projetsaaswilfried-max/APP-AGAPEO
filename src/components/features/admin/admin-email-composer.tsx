@@ -235,7 +235,7 @@ export function AdminEmailComposer({ initialCounts, directRecipients, history: i
           </div>
         )}
 
-        <Input label="Objet" placeholder="Ex : Nouveautés sur Agape cette semaine" value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} />
+        <Input label="Objet" placeholder="Ex : Nouveautés sur Agapeo cette semaine" value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={200} />
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">

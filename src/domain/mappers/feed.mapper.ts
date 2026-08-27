@@ -82,7 +82,7 @@ interface MapPostOptions {
 
 export function mapPostRowToFeedPublication(row: PostRow, opts: MapPostOptions = {}): FeedPublication {
   const author = opts.author;
-  const authorName = row.post_type === "OFFICIAL" ? "Équipe Agape" : author ? `${author.first_name} ${author.last_name}`.trim() : "Membre";
+  const authorName = row.post_type === "OFFICIAL" ? "Équipe Agapeo" : author ? `${author.first_name} ${author.last_name}`.trim() : "Membre";
   const isVerified = row.post_type === "OFFICIAL" || (author ? getProfileBadges(author).some((b) => b.code === "VERIFIED_FAITH") : false);
 
   return {

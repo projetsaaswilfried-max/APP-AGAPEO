@@ -23,7 +23,7 @@ export default async function SuspendedPage() {
       <div>
         <h2 className="text-base font-display font-semibold text-foreground">Compte suspendu</h2>
         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-          Ton accès à Agape a été suspendu par l&apos;équipe de modération
+          Ton accès à Agapeo a été suspendu par l&apos;équipe de modération
           {profile.suspended_reason ? ` : ${profile.suspended_reason}` : "."}
         </p>
         <p className="text-xs text-muted-foreground mt-2">

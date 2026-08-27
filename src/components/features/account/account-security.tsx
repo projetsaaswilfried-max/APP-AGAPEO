@@ -264,7 +264,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
         <div>
           <h3 className="text-sm font-display font-semibold text-foreground tracking-tight">Mes données personnelles</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Télécharge une copie complète des données que tu as fournies ou générées sur Agape (profil, publications, favoris, messages envoyés...).
+            Télécharge une copie complète des données que tu as fournies ou générées sur Agapeo (profil, publications, favoris, messages envoyés...).
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -406,7 +406,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         title="Confirmer la suppression du compte"
-        description="Es-tu certain(e) de vouloir supprimer ton compte Agape ?"
+        description="Es-tu certain(e) de vouloir supprimer ton compte Agapeo ?"
         footer={
           <>
             <Button variant="ghost" size="sm" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting}>

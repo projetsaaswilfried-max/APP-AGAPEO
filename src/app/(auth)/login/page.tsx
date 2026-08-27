@@ -196,7 +196,7 @@ function LoginForm() {
       {/* Footer Legal Notice (Matching Reference Image) */}
       <div className="pt-4 text-center border-t border-border/40 text-[11px] text-muted-foreground">
         <p>
-          Copyright © {new Date().getFullYear()} Agape, Tous droits réservés |{" "}
+          Copyright © {new Date().getFullYear()} {SITE_CONFIG.name}, Tous droits réservés |{" "}
           <Link href={SITE_CONFIG.links.terms} className="hover:text-foreground underline-offset-4 hover:underline">
             Conditions d&apos;utilisation
           </Link>{" "}
