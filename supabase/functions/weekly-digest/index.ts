@@ -8,7 +8,7 @@
 // fonction pure évite toute fragilité de bundling. À garder synchronisée si
 // la pondération change côté application.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
+import { buildAgapeoEmailHtml, escapeHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 interface ProfileRow {
@@ -131,9 +131,9 @@ function renderEmailHtml(viewerFirstName: string, matches: { firstName: string; 
       (m) => `
       <tr>
         <td style="padding:16px;border-bottom:1px solid #eee;">
-          <div style="font-weight:600;font-size:15px;color:#090A0F;">${m.firstName}, ${m.age} ans — ${m.score}%</div>
-          <div style="font-size:13px;color:#64748B;margin-top:2px;">${m.city ? m.city + ", " : ""}${m.country}</div>
-          ${m.reasons[0] ? `<div style="font-size:12px;color:#FE70B2;margin-top:6px;">✓ ${m.reasons[0]}</div>` : ""}
+          <div style="font-weight:600;font-size:15px;color:#090A0F;">${escapeHtml(m.firstName)}, ${m.age} ans — ${m.score}%</div>
+          <div style="font-size:13px;color:#64748B;margin-top:2px;">${m.city ? escapeHtml(m.city) + ", " : ""}${escapeHtml(m.country)}</div>
+          ${m.reasons[0] ? `<div style="font-size:12px;color:#FE70B2;margin-top:6px;">✓ ${escapeHtml(m.reasons[0])}</div>` : ""}
         </td>
       </tr>`
     )

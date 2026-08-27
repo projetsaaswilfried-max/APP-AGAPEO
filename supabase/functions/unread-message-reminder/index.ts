@@ -4,7 +4,7 @@
 // conversation par passage, suivi via messages.reminder_email_sent_at
 // (jamais réenvoyé pour un même message).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
+import { buildAgapeoEmailHtml, escapeHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -100,13 +100,14 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const senderName = senderProfile?.first_name ?? "Un membre";
+    const rawSenderName = senderProfile?.first_name ?? "Un membre";
+    const senderName = escapeHtml(rawSenderName);
     const count = rows.length;
 
     try {
       await sendResendEmail(
         email,
-        count > 1 ? `${count} messages t'attendent sur Agapeo` : `${senderName} attend ta réponse sur Agapeo`,
+        count > 1 ? `${count} messages t'attendent sur Agapeo` : `${rawSenderName} attend ta réponse sur Agapeo`,
         buildAgapeoEmailHtml({
           title: "Message en attente sur Agapeo",
           preheader: "Tu as un message qui attend une réponse",

@@ -3,7 +3,7 @@
 // synchroniquement par le trigger notify_first_message_email() (pg_net)
 // à chaque insertion dans `messages`, filtré côté DB au premier message.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
+import { buildAgapeoEmailHtml, escapeHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -43,7 +43,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "RESEND_API_KEY manquant" }), { status: 500 });
     }
 
-    const senderName = senderProfile?.first_name ?? "Un membre";
+    const rawSenderName = senderProfile?.first_name ?? "Un membre";
+    const senderName = escapeHtml(rawSenderName);
     const html = buildAgapeoEmailHtml({
       title: "Nouveau message sur Agapeo",
       preheader: `${senderName} vous a envoyé un message`,
@@ -61,7 +62,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [email],
-        subject: `${senderName} vous a envoyé un message sur Agapeo`,
+        subject: `${rawSenderName} vous a envoyé un message sur Agapeo`,
         html
       })
     });

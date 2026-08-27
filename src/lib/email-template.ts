@@ -8,7 +8,7 @@ import { SITE_CONFIG } from "@/config/site";
  * garde-fou ici, le prénom d'un membre contenant du HTML/JS s'afficherait
  * tel quel dans CHAQUE email généré par ce gabarit partagé.
  */
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")

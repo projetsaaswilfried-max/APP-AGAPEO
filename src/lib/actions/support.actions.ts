@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getResendApiKey, getSupportEmail, env } from "@/config/env";
-import { buildAgapeoEmailHtml } from "@/lib/email-template";
+import { buildAgapeoEmailHtml, escapeHtml } from "@/lib/email-template";
 
 /**
  * Notifie l'équipe par email qu'un membre vient d'écrire dans un dossier de
@@ -33,10 +33,10 @@ export async function notifyStaffOfSupportMessageAction(ticketId: string, subjec
         subject: `Support — ${subject}`,
         html: buildAgapeoEmailHtml({
           title: "Nouveau message support",
-          preheader: `${name} vient d'écrire dans un dossier support`,
+          preheader: `${escapeHtml(name)} vient d'écrire dans un dossier support`,
           eyebrow: "SUPPORT",
-          headline: subject,
-          contentHtml: `<div style="background:#F4F6F8;border-radius:12px;padding:14px 16px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-line;">${content}</div>`,
+          headline: escapeHtml(subject),
+          contentHtml: `<div style="background:#F4F6F8;border-radius:12px;padding:14px 16px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-line;">${escapeHtml(content)}</div>`,
           infoRows: [
             { label: "De", value: name },
             { label: "Email", value: user.email ?? "inconnu" }

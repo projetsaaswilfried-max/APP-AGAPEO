@@ -18,7 +18,7 @@ const LOGO_BADGE_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/v1/obje
 // responsabilité de chaque appelant. Sans ça, le prénom d'un membre contenant
 // du HTML/JS s'afficherait tel quel (trouvé et corrigé côté src/lib/email-template.ts
 // lors de l'audit sécurité — cette copie Deno l'avait manqué).
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
