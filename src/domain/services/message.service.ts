@@ -38,6 +38,9 @@ export interface IMessageService {
 /** Un seul canal "typing" réutilisé par conversation — évite d'ouvrir un nouveau canal Realtime à chaque frappe. */
 const typingSendChannels = new Map<string, ReturnType<ReturnType<typeof createClient>["channel"]>>();
 
+/** Doit rester synchronisé avec le `< 3` de la policy RLS `conversations_insert` (20260831060000). */
+const FREE_MONTHLY_INVITATION_LIMIT = 3;
+
 async function getCurrentUserId(): Promise<string> {
   const supabase = createClient();
   const {
@@ -203,11 +206,13 @@ class MessageServiceSupabase implements IMessageService {
       throw new VerificationRequiredError("Valide ton profil pour contacter ce membre.");
     }
 
-    // Les invitations sont gratuites (contrairement à la messagerie une fois
-    // acceptée) mais plafonnées à 10/mois pour un membre gratuit — la RLS
-    // `conversations_insert` applique la même règle en dernier rempart,
-    // ceci ne sert qu'à afficher un message précis plutôt qu'une violation
-    // RLS générique.
+    // Les invitations sont gratuites mais plafonnées pour un membre gratuit
+    // (FREE_MONTHLY_INVITATION_LIMIT) — la RLS `conversations_insert` applique
+    // la même règle en dernier rempart, ceci ne sert qu'à afficher un message
+    // précis plutôt qu'une violation RLS générique. La messagerie, elle, reste
+    // verrouillée Premium en toutes circonstances une fois la conversation
+    // acceptée (cf. `messages_insert` / `canSendMessages` côté UI) : ce n'est
+    // pas ce compteur-ci qui la contrôle.
     if (!viewerRow?.is_staff) {
       const { data: restrictedRow } = await supabase.from("profile_restricted").select("subscription_status").eq("id", myId).single();
       if (restrictedRow?.subscription_status !== "ACTIVE") {
@@ -219,8 +224,10 @@ class MessageServiceSupabase implements IMessageService {
           .select("id", { count: "exact", head: true })
           .eq("initiated_by", myId)
           .gte("created_at", startOfMonth.toISOString());
-        if ((count ?? 0) >= 10) {
-          throw new PremiumRequiredError("Tu as atteint la limite de 10 invitations gratuites ce mois-ci. Passe Premium pour en envoyer en illimité.");
+        if ((count ?? 0) >= FREE_MONTHLY_INVITATION_LIMIT) {
+          throw new PremiumRequiredError(
+            `Tu as atteint la limite de ${FREE_MONTHLY_INVITATION_LIMIT} invitations gratuites ce mois-ci. Passe Premium pour en envoyer en illimité.`
+          );
         }
       }
     }
