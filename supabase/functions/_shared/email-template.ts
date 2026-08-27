@@ -13,6 +13,20 @@ const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 // n'altère jamais les pixels d'une image.
 const LOGO_BADGE_URL = "https://cfmrykzqxcjhpktuxopu.supabase.co/storage/v1/object/public/avatars/platform/agapeo-email-header-badge.png";
 
+// `recipientFirstName`/`infoRows` sont toujours du texte brut (un prénom, un
+// montant) — jamais du HTML, contrairement à `contentHtml` qui reste la
+// responsabilité de chaque appelant. Sans ça, le prénom d'un membre contenant
+// du HTML/JS s'afficherait tel quel (trouvé et corrigé côté src/lib/email-template.ts
+// lors de l'audit sécurité — cette copie Deno l'avait manqué).
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export interface EmailInfoRow {
   label: string;
   value: string;
@@ -42,15 +56,15 @@ export function buildAgapeoEmailHtml({
   ctaUrl
 }: EmailTemplateOptions): string {
   const primaryCtaUrl = ctaUrl || SITE_URL;
-  const greeting = recipientFirstName ? `Bonjour ${recipientFirstName},` : "Bonjour,";
+  const greeting = recipientFirstName ? `Bonjour ${escapeHtml(recipientFirstName)},` : "Bonjour,";
 
   const infoRowsHtml = infoRows?.length
     ? `<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0; border: 1px solid #E2E8F0; border-radius: 14px; overflow: hidden;">
         ${infoRows
           .map(
             (row, i) => `<tr>
-              <td style="padding: 13px 16px; ${i > 0 ? "border-top: 1px solid #E2E8F0;" : ""} font-size: 12px; color: #94A3B8;">${row.label}</td>
-              <td style="padding: 13px 16px; ${i > 0 ? "border-top: 1px solid #E2E8F0;" : ""} font-size: 13px; font-weight: 700; color: #1A1D21; text-align: right;">${row.value}</td>
+              <td style="padding: 13px 16px; ${i > 0 ? "border-top: 1px solid #E2E8F0;" : ""} font-size: 12px; color: #94A3B8;">${escapeHtml(row.label)}</td>
+              <td style="padding: 13px 16px; ${i > 0 ? "border-top: 1px solid #E2E8F0;" : ""} font-size: 13px; font-weight: 700; color: #1A1D21; text-align: right;">${escapeHtml(row.value)}</td>
             </tr>`
           )
           .join("")}
