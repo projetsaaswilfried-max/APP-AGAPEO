@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { RejectVerificationModal } from "@/components/features/admin/reject-verification-modal";
 import { approveVerificationRequestAction, rejectVerificationRequestAction } from "@/lib/actions/admin.actions";
 import { computeAge } from "@/domain/badges";
-import { Check, X, ShieldCheck, Crown, ExternalLink, Clock, ScanFace } from "lucide-react";
+import { Check, X, ShieldCheck, Crown, ExternalLink, Clock, ScanFace, ZoomIn } from "lucide-react";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
 export interface AdminVerificationRow {
@@ -49,6 +50,7 @@ export function AdminVerificationsList({ initialItems }: { initialItems: AdminVe
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [zoomedSrc, setZoomedSrc] = useState<string | null>(null);
 
   const removeItem = (requestId: string) => {
     setItems((prev) => prev.filter((i) => i.requestId !== requestId));
@@ -166,12 +168,17 @@ export function AdminVerificationsList({ initialItems }: { initialItems: AdminVe
                 <ScanFace size={13} /> Selfie de vérification (à comparer aux photos ci-dessous)
               </p>
               {activeItem.selfieUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={activeItem.selfieUrl}
-                  alt="Selfie de vérification"
-                  className="w-32 sm:w-40 aspect-square object-cover rounded-2xl border-2 border-accent/50 shadow-soft"
-                />
+                <button
+                  type="button"
+                  onClick={() => setZoomedSrc(activeItem.selfieUrl)}
+                  className="group relative block w-32 sm:w-40 aspect-square rounded-2xl border-2 border-accent/50 shadow-soft overflow-hidden"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={activeItem.selfieUrl} alt="Selfie de vérification" className="w-full h-full object-cover" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                    <ZoomIn size={18} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </span>
+                </button>
               ) : (
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700">
                   Aucun selfie fourni — demande soumise avant la mise en place de cette exigence.
@@ -184,8 +191,18 @@ export function AdminVerificationsList({ initialItems }: { initialItems: AdminVe
                 <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Photos de profil postées</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {activeItem.photos.map((p) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={p.id} src={p.url} alt="" className="w-full aspect-square object-cover rounded-xl border border-border/60" />
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setZoomedSrc(p.url)}
+                      className="group relative block w-full aspect-square rounded-xl border border-border/60 overflow-hidden"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.url} alt="" className="w-full h-full object-cover" />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                        <ZoomIn size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -232,6 +249,8 @@ export function AdminVerificationsList({ initialItems }: { initialItems: AdminVe
         memberName={activeItem?.profile.first_name ?? ""}
         onConfirm={handleReject}
       />
+
+      <ImageLightbox src={zoomedSrc} alt="" onClose={() => setZoomedSrc(null)} />
     </div>
   );
 }

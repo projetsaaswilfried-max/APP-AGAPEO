@@ -211,10 +211,12 @@ export interface ProfilePhotoRow {
   reviewed_at: string | null;
   reviewed_by: string | null;
   rejection_reason: string | null;
+  /** Selfie pris en direct pour CETTE photo précise — uniquement pour un ajout fait après une première vérification déjà validée (cf. addVerifiedProfilePhotosAction). NULL sinon. */
+  selfie_storage_path: string | null;
   created_at: string;
 }
 export type ProfilePhotoInsert = Pick<ProfilePhotoRow, "profile_id" | "url" | "storage_path"> &
-  Partial<Pick<ProfilePhotoRow, "is_primary" | "caption" | "position">>;
+  Partial<Pick<ProfilePhotoRow, "is_primary" | "caption" | "position" | "selfie_storage_path">>;
 
 export interface FavoriteRow {
   id: string;

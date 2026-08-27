@@ -1,12 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Loader2, Check, Trash2, AlertCircle, ShieldAlert, Clock3, Hourglass, Ban } from "lucide-react";
+import { Camera, Loader2, Check, Trash2, AlertCircle, ShieldAlert, Clock3, Hourglass, Ban, ScanFace } from "lucide-react";
 import { FileSizeHint } from "@/components/ui/file-size-hint";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
 import { uploadAvatar } from "@/lib/storage";
-import { addProfilePhotoAction, removeProfilePhotoAction, setPrimaryPhotoAction } from "@/lib/actions/profile.actions";
+import { addProfilePhotoAction, addVerifiedProfilePhotosAction, removeProfilePhotoAction, setPrimaryPhotoAction } from "@/lib/actions/profile.actions";
 import type { ProfilePhotoRow, VerificationStatus } from "@/lib/supabase/database.types";
 
 interface PhotoManagerProps {
@@ -33,14 +35,19 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
   const [error, setError] = useState<string | null>(null);
   const [photoPendingDelete, setPhotoPendingDelete] = useState<ProfilePhotoRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewingPhoto, setViewingPhoto] = useState<ProfilePhotoRow | null>(null);
+  const [pendingVerifiedFiles, setPendingVerifiedFiles] = useState<File[] | null>(null);
+  const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    if (files.length === 0) return;
+  // Une fois déjà vérifié, tout nouvel ajout doit repasser par un selfie en
+  // direct (même principe anti-usurpation que la toute première vérification,
+  // qui elle ne couvrait que le lot initial) — un seul selfie couvre tout le
+  // lot de fichiers choisi en une fois, pas un par photo.
+  const requiresSelfieForNewPhotos = photoVerificationStatus === "VERIFIED";
+  const hasPendingPhoto = photos.some((p) => p.moderation_status === "PENDING");
 
-    setError(null);
+  const handleFileChangeDirect = async (files: File[]) => {
     setIsUploading(true);
 
     // Upload séquentiel (pas Promise.all) : chaque envoi dépend du compteur
@@ -78,6 +85,62 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
 
     if (errorMessage) setError(errorMessage);
     setIsUploading(false);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    setError(null);
+
+    if (!requiresSelfieForNewPhotos) {
+      await handleFileChangeDirect(files);
+      return;
+    }
+
+    const remaining = photoLimit - photos.length;
+    if (remaining <= 0) {
+      setError(`Limite de ${photoLimit} photos atteinte.`);
+      return;
+    }
+    const selected = files.slice(0, remaining);
+    if (files.length > selected.length) {
+      setError(`Limite de ${photoLimit} photos atteinte — seules les ${selected.length} première(s) ont été retenues.`);
+    }
+    setPendingVerifiedFiles(selected);
+    setIsSelfieModalOpen(true);
+  };
+
+  const handleAddClick = () => {
+    setError(null);
+    if (requiresSelfieForNewPhotos && hasPendingPhoto) {
+      setError("Ta photo précédente est encore en cours d'examen par notre équipe — attends sa validation avant d'en ajouter une nouvelle.");
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleSelfieCaptured = async (selfieStoragePath: string) => {
+    setIsSelfieModalOpen(false);
+    const files = pendingVerifiedFiles;
+    setPendingVerifiedFiles(null);
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setError(null);
+    try {
+      const uploaded = await Promise.all(files.map((file) => uploadAvatar(userId, file)));
+      const result = await addVerifiedProfilePhotosAction(
+        uploaded.map((u) => ({ url: u.url, storagePath: u.path })),
+        selfieStoragePath
+      );
+      if (result.error) setError(result.error);
+      if (result.photos?.length) setPhotos((prev) => [...prev, ...result.photos!]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "L'envoi a échoué. Réessaie.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSetPrimary = async (photoId: string) => {
@@ -125,8 +188,10 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
         {photos.map((photo) => (
           <div key={photo.id} className="relative aspect-square rounded-2xl overflow-hidden border border-border/60 group">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photo.url} alt="Photo de profil" className="w-full h-full object-cover" />
+            <button type="button" onClick={() => setViewingPhoto(photo)} className="absolute inset-0 z-0" aria-label="Agrandir la photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo.url} alt="Photo de profil" className="w-full h-full object-cover" />
+            </button>
             {/* Dégradé permanent (pas seulement au survol) pour que les
                 boutons restent lisibles sur une photo claire — nécessaire
                 puisqu'ils sont maintenant toujours visibles, y compris sur
@@ -177,19 +242,29 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
         {!atLimit && (
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+            onClick={handleAddClick}
+            disabled={isUploading || (requiresSelfieForNewPhotos && hasPendingPhoto)}
+            title={requiresSelfieForNewPhotos && hasPendingPhoto ? "Attends la validation de ta photo en attente avant d'en ajouter une nouvelle" : undefined}
+            className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors disabled:opacity-50 disabled:hover:text-muted-foreground disabled:hover:border-border"
           >
-            {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
-            <span className="text-xs font-medium">{isUploading ? "Envoi..." : "Ajouter"}</span>
+            {isUploading ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : requiresSelfieForNewPhotos && hasPendingPhoto ? (
+              <Hourglass size={20} />
+            ) : (
+              <Camera size={20} />
+            )}
+            <span className="text-xs font-medium text-center px-1">
+              {isUploading ? "Envoi..." : requiresSelfieForNewPhotos && hasPendingPhoto ? "En attente" : "Ajouter"}
+            </span>
           </button>
         )}
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Tu peux sélectionner plusieurs photos à la fois. Chacune est revue individuellement par notre équipe avant d&apos;être
-        visible par les autres membres.
+        {requiresSelfieForNewPhotos
+          ? "Tu peux sélectionner plusieurs photos à la fois — un selfie en direct te sera demandé juste avant l'envoi pour confirmer que c'est bien toi. Chacune est ensuite revue par notre équipe avant d'être visible par les autres membres."
+          : "Tu peux sélectionner plusieurs photos à la fois. Chacune est revue individuellement par notre équipe avant d'être visible par les autres membres."}
       </p>
 
       <FileSizeHint maxSizeMb={15} formats="JPG, PNG, WEBP, GIF" />
@@ -232,6 +307,43 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
           </div>
         )}
       </Modal>
+
+      <SelfieCaptureModal
+        isOpen={isSelfieModalOpen}
+        userId={userId}
+        onClose={() => {
+          setIsSelfieModalOpen(false);
+          setPendingVerifiedFiles(null);
+        }}
+        onCaptured={handleSelfieCaptured}
+      />
+
+      <ImageLightbox src={viewingPhoto?.url ?? null} alt="Photo de profil" onClose={() => setViewingPhoto(null)}>
+        {viewingPhoto?.moderation_status === "PENDING" && (
+          <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
+            <Hourglass size={14} className="shrink-0" /> En cours d&apos;examen par notre équipe.
+          </div>
+        )}
+        {viewingPhoto?.moderation_status === "APPROVED" && (
+          <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
+            <Check size={14} className="shrink-0" /> Approuvée — visible par les autres membres.
+          </div>
+        )}
+        {viewingPhoto?.moderation_status === "REJECTED" && (
+          <div className="flex items-start gap-2 text-xs">
+            <Ban size={14} className="shrink-0 mt-0.5 text-destructive" />
+            <div>
+              <p className="font-medium text-destructive">Photo refusée</p>
+              {viewingPhoto.rejection_reason && <p className="text-muted-foreground mt-0.5">{viewingPhoto.rejection_reason}</p>}
+            </div>
+          </div>
+        )}
+        {viewingPhoto?.selfie_storage_path && (
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
+            <ScanFace size={12} className="shrink-0" /> Un selfie de vérification a été fourni avec cette photo.
+          </div>
+        )}
+      </ImageLightbox>
     </div>
   );
 }

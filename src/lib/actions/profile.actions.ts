@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ProfileEditablePartialSchema, PhoneSchema, EssentialInfoSchema } from "@/lib/validation/profile.schema";
 import { sendPhotoEmail } from "@/lib/photo-emails";
-import type { ProfileUpdate } from "@/lib/supabase/database.types";
+import type { ProfileUpdate, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
 export async function updateProfileAction(updates: Partial<ProfileUpdate>) {
   const parsed = ProfileEditablePartialSchema.safeParse(updates);
@@ -174,6 +174,72 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
 
   revalidatePath("/profile");
   return { success: true, photo: data };
+}
+
+/**
+ * Ajout d'une ou plusieurs photos APRÈS une première vérification déjà
+ * validée (contrairement à `addProfilePhotoAction`, utilisée pendant
+ * l'onboarding avant toute vérification, une photo à la fois, sans selfie).
+ * Ici, un seul selfie en direct couvre tout le lot sélectionné en une fois —
+ * l'appelant (PhotoManager) le fait prendre juste avant d'appeler cette
+ * action, une fois tous les fichiers choisis. Insertions séquentielles (pas
+ * un insert() multi-lignes) : `profile_photos_insert_own` vérifie le quota
+ * via `count_profile_photos()`, qui ne verrait pas les lignes du même lot si
+ * elles arrivaient dans un seul statement (même transaction = même snapshot).
+ */
+export async function addVerifiedProfilePhotosAction(photos: { url: string; storagePath: string }[], selfieStoragePath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+  if (photos.length === 0) return { error: "Aucune photo à envoyer." };
+  if (!selfieStoragePath) return { error: "Un selfie de vérification est requis pour ajouter une nouvelle photo." };
+
+  const { data: viewerRow } = await supabase
+    .from("profiles")
+    .select("first_name, is_staff, is_premium, photo_verification_status")
+    .eq("id", user.id)
+    .single();
+
+  if (!viewerRow?.is_staff) {
+    if (viewerRow?.photo_verification_status !== "VERIFIED") {
+      return { error: "Cette action est réservée à un profil déjà vérifié." };
+    }
+
+    const { count: pendingCount } = await supabase
+      .from("profile_photos")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", user.id)
+      .eq("moderation_status", "PENDING");
+    if ((pendingCount ?? 0) > 0) {
+      return { error: "Ta photo précédente est encore en cours d'examen par notre équipe — attends sa validation avant d'en ajouter une nouvelle." };
+    }
+
+    const { count: totalCount } = await supabase.from("profile_photos").select("id", { count: "exact", head: true }).eq("profile_id", user.id);
+    const limit = viewerRow?.is_premium ? 10 : 2;
+    if ((totalCount ?? 0) + photos.length > limit) {
+      return { error: `Limite de ${limit} photos atteinte — impossible d'ajouter ${photos.length} photo(s) de plus.` };
+    }
+  }
+
+  const inserted: ProfilePhotoRow[] = [];
+  for (const photo of photos) {
+    const { data, error } = await supabase
+      .from("profile_photos")
+      .insert({ profile_id: user.id, url: photo.url, storage_path: photo.storagePath, is_primary: false, selfie_storage_path: selfieStoragePath })
+      .select()
+      .single();
+    if (error) return { error: error.message, photos: inserted };
+    if (data) inserted.push(data as ProfilePhotoRow);
+  }
+
+  if (user.email) {
+    await sendPhotoEmail({ to: user.email, firstName: viewerRow?.first_name ?? "", kind: "SUBMITTED" });
+  }
+
+  revalidatePath("/profile");
+  return { success: true, photos: inserted };
 }
 
 /**

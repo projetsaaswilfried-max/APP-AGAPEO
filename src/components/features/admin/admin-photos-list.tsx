@@ -6,10 +6,11 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { RejectPhotoModal } from "@/components/features/admin/reject-photo-modal";
 import { approvePhotoAction, rejectPhotoAction } from "@/lib/actions/admin.actions";
 import { computeAge } from "@/domain/badges";
-import { Check, X, Image as ImageIcon, ExternalLink, Clock, Crown } from "lucide-react";
+import { Check, X, Image as ImageIcon, ExternalLink, Clock, Crown, ScanFace, ZoomIn } from "lucide-react";
 import type { ProfileRow } from "@/lib/supabase/database.types";
 
 export interface AdminPhotoRow {
@@ -19,6 +20,8 @@ export interface AdminPhotoRow {
   submittedAt: string;
   isPremium: boolean;
   profile: ProfileRow;
+  /** URL signée du selfie fourni avec CETTE photo (ajout après une première vérification) — null pour le lot initial, déjà comparé dans le dossier de vérification. */
+  selfieUrl: string | null;
 }
 
 function timeAgo(iso: string): string {
@@ -46,6 +49,7 @@ export function AdminPhotosList({ initialItems }: { initialItems: AdminPhotoRow[
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [zoomedSrc, setZoomedSrc] = useState<string | null>(null);
 
   const removeItem = (photoId: string) => {
     setItems((prev) => prev.filter((i) => i.photoId !== photoId));
@@ -159,10 +163,47 @@ export function AdminPhotosList({ initialItems }: { initialItems: AdminPhotoRow[
               </div>
             )}
 
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Photo soumise</p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={activeItem.url} alt="" className="w-full max-h-[28rem] object-contain rounded-2xl border border-border/60 bg-secondary" />
+            <div className={activeItem.selfieUrl ? "grid grid-cols-2 gap-3" : "space-y-2"}>
+              {activeItem.selfieUrl && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <ScanFace size={13} /> Selfie fourni
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setZoomedSrc(activeItem.selfieUrl)}
+                    className="group relative block w-full aspect-square rounded-2xl border-2 border-accent/50 overflow-hidden shadow-soft"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={activeItem.selfieUrl} alt="Selfie fourni avec la photo" className="w-full h-full object-cover" />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                      <ZoomIn size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </span>
+                  </button>
+                </div>
+              )}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Photo soumise</p>
+                <button
+                  type="button"
+                  onClick={() => setZoomedSrc(activeItem.url)}
+                  className={
+                    activeItem.selfieUrl
+                      ? "group relative block w-full aspect-square rounded-2xl border border-border/60 bg-secondary overflow-hidden"
+                      : "group relative block w-full rounded-2xl border border-border/60 bg-secondary overflow-hidden"
+                  }
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={activeItem.url}
+                    alt=""
+                    className={activeItem.selfieUrl ? "w-full h-full object-cover" : "w-full max-h-[28rem] object-contain"}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                    <ZoomIn size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 border-t border-border/60">
@@ -178,6 +219,8 @@ export function AdminPhotosList({ initialItems }: { initialItems: AdminPhotoRow[
       </Modal>
 
       <RejectPhotoModal isOpen={isRejectOpen} onClose={() => setIsRejectOpen(false)} memberName={activeItem?.profile.first_name ?? ""} onConfirm={handleReject} />
+
+      <ImageLightbox src={zoomedSrc} alt="" onClose={() => setZoomedSrc(null)} />
     </div>
   );
 }
