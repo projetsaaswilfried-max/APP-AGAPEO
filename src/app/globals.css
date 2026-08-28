@@ -43,6 +43,15 @@
     --input: 220 14% 95%;               /* #F0F2F5 - Fond des champs d'entrée */
     --ring: 332 98% 72%;               /* Focus Ring Rose #FE70B2 */
 
+    /* Paire catégorielle réservée aux graphiques de répartition par genre
+       (admin uniquement) — chart-female reprend la teinte de marque (accent)
+       pour la cohérence visuelle ; chart-male est un bleu choisi et validé
+       (script dataviz : contraste, séparation CVD protan/deutéran) pour
+       rester distinguable de chart-female pour un daltonien. Jamais réutilisée
+       pour autre chose qu'une série de graphique. */
+    --chart-female: 332 98% 72%;         /* #FE70B2 */
+    --chart-male: 213 68% 50%;           /* #2A78D6 */
+
     --radius: 1.5rem;                   /* 24px Radius Standard (Cartes arrondies) */
   }
 
@@ -78,6 +87,12 @@
     --border: 217 18% 18%;
     --input: 217 18% 18%;
     --ring: 332 98% 72%;
+
+    /* Rose de marque re-stepped pour rester dans la bande de luminosité
+       lisible sur fond sombre (le #FE70B2 clair échoue le contrôle ΔL en
+       mode sombre) — même teinte, un cran plus sombre, revalidé. */
+    --chart-female: 329 70% 60%;         /* #E0509A */
+    --chart-male: 213 77% 56%;           /* #3987E5 */
   }
 
   /* Sélection de texte : fond teinté rose fuchsia doux */
@@ -131,6 +146,8 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-chart-female: hsl(var(--chart-female));
+  --color-chart-male: hsl(var(--chart-male));
 
   --radius-sm: calc(var(--radius) - 10px);
   --radius-md: calc(var(--radius) - 6px);

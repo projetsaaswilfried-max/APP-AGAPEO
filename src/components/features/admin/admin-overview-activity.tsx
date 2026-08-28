@@ -3,14 +3,18 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollableRow } from "@/components/ui/scrollable-row";
-import { UserCheck, MessageSquare, FileText, Heart, Receipt } from "lucide-react";
+import { UserCheck, MessageSquare, FileText, Heart, Receipt, Venus, Mars } from "lucide-react";
 
 interface TimestampRow {
   created_at: string;
 }
 
+interface NewUserRow extends TimestampRow {
+  gender: "MALE" | "FEMALE";
+}
+
 export interface AdminOverviewActivityProps {
-  newUsers: TimestampRow[];
+  newUsers: NewUserRow[];
   messages: TimestampRow[];
   conversations: TimestampRow[];
   personalPosts: TimestampRow[];
@@ -30,13 +34,17 @@ function toDateInputValue(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
-function countInRange(rows: TimestampRow[], from: string, to: string) {
+function filterInRange<T extends TimestampRow>(rows: T[], from: string, to: string): T[] {
   return rows.filter((r) => {
     const day = r.created_at.slice(0, 10);
     if (from && day < from) return false;
     if (to && day > to) return false;
     return true;
-  }).length;
+  });
+}
+
+function countInRange(rows: TimestampRow[], from: string, to: string) {
+  return filterInRange(rows, from, to).length;
 }
 
 export function AdminOverviewActivity(props: AdminOverviewActivityProps) {
@@ -73,9 +81,13 @@ export function AdminOverviewActivity(props: AdminOverviewActivityProps) {
     handlePreset("30d");
   };
 
+  const newUsersInRange = useMemo(() => filterInRange(props.newUsers, dateFrom, dateTo), [props.newUsers, dateFrom, dateTo]);
+
   const counts = useMemo(
     () => ({
-      newUsers: countInRange(props.newUsers, dateFrom, dateTo),
+      newUsers: newUsersInRange.length,
+      femmes: newUsersInRange.filter((u) => u.gender === "FEMALE").length,
+      hommes: newUsersInRange.filter((u) => u.gender === "MALE").length,
       messages: countInRange(props.messages, dateFrom, dateTo),
       conversations: countInRange(props.conversations, dateFrom, dateTo),
       personalPosts: countInRange(props.personalPosts, dateFrom, dateTo),
@@ -83,8 +95,12 @@ export function AdminOverviewActivity(props: AdminOverviewActivityProps) {
       favorites: countInRange(props.favorites, dateFrom, dateTo),
       transactions: countInRange(props.transactions, dateFrom, dateTo)
     }),
-    [props, dateFrom, dateTo]
+    [props, dateFrom, dateTo, newUsersInRange]
   );
+
+  const genderTotal = counts.femmes + counts.hommes;
+  const femmesPct = genderTotal > 0 ? Math.round((counts.femmes / genderTotal) * 100) : 0;
+  const hommesPct = genderTotal > 0 ? 100 - femmesPct : 0;
 
   const stats = [
     { label: "Nouveaux membres", value: counts.newUsers, icon: UserCheck },
@@ -147,6 +163,50 @@ export function AdminOverviewActivity(props: AdminOverviewActivityProps) {
           </Card>
         ))}
       </div>
+
+      <Card variant="base" className="p-4 border-border/60 shadow-2xs space-y-4">
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Répartition par genre — nouveaux membres</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-chart-female/10 text-chart-female shrink-0">
+              <Venus size={17} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-2xl font-display font-semibold text-foreground tracking-tight">{counts.femmes}</p>
+              <p className="text-xs text-muted-foreground">Femmes{genderTotal > 0 && ` · ${femmesPct}%`}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-chart-male/10 text-chart-male shrink-0">
+              <Mars size={17} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-2xl font-display font-semibold text-foreground tracking-tight">{counts.hommes}</p>
+              <p className="text-xs text-muted-foreground">Hommes{genderTotal > 0 && ` · ${hommesPct}%`}</p>
+            </div>
+          </div>
+        </div>
+
+        {genderTotal > 0 ? (
+          <div className="flex h-3 w-full gap-[2px]" role="img" aria-label={`Répartition : ${femmesPct}% de femmes, ${hommesPct}% d'hommes`}>
+            {femmesPct > 0 && (
+              <div
+                className={`h-full bg-chart-female ${hommesPct === 0 ? "rounded-full" : "rounded-l-full"}`}
+                style={{ width: `${femmesPct}%` }}
+              />
+            )}
+            {hommesPct > 0 && (
+              <div
+                className={`h-full bg-chart-male ${femmesPct === 0 ? "rounded-full" : "rounded-r-full"}`}
+                style={{ width: `${hommesPct}%` }}
+              />
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Aucun nouveau membre sur cette période.</p>
+        )}
+      </Card>
     </div>
   );
 }

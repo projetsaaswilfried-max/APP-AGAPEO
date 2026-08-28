@@ -31,7 +31,7 @@ export default async function AdminOverviewPage() {
     // date choisie côté client, cf. AdminOverviewActivity — même pattern que
     // AdminTransactionsList, volumes actuels compatibles avec un filtrage
     // en mémoire (quelques dizaines de lignes par table).
-    admin.from("profiles").select("created_at").eq("is_test_account", false),
+    admin.from("profiles").select("created_at, gender").eq("is_test_account", false),
     admin.from("messages").select("created_at"),
     admin.from("conversations").select("created_at"),
     admin.from("posts").select("created_at").eq("post_type", "PERSONAL"),
