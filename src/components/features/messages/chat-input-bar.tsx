@@ -277,7 +277,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
 
             <div
               className={cn(
-                "flex-1 border rounded-full px-4 py-2 flex items-center gap-2.5 transition-colors",
+                "flex-1 min-w-0 border rounded-full px-4 py-2 flex items-center gap-2.5 transition-colors",
                 recorder.elapsedSeconds >= 2 && !recorder.hasDetectedSound
                   ? "bg-destructive/10 border-destructive/30"
                   : "bg-secondary/60 border-border/40"
@@ -291,11 +291,18 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               {recorder.elapsedSeconds >= 2 && !recorder.hasDetectedSound ? (
                 <span className="text-[11px] text-destructive font-medium truncate">Aucun son détecté — vérifie ton micro</span>
               ) : (
-                <div className="flex-1 flex items-end gap-[3px] h-5 min-w-0 overflow-hidden">
+                // Barres en `flex-1` (jamais une largeur fixe en px) : leur
+                // nombre ne change jamais (40, cf. use-voice-recorder.ts),
+                // seule leur largeur individuelle s'adapte à l'espace
+                // réellement disponible — c'est l'inverse (largeur fixe +
+                // `shrink-0`) qui forçait ce graphe à exiger ~240px
+                // incompressibles et poussait Annuler/Stop hors de l'écran
+                // sur mobile.
+                <div className="flex-1 flex items-end gap-[2px] h-5 min-w-0 overflow-hidden">
                   {recorder.levelHistory.map((level, i) => (
                     <span
                       key={i}
-                      className="w-[3px] rounded-full bg-destructive shrink-0"
+                      className="flex-1 min-w-[1px] rounded-full bg-destructive"
                       style={{ height: `${4 + Math.min(1, level) * 16}px` }}
                     />
                   ))}
