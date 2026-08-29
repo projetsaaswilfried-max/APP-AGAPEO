@@ -48,7 +48,12 @@ export function useVoiceRecorder() {
   const [audioLevel, setAudioLevel] = useState(0);
   const [hasDetectedSound, setHasDetectedSound] = useState(false);
   /** Historique récent du niveau — alimente le graphe façon WhatsApp pendant l'enregistrement. */
-  const [levelHistory, setLevelHistory] = useState<number[]>([]);
+  // Toujours exactement WAVEFORM_BAR_COUNT valeurs, dès le premier rendu —
+  // un tableau qui grandit progressivement de 0 à 40 barres donnerait
+  // l'impression que "la ligne progresse"/s'agrandit au fil de
+  // l'enregistrement ; ici seule la HAUTEUR de chaque barre change, jamais
+  // leur nombre, donc la géométrie reste fixe du premier au dernier instant.
+  const [levelHistory, setLevelHistory] = useState<number[]>(() => new Array(WAVEFORM_BAR_COUNT).fill(0));
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const rawStreamRef = useRef<MediaStream | null>(null);
@@ -128,7 +133,7 @@ export function useVoiceRecorder() {
       tick();
 
       waveformIntervalRef.current = setInterval(() => {
-        setLevelHistory((prev) => [...prev, currentLevelRef.current].slice(-WAVEFORM_BAR_COUNT));
+        setLevelHistory((prev) => [...prev.slice(1), currentLevelRef.current]);
       }, WAVEFORM_SAMPLE_INTERVAL_MS);
 
       return destination.stream;
@@ -142,7 +147,7 @@ export function useVoiceRecorder() {
     setErrorMessage(null);
     setRecordedBlob(null);
     setHasDetectedSound(false);
-    setLevelHistory([]);
+    setLevelHistory(new Array(WAVEFORM_BAR_COUNT).fill(0));
     try {
       const mimeType = pickSupportedMimeType();
       if (!mimeType) throw new Error("L'enregistrement audio n'est pas supporté par ce navigateur.");

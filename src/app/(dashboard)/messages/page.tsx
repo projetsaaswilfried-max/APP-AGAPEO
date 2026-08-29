@@ -287,13 +287,26 @@ function MessagesPageContent() {
   };
 
   return (
-    <div className="space-y-4 w-full pb-16 select-none">
+    <div className={cn("space-y-4 w-full select-none", isMobileChatOpen ? "pb-0" : "pb-16")}>
       <div className={cn("border-b border-border/40 pb-3", isMobileChatOpen && "hidden md:block")}>
         <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Messagerie Privée & Échanges</h1>
         <p className="text-xs text-muted-foreground mt-0.5">Discutez en toute sérénité avec vos contacts.</p>
       </div>
 
-      <div className="h-[calc(100dvh-13rem)] min-h-[520px] bg-card border border-border/40 rounded-3xl overflow-hidden shadow-soft flex">
+      {/*
+        Une fois une conversation ouverte sur mobile, la barre de nav du bas
+        et le padding qui lui était réservé disparaissent (bottom-nav.tsx,
+        app-shell.tsx) — on récupère ici cet espace en réduisant d'autant la
+        hauteur soustraite (13rem -> 6rem, header d'app 4rem + marges), pour
+        que la discussion occupe vraiment tout l'écran disponible, comme
+        WhatsApp. Desktop conserve la mise en page à deux colonnes d'origine.
+      */}
+      <div
+        className={cn(
+          "min-h-[520px] bg-card border border-border/40 rounded-3xl overflow-hidden shadow-soft flex",
+          isMobileChatOpen ? "h-[calc(100dvh-6rem)] md:h-[calc(100dvh-13rem)]" : "h-[calc(100dvh-13rem)]"
+        )}
+      >
         <div
           className={cn(
             "w-full md:w-80 border-r border-border/40 flex flex-col bg-card shrink-0 transition-all duration-200",

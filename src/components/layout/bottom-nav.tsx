@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Home01Icon,
@@ -57,6 +57,7 @@ function NavItemInner({ item, isActive }: { item: NavigationItem; isActive: bool
 
 export function BottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { unreadMessages, unreadNotifications } = useUnreadCounts();
   // "Mon Profil" et "Premium" restent accessibles depuis le menu (avatar du
   // header, tiroir mobile) — la barre du bas est réservée aux 4 actions
@@ -64,6 +65,13 @@ export function BottomNav() {
   const navigation = withUnreadBadges(unreadMessages, unreadNotifications).filter(
     (item) => item.id !== "profile" && item.id !== "premium"
   );
+
+  // Une conversation ouverte occupe tout l'écran sur mobile (cf. messages
+  // page.tsx) — la barre du bas n'y a plus sa place, elle vole de l'espace
+  // vertical précieux au-dessus du champ de saisie. Invisible sur desktop de
+  // toute façon (`md:hidden` ci-dessous), donc sans risque à masquer ainsi.
+  const isConversationOpen = pathname === "/messages" && Boolean(searchParams.get("conversation"));
+  if (isConversationOpen) return null;
 
   return (
     <div className="md:hidden fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40 bg-card/90 backdrop-blur-xl rounded-full border border-border/40 p-1.5 shadow-soft select-none">
