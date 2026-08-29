@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,13 +10,16 @@ import { updateProfileAction, completeOnboardingAction } from "@/lib/actions/pro
 import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
 import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
 import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
-import { AlertCircle, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowRight, Check } from "lucide-react";
 import type { ProfileRow, MaritalStatusType } from "@/lib/supabase/database.types";
 
 interface OnboardingPreferencesStepProps {
   profile: ProfileRow;
   onBack?: () => void;
 }
+
+/** Après ce délai d'inactivité, le brouillon est enregistré — protège surtout le champ "pourquoi le mariage", le plus long à rédiger et donc le plus coûteux à perdre sur un rafraîchissement accidentel. */
+const AUTOSAVE_DELAY_MS = 1500;
 
 export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPreferencesStepProps) {
   const [bio, setBio] = useState(profile.bio ?? "");
@@ -31,6 +34,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
   const [isFinishing, startFinishTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   // Seul champ réellement requis pour la vérification (cf. isProfileComplete côté serveur) —
   // évite de faire capturer un selfie pour un profil qu'on sait déjà incomplet.
   const isComplete = Boolean(whyMarriage.trim());
@@ -41,10 +45,9 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
   // sa photo de profil repasse justement le statut à UNVERIFIED (cf.
   // removeProfilePhotoAction), ce qui redéclenchera naturellement ce flux.
   const needsVerificationSubmission = profile.photo_verification_status === "UNVERIFIED" || profile.photo_verification_status === "REJECTED";
-
-  const toggleMaritalStatus = (value: MaritalStatusType) => {
-    setDesiredMaritalStatuses((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
-  };
+  // Capturé plus tôt via l'étape dédiée de l'onboarding (juste après les
+  // photos) : la soumission n'a alors plus besoin de rouvrir la modale.
+  const hasPendingSelfie = Boolean(profile.pending_selfie_storage_path);
 
   const savePreferences = () =>
     updateProfileAction({
@@ -58,21 +61,54 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       desired_countries: desiredCountries
     });
 
+  // Brouillon enregistré automatiquement après une pause de saisie — sans
+  // ça, un rafraîchissement ou un changement d'onglet pendant la rédaction
+  // du champ "pourquoi le mariage" (le plus long, le plus coûteux à
+  // perdre) effaçait tout ce qui n'avait pas encore été validé par
+  // "Soumettre". Ignore le tout premier rendu (rien n'a changé).
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setAutosaveStatus("saving");
+    const timeout = setTimeout(() => {
+      savePreferences().then(() => setAutosaveStatus("saved"));
+    }, AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bio, hobbies, whyMarriage, coreValues, ageMin, ageMax, desiredMaritalStatuses, desiredCountries]);
+
+  const toggleMaritalStatus = (value: MaritalStatusType) => {
+    setDesiredMaritalStatuses((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
+  };
+
   /**
    * Bouton principal : enregistre le profil, puis n'ouvre la capture du
-   * selfie que si une (nouvelle) vérification est réellement nécessaire —
-   * sinon ça se termine directement, sans jamais redemander de selfie à
-   * quelqu'un qui a déjà son badge pour un simple ajustement de préférences.
+   * selfie que si une (nouvelle) vérification est réellement nécessaire ET
+   * qu'aucun selfie n'a déjà été capturé plus tôt dans l'onboarding — sinon
+   * ça se termine directement, sans jamais redemander de selfie à quelqu'un
+   * qui a déjà son badge pour un simple ajustement de préférences.
    */
   const handleSubmit = () => {
     if (!isComplete) return;
     setSubmitError(null);
     startTransition(async () => {
       await savePreferences();
-      if (needsVerificationSubmission) {
-        setIsSelfieModalOpen(true);
-      } else {
+      if (!needsVerificationSubmission) {
         await completeOnboardingAction();
+        return;
+      }
+      if (hasPendingSelfie) {
+        const result = await submitVerificationRequestAction();
+        if (result?.error) {
+          setSubmitError(result.error);
+          return;
+        }
+        await completeOnboardingAction();
+      } else {
+        setIsSelfieModalOpen(true);
       }
     });
   };
@@ -115,7 +151,18 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       <TagInput label="Loisirs" placeholder="Ex : Randonnée, Cuisine..." value={hobbies} onChange={setHobbies} maxTags={12} />
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-foreground">Pourquoi recherches-tu le mariage ? *</label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm font-medium text-foreground">Pourquoi recherches-tu le mariage ? *</label>
+          {autosaveStatus !== "idle" && (
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1 shrink-0">
+              {autosaveStatus === "saving" ? "Enregistrement..." : (
+                <>
+                  <Check size={11} className="text-emerald-600" /> Brouillon enregistré
+                </>
+              )}
+            </span>
+          )}
+        </div>
         <Textarea value={whyMarriage} onChange={(e) => setWhyMarriage(e.target.value)} maxLength={1000} />
       </div>
 
@@ -174,9 +221,11 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       <p className="text-xs text-muted-foreground">
         {needsVerificationSubmission ? (
           <>
-            En soumettant, on te demandera un selfie en direct (comparé à tes photos par notre équipe), puis ton
-            profil sera envoyé pour vérification — tu recevras un email de confirmation. Retrouve aussi ce bouton à
-            tout moment depuis{" "}
+            {hasPendingSelfie
+              ? "En soumettant, ton profil (et le selfie déjà capturé) sera envoyé pour vérification"
+              : "En soumettant, on te demandera un selfie en direct (comparé à tes photos par notre équipe), puis ton profil sera envoyé pour vérification"}
+            {" "}— notre équipe l&apos;examine généralement sous <strong className="text-foreground font-semibold">{profile.is_premium ? "24h" : "48h"}</strong>, et tu recevras un
+            email de confirmation. Retrouve aussi ce bouton à tout moment depuis{" "}
             <Link href="/profile" className="text-accent underline underline-offset-2">
               Mon Compte & Sécurité
             </Link>

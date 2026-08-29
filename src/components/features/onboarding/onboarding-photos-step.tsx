@@ -11,11 +11,13 @@ interface OnboardingPhotosStepProps {
   initialPhotos: ProfilePhotoRow[];
   photoVerificationStatus?: VerificationStatus;
   photoLimit: number;
+  /** Affiche un mot d'annonce sur l'étape "Selfie" qui suit — évite qu'elle arrive comme une surprise. */
+  announceSelfieStep?: boolean;
   onNext: () => void;
 }
 
 /** Étape obligatoire : au moins une photo est requise pour avancer, aucun moyen de la différer. */
-export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationStatus, photoLimit, onNext }: OnboardingPhotosStepProps) {
+export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationStatus, photoLimit, announceSelfieStep, onNext }: OnboardingPhotosStepProps) {
   const [photos, setPhotos] = useState(initialPhotos);
   const hasPhoto = photos.length > 0;
 
@@ -26,6 +28,7 @@ export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationS
         <p className="text-sm text-muted-foreground mt-1">
           Ajoute au moins une vraie photo depuis ton ordinateur — obligatoire pour continuer. La première ajoutée
           devient ta photo principale.
+          {announceSelfieStep && " Juste après, on te demandera un selfie en direct pour confirmer que c'est bien toi."}
         </p>
       </div>
 

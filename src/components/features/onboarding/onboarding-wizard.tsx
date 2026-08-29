@@ -6,9 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { OnboardingProgress } from "./onboarding-progress";
 import { OnboardingEssentialInfoStep } from "./onboarding-essential-info-step";
 import { OnboardingPhotosStep } from "./onboarding-photos-step";
+import { OnboardingSelfieStep } from "./onboarding-selfie-step";
 import { OnboardingFaithStep } from "./onboarding-faith-step";
 import { OnboardingPreferencesStep } from "./onboarding-preferences-step";
 import { saveOnboardingStepAction } from "@/lib/actions/profile.actions";
+import { logOnboardingEventAction } from "@/lib/actions/onboarding-events.actions";
 import { trackMetaEventOnce } from "@/lib/meta-pixel";
 import { X } from "lucide-react";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
@@ -18,17 +20,47 @@ interface OnboardingWizardProps {
   initialPhotos: ProfilePhotoRow[];
 }
 
+// Ordre canonique persistant (`profiles.onboarding_step`, 0-2) — "essential"
+// et "selfie" sont des étapes conditionnelles insérées autour de celui-ci
+// selon le profil, jamais leur propre valeur persistée dédiée.
 const BASE_STEP_KEYS = ["photos", "faith", "preferences"] as const;
-const BASE_STEP_LABELS = ["Photos", "Ma foi", "Ce que je recherche"];
+
+type StepKey = "essential" | "photos" | "selfie" | "faith" | "preferences";
 
 export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardProps) {
-  // Uniquement vrai pour un compte créé via Google (OAuth) : le fournisseur
-  // ne transmet jamais genre/date de naissance, rarement le pays.
+  // Uniquement vrai tant que genre/date de naissance/pays manquent — que le
+  // compte vienne de Google (jamais transmis) ou d'une inscription email
+  // classique (désormais collectés ici, pas à l'inscription, pour alléger le
+  // tout premier écran).
   const needsEssentialInfo = !profile.gender || !profile.birth_date || !profile.country;
-  const stepKeys = needsEssentialInfo ? (["essential", ...BASE_STEP_KEYS] as const) : BASE_STEP_KEYS;
-  const stepLabels = needsEssentialInfo ? ["Tes informations", ...BASE_STEP_LABELS] : BASE_STEP_LABELS;
+  // Un profil déjà VERIFIED (ou dont la demande est déjà PENDING) qui revient
+  // ici pour ajuster une section n'a plus besoin de refaire un selfie.
+  const needsVerificationSubmission = profile.photo_verification_status === "UNVERIFIED" || profile.photo_verification_status === "REJECTED";
 
-  const [stepIndex, setStepIndex] = useState(() => (needsEssentialInfo ? 0 : Math.min(profile.onboarding_step, 2)));
+  const stepKeys: StepKey[] = [
+    ...(needsEssentialInfo ? (["essential"] as StepKey[]) : []),
+    "photos",
+    ...(needsVerificationSubmission ? (["selfie"] as StepKey[]) : []),
+    "faith",
+    "preferences"
+  ];
+  const stepLabels = [
+    ...(needsEssentialInfo ? ["Tes informations"] : []),
+    "Photos",
+    ...(needsVerificationSubmission ? ["Selfie"] : []),
+    "Ma foi",
+    "Ce que je recherche"
+  ];
+
+  // Résout la position de départ à partir de l'étape "de base" (0-2) déjà
+  // persistée, en tenant compte des étapes conditionnelles réellement
+  // présentes pour CE profil — robuste à n'importe quelle combinaison
+  // d'étapes optionnelles, contrairement à un simple décalage d'index.
+  const [stepIndex, setStepIndex] = useState(() => {
+    const savedBaseKey = BASE_STEP_KEYS[Math.min(profile.onboarding_step, 2)];
+    const resolved = stepKeys.indexOf(savedBaseKey);
+    return resolved >= 0 ? resolved : 0;
+  });
   const isRevisit = profile.onboarding_completed;
 
   // Arrivée sur l'onboarding = confirmation que le compte vient d'être créé
@@ -43,13 +75,23 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
 
   const goTo = (next: number) => {
     setStepIndex(next);
-    // `onboarding_step` en base ne connaît que les 3 étapes (0-2) — l'étape
-    // "essential" (uniquement pour Google) ne décale pas cette numérotation.
-    const persistedStep = needsEssentialInfo ? Math.max(next - 1, 0) : next;
-    void saveOnboardingStepAction(persistedStep);
+    // `onboarding_step` en base ne connaît que les 3 étapes de base (0-2) —
+    // les étapes conditionnelles ("essential", "selfie") retombent sur la
+    // plus proche étape de base non encore atteinte.
+    const nextKey = stepKeys[next];
+    const baseIndex = (BASE_STEP_KEYS as readonly StepKey[]).indexOf(nextKey);
+    void saveOnboardingStepAction(baseIndex >= 0 ? baseIndex : 0);
   };
 
   const currentKey = stepKeys[stepIndex];
+
+  // Entonnoir d'onboarding (espace admin) : uniquement pour un vrai nouveau
+  // compte, jamais pour un membre déjà onboardé qui revient corriger une section.
+  useEffect(() => {
+    if (!isRevisit) {
+      void logOnboardingEventAction("STEP_VIEWED", currentKey);
+    }
+  }, [currentKey, isRevisit]);
 
   return (
     <div className="space-y-6">
@@ -69,7 +111,7 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
         <p className="text-sm text-muted-foreground">
           {isRevisit
             ? "Reviens sur n'importe quelle étape ci-dessous pour compléter ou corriger une section."
-            : `Bienvenue ${profile.first_name} — chaque étape est obligatoire pour passer à la suivante, mais tu peux revenir plus tard si besoin.`}
+            : `Bienvenue ${profile.first_name} — ça prend environ 5 minutes. Chaque étape est obligatoire pour passer à la suivante, mais tu peux revenir plus tard si besoin.`}
         </p>
       </div>
 
@@ -87,14 +129,23 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
 
       <Card variant="base">
         <CardContent className="p-6">
-          {currentKey === "essential" && <OnboardingEssentialInfoStep onNext={() => goTo(1)} />}
+          {currentKey === "essential" && <OnboardingEssentialInfoStep onNext={() => goTo(stepIndex + 1)} />}
           {currentKey === "photos" && (
             <OnboardingPhotosStep
               userId={profile.id}
               initialPhotos={initialPhotos}
               photoVerificationStatus={profile.photo_verification_status}
               photoLimit={profile.is_premium ? 10 : 2}
+              announceSelfieStep={needsVerificationSubmission}
               onNext={() => goTo(stepIndex + 1)}
+            />
+          )}
+          {currentKey === "selfie" && (
+            <OnboardingSelfieStep
+              userId={profile.id}
+              hasPendingSelfie={Boolean(profile.pending_selfie_storage_path)}
+              onNext={() => goTo(stepIndex + 1)}
+              onBack={() => goTo(stepIndex - 1)}
             />
           )}
           {currentKey === "faith" && (
