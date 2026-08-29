@@ -1,9 +1,14 @@
-// Cron quotidien : deux séquences email indépendantes, sur le même modèle
+// Cron quotidien : trois séquences email indépendantes, sur le même modèle
 // que subscription-expiry (paliers, un seul envoi chacun, suivi en base) —
 //   1) "Soumets ton profil" (J1/J3/J5/J7 après l'inscription) pour les
 //      membres encore UNVERIFIED : tant qu'ils ne soumettent pas, ils ne sont
 //      ni visibles dans Découvrir ni contactables.
-//   2) "Passe Premium" (J1/J3/J5/J7 après la validation du profil) pour les
+//   2) "Il ne te reste qu'un selfie" : relance dédiée, indépendante des
+//      paliers J1/J3/J5/J7, pour les membres dont le profil est déjà COMPLET
+//      (photo + confession + vision du mariage) mais qui n'ont toujours pas
+//      soumis — un message bien plus motivant et actionnable qu'une relance
+//      générique, puisqu'on sait exactement où ils se sont arrêtés.
+//   3) "Passe Premium" (J1/J3/J5/J7 après la validation du profil) pour les
 //      membres VERIFIED mais pas encore Premium.
 // Comptes de test (is_test_account) toujours exclus, comme les campagnes admin.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -34,7 +39,10 @@ async function sendResendEmail(to: string, subject: string, html: string) {
 // Séquence 1 : "Soumets ton profil" (UNVERIFIED)
 // ---------------------------------------------------------------------------
 
-const SUBMIT_PROFILE_URL = `${SITE_URL}/profile?tab=account`;
+// Vers l'assistant d'onboarding directement (pas l'espace compte) : la
+// progression déjà enregistrée (`onboarding_step`) y reprend automatiquement
+// exactement là où la personne s'était arrêtée.
+const SUBMIT_PROFILE_URL = `${SITE_URL}/onboarding`;
 
 async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5 | 7) {
   const configs = {
@@ -43,7 +51,7 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       headline: "Ton profil n'est pas encore visible",
       contentHtml: `
         <p style="margin:0 0 12px 0;">Bienvenue sur Agapeo ! Ton compte est créé, mais tant que ton profil n'est pas soumis pour vérification, personne ne peut te voir dans Découvrir ni t'écrire.</p>
-        <p style="margin:0;">C'est rapide : ajoute tes photos si ce n'est pas fait, puis soumets ton profil depuis "Mon Compte & Sécurité".</p>
+        <p style="margin:0;">C'est rapide (environ 5 minutes) : reprends ton profil là où tu l'avais laissé.</p>
       `,
       ctaText: "Soumettre mon profil"
     },
@@ -70,7 +78,7 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       headline: "On ne veut pas que tu passes à côté",
       contentHtml: `
         <p style="margin:0 0 12px 0;">Voici le dernier rappel automatique : ton profil Agapeo est prêt, il ne manque plus que la vérification pour qu'il devienne visible dans Découvrir.</p>
-        <p style="margin:0;">Soumets-le dès maintenant — tu peux aussi le faire à tout moment depuis "Mon Compte & Sécurité".</p>
+        <p style="margin:0;">Soumets-le dès maintenant — tu peux reprendre exactement là où tu t'étais arrêté(e).</p>
       `,
       ctaText: "Soumettre mon profil"
     }
@@ -87,6 +95,32 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       recipientFirstName: firstName,
       contentHtml: cfg.contentHtml,
       ctaText: cfg.ctaText,
+      ctaUrl: SUBMIT_PROFILE_URL
+    })
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Séquence "presque fini" : profil COMPLET (photo + confession + vision du
+// mariage) mais toujours pas soumis — indépendante des paliers J1/J3/J5/J7,
+// un seul envoi (jamais renvoyée), et bien plus motivante puisqu'on sait
+// exactement qu'il ne manque que le selfie et le clic "Soumettre".
+// ---------------------------------------------------------------------------
+
+async function sendAlmostDoneEmail(to: string, firstName: string) {
+  await sendResendEmail(
+    to,
+    "Il ne te reste qu'un selfie pour finaliser ton profil",
+    buildAgapeoEmailHtml({
+      title: "Il ne te reste qu'un selfie pour finaliser ton profil",
+      eyebrow: "VÉRIFICATION",
+      headline: "Tu es à un pas de la fin !",
+      recipientFirstName: firstName,
+      contentHtml: `
+        <p style="margin:0 0 12px 0;">Ton profil Agapeo est déjà complet — photos, confession, vision du mariage : tout y est. Il ne manque plus qu'un selfie en direct (pour confirmer que c'est bien toi) et un clic sur "Soumettre".</p>
+        <p style="margin:0;">Ça prend littéralement 2 minutes, et notre équipe l'examine généralement sous 48h.</p>
+      `,
+      ctaText: "Finaliser mon profil",
       ctaUrl: SUBMIT_PROFILE_URL
     })
   );
@@ -170,12 +204,12 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceRoleKey);
   const now = new Date();
 
-  // ---- Séquence 1 : UNVERIFIED depuis 1 à 7+ jours ----
+  // ---- Séquence 1 : UNVERIFIED depuis 1 à 7+ jours, + relance dédiée "presque fini" ----
   const onboardingResults: { userId: string; sent: boolean; stage?: number; reason?: string }[] = [];
   {
     const { data: rows, error } = await admin
       .from("profiles")
-      .select("id, first_name, created_at, profile_restricted(onboarding_sequence_stage)")
+      .select("id, first_name, created_at, avatar_url, church_denomination, why_marriage, profile_restricted(onboarding_sequence_stage, almost_done_nudge_sent)")
       .eq("photo_verification_status", "UNVERIFIED")
       .eq("is_test_account", false);
 
@@ -185,19 +219,39 @@ Deno.serve(async (req) => {
       id: string;
       first_name: string;
       created_at: string;
-      profile_restricted: { onboarding_sequence_stage: number | null } | null;
+      avatar_url: string | null;
+      church_denomination: string | null;
+      why_marriage: string | null;
+      profile_restricted: { onboarding_sequence_stage: number | null; almost_done_nudge_sent: boolean } | null;
     }[]) {
+      const isProfileComplete = Boolean(row.avatar_url && row.church_denomination && row.why_marriage);
+      const wantsAlmostDone = isProfileComplete && !(row.profile_restricted?.almost_done_nudge_sent ?? false);
+
       const daysSince = Math.floor((now.getTime() - new Date(row.created_at).getTime()) / (24 * 60 * 60 * 1000));
       const milestone = applicableMilestone(daysSince);
-      if (milestone === undefined) continue;
-
       const stage = row.profile_restricted?.onboarding_sequence_stage ?? null;
-      if (stage !== null && stage >= milestone) continue;
+      const wantsMilestone = milestone !== undefined && (stage === null || stage < milestone);
+
+      if (!wantsAlmostDone && !wantsMilestone) continue;
 
       const { data: authUser } = await admin.auth.admin.getUserById(row.id);
       const email = authUser?.user?.email;
       if (!email) {
         onboardingResults.push({ userId: row.id, sent: false, reason: "Email introuvable" });
+        continue;
+      }
+
+      // Priorité à la relance dédiée quand elle s'applique : plus motivante
+      // et plus précise qu'un message générique de palier — celui-ci
+      // reprendra normalement lors d'une prochaine exécution si toujours pas soumis.
+      if (wantsAlmostDone) {
+        try {
+          await sendAlmostDoneEmail(email, row.first_name);
+          await admin.from("profile_restricted").update({ almost_done_nudge_sent: true }).eq("id", row.id);
+          onboardingResults.push({ userId: row.id, sent: true, reason: "Relance dédiée : profil complet, selfie manquant" });
+        } catch (err) {
+          onboardingResults.push({ userId: row.id, sent: false, reason: err instanceof Error ? err.message : "Erreur d'envoi (relance dédiée)" });
+        }
         continue;
       }
 
