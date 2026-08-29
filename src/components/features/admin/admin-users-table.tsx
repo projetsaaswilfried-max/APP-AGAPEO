@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { SuspendUserModal } from "@/components/features/admin/suspend-user-modal";
 import { updateUserRoleAction, toggleSuspendUserAction, toggleUserPremiumAction, revokeVerificationAction } from "@/lib/actions/admin.actions";
 import { PREMIUM_PLANS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
 import type { AppRole, VerificationStatus } from "@/lib/supabase/database.types";
@@ -110,6 +111,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
   const [grantPlan, setGrantPlan] = useState<PremiumPlanKey>("MONTHLY");
   const [revokeModalUserId, setRevokeModalUserId] = useState<string | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [suspendModalUserId, setSuspendModalUserId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -149,12 +151,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
   const handleToggleSuspend = (userId: string, suspend: boolean) => {
     setError(null);
     if (suspend) {
-      const reason = window.prompt("Motif de la suspension (optionnel) :") ?? undefined;
-      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isSuspended: true } : u)));
-      startTransition(async () => {
-        const result = await toggleSuspendUserAction(userId, true, reason);
-        if (result?.error) setError(result.error);
-      });
+      setSuspendModalUserId(userId);
       return;
     }
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isSuspended: false } : u)));
@@ -162,6 +159,15 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
       const result = await toggleSuspendUserAction(userId, false);
       if (result?.error) setError(result.error);
     });
+  };
+
+  const handleConfirmSuspend = async (reason?: string) => {
+    if (!suspendModalUserId) return { error: "Membre introuvable." };
+    const userId = suspendModalUserId;
+    const result = await toggleSuspendUserAction(userId, true, reason);
+    if (result?.error) return result;
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isSuspended: true } : u)));
+    return result;
   };
 
   const handleOpenGrantModal = (userId: string) => {
@@ -443,6 +449,13 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
           Cette action est réversible : le membre peut soumettre une nouvelle demande à tout moment, que vous pourrez valider à nouveau.
         </p>
       </Modal>
+
+      <SuspendUserModal
+        isOpen={Boolean(suspendModalUserId)}
+        onClose={() => setSuspendModalUserId(null)}
+        memberName={users.find((u) => u.id === suspendModalUserId)?.firstName ?? ""}
+        onConfirm={handleConfirmSuspend}
+      />
     </div>
   );
 }

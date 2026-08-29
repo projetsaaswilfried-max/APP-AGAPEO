@@ -9,6 +9,7 @@ import { sendVerificationEmail } from "@/lib/verification-emails";
 import { sendPremiumRemovedEmail } from "@/lib/premium-emails";
 import { sendRoleChangedEmail } from "@/lib/role-emails";
 import { sendPhotoEmail } from "@/lib/photo-emails";
+import { sendAccountSuspendedEmail } from "@/lib/account-suspension-email";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
 import { z } from "zod";
@@ -287,6 +288,16 @@ export async function toggleSuspendUserAction(userId: string, suspend: boolean, 
     ban_duration: suspend ? "876000h" : "none"
   });
   if (banError) return { error: banError.message };
+
+  if (suspend) {
+    const [{ data: target }, { data: authUser }] = await Promise.all([
+      admin.from("profiles").select("first_name").eq("id", userId).maybeSingle(),
+      admin.auth.admin.getUserById(userId)
+    ]);
+    if (target && authUser?.user?.email) {
+      await sendAccountSuspendedEmail({ to: authUser.user.email, firstName: target.first_name, reason });
+    }
+  }
 
   await logAdminAction(user.id, suspend ? "SUSPEND_USER" : "UNSUSPEND_USER", { targetType: "profile", targetId: userId, details: { reason } });
   revalidatePath("/admin/users");

@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
+/** Adresse de contact PUBLIQUE affichée aux membres — pas getSupportEmail(), qui est la boîte interne de notification des tickets. */
+const SUPPORT_EMAIL = "support@agapeo.love";
+
 export default async function SuspendedPage() {
   const { user, profile } = await getCurrentSession();
 
@@ -27,7 +30,11 @@ export default async function SuspendedPage() {
           {profile.suspended_reason ? ` : ${profile.suspended_reason}` : "."}
         </p>
         <p className="text-xs text-muted-foreground mt-2">
-          Si tu penses qu&apos;il s&apos;agit d&apos;une erreur, contacte le support.
+          Si tu penses qu&apos;il s&apos;agit d&apos;une erreur, contacte{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary hover:underline">
+            notre support
+          </a>
+          .
         </p>
       </div>
       <form action={signOutAction}>
