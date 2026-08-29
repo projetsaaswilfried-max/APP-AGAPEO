@@ -44,13 +44,13 @@ const PREMIUM_FEATURES = [
 ];
 
 const PRICE_NOTES: Record<PremiumPlanKey, string> = {
-  MONTHLY: "12$ / mois — renouvelable à tout moment.",
-  QUARTERLY: "30$ / 3 mois (au lieu de 36$) — soit 10$/mois."
+  MONTHLY: `${PREMIUM_PLANS.MONTHLY.priceFcfaLabel} / mois — renouvelable à tout moment.`,
+  QUARTERLY: `${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel} / 3 mois (au lieu de 20 997 FCFA) — soit environ 5 832 FCFA/mois.`
 };
 
 const BUY_LABELS: Record<PremiumPlanKey, string> = {
-  MONTHLY: "S'abonner — 12$ / mois",
-  QUARTERLY: "S'abonner — 30$ / 3 mois"
+  MONTHLY: `S'abonner — ${PREMIUM_PLANS.MONTHLY.priceFcfaLabel} / mois`,
+  QUARTERLY: `S'abonner — ${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel} / 3 mois`
 };
 
 interface PremiumPlanCardProps {

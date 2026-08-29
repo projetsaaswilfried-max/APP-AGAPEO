@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon } from "@iconify/react";
+import { PREMIUM_PLANS } from "@/domain/premium-plans";
 
 const FREE_INCLUDED = [
   "Créer et compléter son profil",
@@ -85,8 +86,8 @@ export function LandingPricing() {
                 Premium
                 <Icon icon="hugeicons:crown" className="text-xl" width={20} height={20} />
               </h3>
-              <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-3xl tracking-tight text-zinc-900 font-bricolage font-light">12$</span>
+              <div className="flex items-baseline gap-1.5 mb-4 flex-wrap">
+                <span className="text-3xl tracking-tight text-zinc-900 font-bricolage font-light">{PREMIUM_PLANS.MONTHLY.priceFcfaLabel}</span>
                 <span className="text-sm text-zinc-500">/ mois</span>
               </div>
               <p className="text-sm text-zinc-500 font-light">renouvelable à tout moment.</p>

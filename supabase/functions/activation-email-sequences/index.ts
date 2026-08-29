@@ -153,10 +153,10 @@ async function sendPremiumUpsellEmail(to: string, firstName: string, day: 1 | 3 
       ctaText: "Voir les offres Premium"
     },
     5: {
-      subject: "Premium à partir de 10$/mois",
+      subject: "Premium à partir de 5 832 FCFA/mois",
       headline: "Deux formules, à toi de choisir",
       contentHtml: `
-        <p style="margin:0 0 12px 0;">Premium mensuel à 12$, ou trimestriel à 30$ (soit 10$/mois, notre offre la plus avantageuse) — les deux donnent accès à toutes les fonctionnalités : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>
+        <p style="margin:0 0 12px 0;">Premium mensuel à 6 999 FCFA, ou trimestriel à 17 497 FCFA (soit environ 5 832 FCFA/mois, notre offre la plus avantageuse) — les deux donnent accès à toutes les fonctionnalités : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>
         <p style="margin:0;">Choisis la formule qui te convient le mieux.</p>
       `,
       ctaText: "Voir les offres Premium"
