@@ -8,7 +8,9 @@ import { requireServiceRole } from "../_shared/auth-guard.ts";
 interface ProfileRow {
   id: string;
   first_name: string;
-  gender: string;
+  gender: string | null;
+  birth_date: string | null;
+  country: string | null;
   avatar_url: string | null;
   church_denomination: string | null;
   why_marriage: string | null;
@@ -32,8 +34,14 @@ function applyMergeTags(html: string, firstName: string): string {
   return html.replaceAll("{{prenom}}", firstName).replaceAll("{{Prenom}}", firstName).replaceAll("{{PRENOM}}", firstName.toUpperCase());
 }
 
+// Doit rester synchronisée avec src/domain/profile-completeness.ts (Deno ne
+// peut pas importer ce module Next.js) : un ancien bug (déjà corrigé) a
+// laissé de vrais comptes VERIFIED sans genre/date de naissance/pays,
+// invisibles dans Découvrir — inclure ces 3 champs ici aussi pour que le
+// public réel d'une campagne "profil incomplet" corresponde à ce que
+// l'aperçu de l'espace admin affiche.
 function isProfileComplete(p: ProfileRow): boolean {
-  return Boolean(p.avatar_url && p.church_denomination && p.why_marriage);
+  return Boolean(p.avatar_url && p.church_denomination && p.why_marriage && p.gender && p.birth_date && p.country);
 }
 
 function renderCampaignEmailHtml(firstName: string, subject: string, bodyHtmlTemplate: string) {

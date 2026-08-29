@@ -8,7 +8,7 @@ import { useSession } from "@/core/providers/session-provider";
 import { isProfileComplete, getMissingProfileFields } from "@/domain/profile-completeness";
 import { cn } from "@/lib/utils";
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 function IncompleteProfileBannerContent() {
   const { profile } = useSession();

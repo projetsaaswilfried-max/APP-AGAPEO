@@ -53,12 +53,14 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
   ];
 
   // Un profil refusé (ou jamais soumis malgré un onboarding marqué "terminé",
-  // via "Terminer sans soumettre") doit reprendre le parcours exactement
-  // comme s'il n'avait jamais validé son profil — navigation libre entre
-  // étapes réservée à un membre VRAIMENT déjà en règle (VERIFIED ou PENDING)
-  // qui ne fait qu'ajuster une section, jamais à quelqu'un qui doit encore
-  // (re)passer par la vérification.
-  const isRevisit = profile.onboarding_completed && !needsVerificationSubmission;
+  // via "Terminer sans soumettre"), ou à qui il manque encore genre/date de
+  // naissance/pays (un vrai bug déjà corrigé permettait auparavant d'être
+  // VERIFIED sans jamais les avoir renseignés — ces comptes restent
+  // invisibles dans Découvrir, qui filtre sur `gender`, tant que ce n'est
+  // pas comblé), doit reprendre le parcours exactement comme s'il n'avait
+  // jamais validé son profil — navigation libre entre étapes réservée à un
+  // membre VRAIMENT déjà en règle qui ne fait qu'ajuster une section.
+  const isRevisit = profile.onboarding_completed && !needsVerificationSubmission && !needsEssentialInfo;
 
   // Résout la position de départ à partir de l'étape "de base" (0-2) déjà
   // persistée, en tenant compte des étapes conditionnelles réellement

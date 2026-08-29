@@ -6,15 +6,28 @@ import type { ProfileRow } from "@/lib/supabase/database.types";
  * différable via "Terminer plus tard") — c'est cette fonction qui décide
  * seule de la visibilité, aussi bien côté UI (bannière de rappel) que côté
  * requête Découvrir (cf. discover.service.ts).
+ *
+ * Inclut genre/date de naissance/pays depuis la découverte d'un vrai bug :
+ * un ancien bouton de resoumission (déjà corrigé) permettait d'atteindre
+ * `submitVerificationRequestAction` — et même d'être VERIFIED par l'équipe —
+ * sans jamais être passé par l'étape "Tes informations" de l'onboarding.
+ * Conséquence concrète pour ces comptes : `discover.service.ts` filtre par
+ * `gender`, donc un profil avec `gender = null` n'apparaît JAMAIS dans
+ * Découvrir pour personne, même déjà vérifié.
  */
-export function isProfileComplete(profile: Pick<ProfileRow, "avatar_url" | "church_denomination" | "why_marriage">): boolean {
-  return Boolean(profile.avatar_url && profile.church_denomination && profile.why_marriage);
+export function isProfileComplete(
+  profile: Pick<ProfileRow, "avatar_url" | "church_denomination" | "why_marriage" | "gender" | "birth_date" | "country">
+): boolean {
+  return Boolean(
+    profile.avatar_url && profile.church_denomination && profile.why_marriage && profile.gender && profile.birth_date && profile.country
+  );
 }
 
 export function getMissingProfileFields(
-  profile: Pick<ProfileRow, "avatar_url" | "church_denomination" | "why_marriage">
+  profile: Pick<ProfileRow, "avatar_url" | "church_denomination" | "why_marriage" | "gender" | "birth_date" | "country">
 ): string[] {
   const missing: string[] = [];
+  if (!profile.gender || !profile.birth_date || !profile.country) missing.push("tes informations essentielles (genre, date de naissance, pays)");
   if (!profile.avatar_url) missing.push("une photo de profil");
   if (!profile.church_denomination) missing.push("ta confession chrétienne");
   if (!profile.why_marriage) missing.push("ta vision du mariage");
