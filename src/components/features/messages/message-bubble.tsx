@@ -107,7 +107,7 @@ export function MessageBubble({
         {/* Bulle de Message */}
         <div
           className={cn(
-            "p-3.5 rounded-3xl text-xs space-y-2 leading-relaxed shadow-soft transition-all border",
+            "min-w-0 p-3.5 rounded-3xl text-xs space-y-2 leading-relaxed shadow-soft transition-all border",
             isCurrentUser
               ? "bg-primary text-primary-foreground rounded-br-xs border-primary/20 font-medium"
               : "bg-card text-foreground rounded-bl-xs border-border/40 font-normal"

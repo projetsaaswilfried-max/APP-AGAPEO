@@ -5,6 +5,15 @@ import { PlayIcon, PauseIcon, AlertCircleIcon } from "@hugeicons/core-free-icons
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { cn } from "@/lib/utils";
 
+/**
+ * Un seul lecteur de note vocale actif à la fois sur toute la page — démarrer
+ * la lecture d'une note met en pause toutes les autres déjà en cours. Partagé
+ * au niveau module (pas de contexte React) : aucune coordination d'état n'est
+ * nécessaire entre bulles, l'événement natif `pause` de chaque élément
+ * `<audio>` mis en pause par un autre suffit à resynchroniser son icône.
+ */
+const activeAudioElements = new Set<HTMLAudioElement>();
+
 function formatDuration(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));
   const m = Math.floor(total / 60);
@@ -55,10 +64,23 @@ export function VoiceMessagePlayer({ url, durationSeconds, mimeType, isCurrentUs
       setError(describeMediaError(audio));
       console.error("Note vocale illisible :", audio.error, { url, mimeType });
     };
+    // Se déclenche aussi bien pour une pause déclenchée par l'utilisateur
+    // ICI que pour une pause imposée par un AUTRE lecteur qui vient de
+    // démarrer — dans les deux cas l'icône doit repasser sur "lecture".
+    const onPause = () => setIsPlaying(false);
+    // Dès que CE lecteur démarre, on coupe tous les autres déjà actifs.
+    const onPlay = () => {
+      activeAudioElements.forEach((other) => {
+        if (other !== audio && !other.paused) other.pause();
+      });
+    };
     audio.addEventListener("timeupdate", onTimeUpdate);
     audio.addEventListener("loadedmetadata", onLoadedMetadata);
     audio.addEventListener("ended", onEnded);
     audio.addEventListener("error", onError);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
+    activeAudioElements.add(audio);
     // Force la ré-évaluation des <source> enfants — sans ça, un changement
     // de `url` (ré-signature) n'est pas repris tant que `.load()` n'a pas
     // été rappelé explicitement.
@@ -68,6 +90,9 @@ export function VoiceMessagePlayer({ url, durationSeconds, mimeType, isCurrentUs
       audio.removeEventListener("loadedmetadata", onLoadedMetadata);
       audio.removeEventListener("ended", onEnded);
       audio.removeEventListener("error", onError);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
+      activeAudioElements.delete(audio);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
@@ -77,7 +102,6 @@ export function VoiceMessagePlayer({ url, durationSeconds, mimeType, isCurrentUs
     if (!audio) return;
     if (isPlaying) {
       audio.pause();
-      setIsPlaying(false);
       return;
     }
     setError(null);
@@ -101,8 +125,8 @@ export function VoiceMessagePlayer({ url, durationSeconds, mimeType, isCurrentUs
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="flex flex-col gap-1 min-w-[12rem]">
-      <div className="flex items-center gap-2.5 py-0.5">
+    <div className="flex flex-col gap-1 w-full min-w-0">
+      <div className="flex items-center gap-2 py-0.5 min-w-0">
         {/* `<source type>` porte le codec complet (ex. codecs=opus) — le
             Content-Type HTTP servi par Supabase Storage le tronque parfois
             en un simple "audio/webm", ce qui peut suffire à faire échouer
@@ -122,6 +146,10 @@ export function VoiceMessagePlayer({ url, durationSeconds, mimeType, isCurrentUs
         >
           <HugeIcon icon={isPlaying ? PauseIcon : PlayIcon} size={13} />
         </button>
+        {/* `min-w-0` est indispensable ici : un enfant flex a par défaut un
+            min-width automatique basé sur sa largeur intrinsèque, ce qui
+            l'empêchait de rétrécir sous ~10rem malgré `flex-1` et faisait
+            déborder toute la bulle sur un écran mobile étroit. */}
         <input
           type="range"
           min={0}
@@ -130,7 +158,7 @@ export function VoiceMessagePlayer({ url, durationSeconds, mimeType, isCurrentUs
           value={currentTime}
           onChange={handleSeek}
           className={cn(
-            "voice-seek flex-1 h-1 rounded-full appearance-none cursor-pointer",
+            "voice-seek flex-1 min-w-0 h-1 rounded-full appearance-none cursor-pointer",
             isCurrentUser ? "bg-primary-foreground/30 text-primary-foreground" : "bg-primary/20 text-primary"
           )}
           style={{ backgroundImage: `linear-gradient(to right, currentColor ${progress}%, transparent ${progress}%)` }}

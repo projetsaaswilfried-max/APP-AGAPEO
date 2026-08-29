@@ -5,6 +5,20 @@ export type VoiceRecorderStatus = "idle" | "recording" | "recorded" | "error";
 /** Garde-fou UX (pas une vraie limite technique) — le bucket `message-attachments` plafonne à 25 Mo. */
 const MAX_DURATION_SECONDS = 300;
 
+/** Nombre de barres affichées par le graphe façon WhatsApp pendant l'enregistrement. */
+const WAVEFORM_BAR_COUNT = 40;
+const WAVEFORM_SAMPLE_INTERVAL_MS = 120;
+
+/**
+ * Beaucoup de micros (surtout intégrés) enregistrent nettement plus bas que
+ * la voix perçue à l'oreille — `autoGainControl` du navigateur ne suffit pas
+ * toujours. On applique donc un compresseur (lisse les pics pour éviter la
+ * saturation) puis un gain fixe, appliqués AU SIGNAL ENREGISTRÉ lui-même
+ * (pas seulement à la lecture) pour que le fichier final soit plus fort
+ * partout où il est ensuite écouté.
+ */
+const RECORDING_GAIN = 2.4;
+
 /**
  * Chrome/Firefox enregistrent en WebM/Opus par défaut, Safari (desktop et
  * iOS) uniquement en MP4/AAC — un mimeType figé en dur pour un seul
@@ -33,45 +47,69 @@ export function useVoiceRecorder() {
   /** Niveau du signal micro en direct (0..1) — sert de VU-mètre pendant l'enregistrement et de diagnostic : s'il reste à 0, le son ne parvient pas du tout au navigateur (problème de périphérique/pilote), indépendamment de tout ce qui se passe ensuite (encodage, lecture). */
   const [audioLevel, setAudioLevel] = useState(0);
   const [hasDetectedSound, setHasDetectedSound] = useState(false);
+  /** Historique récent du niveau — alimente le graphe façon WhatsApp pendant l'enregistrement. */
+  const [levelHistory, setLevelHistory] = useState<number[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const rawStreamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef("audio/webm");
   const startedAtRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const waveformIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const meterRafRef = useRef<number | null>(null);
+  const currentLevelRef = useRef(0);
 
   const stopStream = () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    if (waveformIntervalRef.current) {
+      clearInterval(waveformIntervalRef.current);
+      waveformIntervalRef.current = null;
+    }
     if (meterRafRef.current) {
       cancelAnimationFrame(meterRafRef.current);
       meterRafRef.current = null;
     }
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
+    rawStreamRef.current?.getTracks().forEach((track) => track.stop());
+    rawStreamRef.current = null;
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
     setAudioLevel(0);
+    currentLevelRef.current = 0;
   };
 
-  /** VU-mètre indépendant de MediaRecorder — lit le flux brut du micro pour prouver (ou infirmer) qu'un signal y arrive vraiment, avant tout encodage. */
-  const startLevelMeter = (stream: MediaStream) => {
+  /**
+   * Construit la chaîne micro → compresseur → gain, branchée à la fois vers
+   * un `MediaStreamDestination` (ce que MediaRecorder enregistre réellement,
+   * donc le boost est déjà dans le fichier envoyé) et vers un analyseur (VU-
+   * mètre + graphe pendant l'enregistrement). Renvoie le flux à donner à
+   * MediaRecorder, ou le flux brut si Web Audio est indisponible.
+   */
+  const buildProcessedStream = (rawStream: MediaStream): MediaStream => {
     try {
       const AudioContextCtor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const audioContext = new AudioContextCtor();
-      const source = audioContext.createMediaStreamSource(stream);
+      audioContextRef.current = audioContext;
+
+      const source = audioContext.createMediaStreamSource(rawStream);
+      const compressor = audioContext.createDynamicsCompressor();
+      const gain = audioContext.createGain();
+      gain.gain.value = RECORDING_GAIN;
+      const destination = audioContext.createMediaStreamDestination();
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.4;
-      source.connect(analyser);
-      audioContextRef.current = audioContext;
+
+      source.connect(compressor);
+      compressor.connect(gain);
+      gain.connect(destination);
+      gain.connect(analyser);
 
       const buffer = new Uint8Array(analyser.frequencyBinCount);
       const tick = () => {
@@ -82,13 +120,21 @@ export function useVoiceRecorder() {
           sumSquares += v * v;
         }
         const level = Math.min(1, Math.sqrt(sumSquares / buffer.length) * 5);
+        currentLevelRef.current = level;
         setAudioLevel(level);
         if (level > 0.04) setHasDetectedSound(true);
         meterRafRef.current = requestAnimationFrame(tick);
       };
       tick();
+
+      waveformIntervalRef.current = setInterval(() => {
+        setLevelHistory((prev) => [...prev, currentLevelRef.current].slice(-WAVEFORM_BAR_COUNT));
+      }, WAVEFORM_SAMPLE_INTERVAL_MS);
+
+      return destination.stream;
     } catch {
-      // Web Audio indisponible : le VU-mètre restera à 0, l'enregistrement continue normalement sans lui.
+      // Web Audio indisponible : on enregistre le flux brut sans boost ni VU-mètre plutôt que de bloquer la fonctionnalité.
+      return rawStream;
     }
   };
 
@@ -96,6 +142,7 @@ export function useVoiceRecorder() {
     setErrorMessage(null);
     setRecordedBlob(null);
     setHasDetectedSound(false);
+    setLevelHistory([]);
     try {
       const mimeType = pickSupportedMimeType();
       if (!mimeType) throw new Error("L'enregistrement audio n'est pas supporté par ce navigateur.");
@@ -107,15 +154,16 @@ export function useVoiceRecorder() {
       // supprimer, laissant un résidu "vent"/souffle à la place de la voix.
       // On demande donc une capture brute ; `autoGainControl` reste utile
       // (ajuste juste le volume, ne dénature pas le signal).
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const rawStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true, channelCount: 1 }
       });
-      streamRef.current = stream;
+      rawStreamRef.current = rawStream;
       mimeTypeRef.current = mimeType;
       chunksRef.current = [];
-      startLevelMeter(stream);
 
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const processedStream = buildProcessedStream(rawStream);
+
+      const recorder = new MediaRecorder(processedStream, { mimeType });
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
@@ -187,6 +235,7 @@ export function useVoiceRecorder() {
     recordedDurationSeconds,
     audioLevel,
     hasDetectedSound,
+    levelHistory,
     startRecording,
     stopRecording,
     cancelRecording,

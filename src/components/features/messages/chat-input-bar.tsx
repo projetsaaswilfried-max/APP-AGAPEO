@@ -286,11 +286,19 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
                 className="w-2 h-2 rounded-full bg-destructive shrink-0 transition-transform duration-75"
                 style={{ transform: `scale(${1 + recorder.audioLevel * 1.8})` }}
               />
-              <span className="text-xs font-mono tabular-nums text-foreground">{formatRecordingTime(recorder.elapsedSeconds)}</span>
+              <span className="text-xs font-mono tabular-nums text-foreground shrink-0">{formatRecordingTime(recorder.elapsedSeconds)}</span>
               {recorder.elapsedSeconds >= 2 && !recorder.hasDetectedSound ? (
-                <span className="text-[11px] text-destructive font-medium">Aucun son détecté — vérifie ton micro</span>
+                <span className="text-[11px] text-destructive font-medium truncate">Aucun son détecté — vérifie ton micro</span>
               ) : (
-                <span className="text-[11px] text-muted-foreground">Enregistrement en cours...</span>
+                <div className="flex-1 flex items-end gap-[3px] h-5 min-w-0 overflow-hidden">
+                  {recorder.levelHistory.map((level, i) => (
+                    <span
+                      key={i}
+                      className="w-[3px] rounded-full bg-destructive shrink-0"
+                      style={{ height: `${4 + Math.min(1, level) * 16}px` }}
+                    />
+                  ))}
+                </div>
               )}
             </div>
 
