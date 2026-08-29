@@ -30,12 +30,17 @@ interface MessageBubbleProps {
   message: ChatMessage;
   isCurrentUser: boolean;
   onDeleteMessage?: (id: string) => void;
+  /** Avatar de l'EXPÉDITEUR de ce message précis — utilisé uniquement par les notes vocales pour le badge micro façon WhatsApp. */
+  senderAvatarUrl?: string;
+  senderAvatarFallback?: string;
 }
 
 export function MessageBubble({
   message,
   isCurrentUser,
-  onDeleteMessage
+  onDeleteMessage,
+  senderAvatarUrl,
+  senderAvatarFallback
 }: MessageBubbleProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -151,6 +156,8 @@ export function MessageBubble({
                       durationSeconds={att.durationSeconds}
                       mimeType={att.mimeType}
                       isCurrentUser={isCurrentUser}
+                      avatarUrl={senderAvatarUrl}
+                      avatarFallback={senderAvatarFallback}
                     />
                   );
                 }

@@ -262,30 +262,3 @@ details[open] summary ~ div {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.5);
 }
-
-/* Curseur de lecture des messages vocaux (chat) — couleur héritée via `color`
-   pour rester lisible aussi bien sur une bulle claire que sur la bulle
-   "moi" (fond primary), cf. voice-message-player.tsx. */
-.voice-seek {
-  outline: none;
-}
-.voice-seek::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 9999px;
-  background: currentColor;
-  cursor: pointer;
-}
-.voice-seek::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
-  border: none;
-  border-radius: 9999px;
-  background: currentColor;
-  cursor: pointer;
-}
-.voice-seek::-moz-range-track {
-  background: transparent;
-}

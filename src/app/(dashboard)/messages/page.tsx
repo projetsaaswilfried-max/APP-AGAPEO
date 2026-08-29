@@ -528,7 +528,14 @@ function MessagesPageContent() {
                     ) : (
                       <>
                         {messages.map((msg) => (
-                          <MessageBubble key={msg.id} message={msg} isCurrentUser={msg.senderId === user.id} onDeleteMessage={handleDeleteMessage} />
+                          <MessageBubble
+                            key={msg.id}
+                            message={msg}
+                            isCurrentUser={msg.senderId === user.id}
+                            onDeleteMessage={handleDeleteMessage}
+                            senderAvatarUrl={msg.senderId === user.id ? profile.avatar_url ?? undefined : activeConv.participant.avatarUrl}
+                            senderAvatarFallback={msg.senderId === user.id ? profile.first_name?.charAt(0) : activeConv.participant.firstName.charAt(0)}
+                          />
                         ))}
                         <div ref={messagesEndRef} />
                       </>

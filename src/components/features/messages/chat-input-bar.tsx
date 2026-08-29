@@ -52,6 +52,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [pendingFile, setPendingFile] = useState<PendingFilePayload | null>(null);
   const recorder = useVoiceRecorder();
+  const hasContentToSend = Boolean(text.trim() || pendingFile || recorder.recordedBlob);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -337,26 +338,29 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               <EmojiPicker onSelect={(emoji) => setText((prev) => prev + emoji)} />
             </div>
 
-            {onSendVoiceMessage && !text.trim() && !pendingFile && !recorder.recordedBlob && (
-              <button
-                type="button"
-                onClick={recorder.startRecording}
-                className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-primary bg-secondary/70 hover:bg-accent-subtle rounded-full transition-colors shrink-0"
-                title="Enregistrer une note vocale"
-              >
-                <HugeIcon icon={Mic01Icon} size={18} />
-              </button>
-            )}
-
+            {/*
+              Un seul bouton, jamais deux en alternance : basculer entre un
+              bouton micro conditionnel et le bouton Envoyer faisait varier le
+              nombre d'éléments de la ligne, et donc la largeur réellement
+              disponible pour le champ de texte — la "bulle" semblait
+              s'élargir/rétrécir selon l'état. Un seul emplacement, stable,
+              qui change juste d'icône/d'action (comme WhatsApp).
+            */}
             <Button
               type="submit"
               size="icon"
               variant="primary"
               className="h-10 w-10 rounded-full shrink-0 shadow-accent-glow disabled:opacity-40"
-              title="Envoyer"
-              disabled={!text.trim() && !pendingFile && !recorder.recordedBlob}
+              title={hasContentToSend ? "Envoyer" : "Enregistrer une note vocale"}
+              disabled={!hasContentToSend && !onSendVoiceMessage}
+              onClick={(e) => {
+                if (!hasContentToSend && onSendVoiceMessage) {
+                  e.preventDefault();
+                  recorder.startRecording();
+                }
+              }}
             >
-              <HugeIcon icon={SentIcon} size={16} />
+              <HugeIcon icon={hasContentToSend ? SentIcon : Mic01Icon} size={hasContentToSend ? 16 : 18} />
             </Button>
           </>
         )}
