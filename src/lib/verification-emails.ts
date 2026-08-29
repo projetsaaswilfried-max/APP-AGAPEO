@@ -88,14 +88,16 @@ export async function sendVerificationEmail({ to, firstName, kind, isPriority, r
     REJECTED: {
       subject: "Ton profil n'a pas pu être vérifié — Agapeo",
       headline: "Vérification non validée",
-      contentHtml: `<p style="margin:0 0 12px 0;">Notre équipe n'a pas pu valider ton profil pour la raison suivante :</p><div style="background:#F4F6F8;border-radius:12px;padding:14px 16px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-line;">${escapeHtml(rejectionReason ?? "Raison non précisée.")}</div><p style="margin:12px 0 0 0;">Corrige ce point puis soumets à nouveau ton profil depuis ton compte — on est là pour t'aider si besoin via le support.</p>`,
-      ctaText: "Corriger mon profil"
+      contentHtml: `<p style="margin:0 0 12px 0;">Notre équipe n'a pas pu valider ton profil pour la raison suivante :</p><div style="background:#F4F6F8;border-radius:12px;padding:14px 16px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-line;">${escapeHtml(rejectionReason ?? "Raison non précisée.")}</div><p style="margin:12px 0 0 0;">Corrige ce point puis soumets à nouveau ton profil — on te reprend exactement dans le même parcours qu'au début, on est là pour t'aider si besoin via le support.</p>`,
+      ctaText: "Reprendre mon profil",
+      ctaUrl: `${env.siteUrl}/onboarding`
     },
     REVOKED: {
       subject: "Ton badge de vérification a été retiré — Agapeo",
       headline: "Vérification retirée",
-      contentHtml: `<p style="margin:0 0 12px 0;">Après un nouvel examen, notre équipe a retiré le badge de vérification de ton profil pour la raison suivante :</p><div style="background:#F4F6F8;border-radius:12px;padding:14px 16px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-line;">${escapeHtml(rejectionReason ?? "Raison non précisée.")}</div><p style="margin:12px 0 0 0;">Ton profil n'apparaît plus dans Découvrir tant qu'il n'est pas de nouveau vérifié. Tu peux soumettre une nouvelle demande de vérification depuis ton compte à tout moment.</p>`,
-      ctaText: "Soumettre à nouveau mon profil"
+      contentHtml: `<p style="margin:0 0 12px 0;">Après un nouvel examen, notre équipe a retiré le badge de vérification de ton profil pour la raison suivante :</p><div style="background:#F4F6F8;border-radius:12px;padding:14px 16px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-line;">${escapeHtml(rejectionReason ?? "Raison non précisée.")}</div><p style="margin:12px 0 0 0;">Ton profil n'apparaît plus dans Découvrir tant qu'il n'est pas de nouveau vérifié — tu peux soumettre une nouvelle demande à tout moment, on te reprend dans le même parcours qu'au début.</p>`,
+      ctaText: "Reprendre mon profil",
+      ctaUrl: `${env.siteUrl}/onboarding`
     }
   };
 

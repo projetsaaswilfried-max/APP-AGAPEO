@@ -52,16 +52,27 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
     "Ce que je recherche"
   ];
 
+  // Un profil refusé (ou jamais soumis malgré un onboarding marqué "terminé",
+  // via "Terminer sans soumettre") doit reprendre le parcours exactement
+  // comme s'il n'avait jamais validé son profil — navigation libre entre
+  // étapes réservée à un membre VRAIMENT déjà en règle (VERIFIED ou PENDING)
+  // qui ne fait qu'ajuster une section, jamais à quelqu'un qui doit encore
+  // (re)passer par la vérification.
+  const isRevisit = profile.onboarding_completed && !needsVerificationSubmission;
+
   // Résout la position de départ à partir de l'étape "de base" (0-2) déjà
   // persistée, en tenant compte des étapes conditionnelles réellement
   // présentes pour CE profil — robuste à n'importe quelle combinaison
-  // d'étapes optionnelles, contrairement à un simple décalage d'index.
+  // d'étapes optionnelles, contrairement à un simple décalage d'index. Un
+  // profil qui doit reprendre le processus (cf. `isRevisit` ci-dessus)
+  // repart systématiquement de la première étape, même si `onboarding_step`
+  // pointait encore vers la fin de sa précédente tentative.
   const [stepIndex, setStepIndex] = useState(() => {
+    if (!isRevisit) return 0;
     const savedBaseKey = BASE_STEP_KEYS[Math.min(profile.onboarding_step, 2)];
     const resolved = stepKeys.indexOf(savedBaseKey);
     return resolved >= 0 ? resolved : 0;
   });
-  const isRevisit = profile.onboarding_completed;
 
   // Arrivée sur l'onboarding = confirmation que le compte vient d'être créé
   // (email confirmé, ou OAuth Google) : c'est ici que la personne devient un

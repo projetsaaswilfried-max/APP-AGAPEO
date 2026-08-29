@@ -4,7 +4,6 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { UserProfile } from "@/domain/types/user";
 import { createClient } from "@/lib/supabase/client";
-import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
 import { getBlockedProfilesAction, unblockUserAction } from "@/lib/actions/moderation.actions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Avatar } from "@/components/ui/avatar";
-import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
-import { ShieldCheck, ShieldQuestion, Lock, LogOut, Trash2, KeyRound, Mail, AlertCircle, CheckCircle2, Clock, Download, ArrowRight, UserX } from "lucide-react";
+import { ShieldCheck, ShieldQuestion, Lock, LogOut, Trash2, KeyRound, Mail, AlertCircle, CheckCircle2, Clock, Download, UserX } from "lucide-react";
 import { changePasswordAction, changeEmailAction, signOutAction, type FormState } from "@/lib/actions/auth.actions";
 import { deleteAccountAction, exportMyDataAction } from "@/lib/actions/profile.actions";
 
@@ -23,12 +21,16 @@ interface AccountSecurityProps {
 
 const initialState: FormState = undefined;
 
+/**
+ * Purement informative : la resoumission elle-même se fait entièrement dans
+ * l'assistant d'onboarding (`/onboarding`), qui reprend exactement le même
+ * parcours qu'une première soumission (photos, selfie repris en direct,
+ * foi, préférences) — jamais ici via une simple modale de selfie isolée, qui
+ * ne laissait aucune chance de corriger la photo ou une autre section ayant
+ * motivé le refus.
+ */
 function VerificationStatusCard({ profile }: { profile: UserProfile }) {
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [justSubmitted, setJustSubmitted] = useState(false);
-  const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
 
   useEffect(() => {
     if (profile.photoVerificationStatus !== "REJECTED") return;
@@ -44,19 +46,6 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
       .then(({ data }) => setRejectionReason(data?.rejection_reason ?? null));
   }, [profile.id, profile.photoVerificationStatus]);
 
-  const handleSelfieCaptured = async (selfieStoragePath: string) => {
-    setIsSelfieModalOpen(false);
-    setIsSubmitting(true);
-    setError(null);
-    const result = await submitVerificationRequestAction(selfieStoragePath);
-    setIsSubmitting(false);
-    if (result?.error) {
-      setError(result.error);
-      return;
-    }
-    setJustSubmitted(true);
-  };
-
   if (profile.photoVerificationStatus === "VERIFIED") return null;
 
   return (
@@ -66,7 +55,7 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
         <h3 className="text-sm font-display font-semibold text-foreground tracking-tight">Vérification de profil</h3>
       </div>
 
-      {justSubmitted || profile.photoVerificationStatus === "PENDING" ? (
+      {profile.photoVerificationStatus === "PENDING" ? (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-accent/10 text-accent text-xs">
           <Clock size={15} className="shrink-0" />
           Ta demande est en cours de traitement — tu recevras un email dès qu&apos;elle sera examinée.
@@ -80,38 +69,17 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            Complète ton profil (photo, confession, vision du mariage) puis soumets-le pour vérification — ton badge apparaîtra une fois validé par
-            notre équipe.
+            {profile.photoVerificationStatus === "REJECTED"
+              ? "Reprends ton profil pour corriger ce qui a motivé le refus, puis soumets-le à nouveau — ton badge apparaîtra une fois validé par notre équipe."
+              : "Complète ton profil (photo, confession, vision du mariage) puis soumets-le pour vérification — ton badge apparaîtra une fois validé par notre équipe."}
           </p>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsSelfieModalOpen(true)}
-            isLoading={isSubmitting}
-            leftIcon={<ShieldCheck size={15} />}
-          >
-            {profile.photoVerificationStatus === "REJECTED" ? "Soumettre à nouveau" : "Soumettre pour vérification"}
-          </Button>
-          {error && (
-            <div className="p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 space-y-1.5">
-              <div className="flex items-center gap-2 text-xs text-destructive">
-                <AlertCircle size={14} className="shrink-0" />
-                {error}
-              </div>
-              <Link href="/onboarding" className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline">
-                Compléter mon profil <ArrowRight size={12} />
-              </Link>
-            </div>
-          )}
+          <Link href="/onboarding">
+            <Button variant="primary" size="sm" leftIcon={<ShieldCheck size={15} />}>
+              {profile.photoVerificationStatus === "REJECTED" ? "Reprendre mon profil" : "Soumettre pour vérification"}
+            </Button>
+          </Link>
         </>
       )}
-
-      <SelfieCaptureModal
-        isOpen={isSelfieModalOpen}
-        userId={profile.id}
-        onClose={() => setIsSelfieModalOpen(false)}
-        onCaptured={handleSelfieCaptured}
-      />
     </Card>
   );
 }

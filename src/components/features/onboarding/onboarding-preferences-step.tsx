@@ -234,7 +234,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
               ? "En soumettant, ton profil (et le selfie déjà capturé) sera envoyé pour vérification"
               : "En soumettant, on te demandera un selfie en direct (comparé à tes photos par notre équipe), puis ton profil sera envoyé pour vérification"}
             {" "}— notre équipe l&apos;examine généralement sous <strong className="text-foreground font-semibold">{profile.is_premium ? "24h" : "48h"}</strong>, et tu recevras un
-            email de confirmation. Retrouve aussi ce bouton à tout moment depuis{" "}
+            email de confirmation. Retrouve aussi ce parcours à tout moment depuis{" "}
             <Link href="/profile" className="text-accent underline underline-offset-2">
               Mon Compte & Sécurité
             </Link>
