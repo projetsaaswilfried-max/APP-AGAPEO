@@ -44,6 +44,9 @@ export function useVoiceRecorder() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [recordedDurationSeconds, setRecordedDurationSeconds] = useState(0);
+  /** URL locale (objet Blob, jamais uploadée) permettant d'écouter le brouillon avant envoi — révoquée dès qu'elle n'est plus utile pour ne pas fuiter de mémoire. */
+  const [recordedPreviewUrl, setRecordedPreviewUrlState] = useState<string | null>(null);
+  const recordedPreviewUrlRef = useRef<string | null>(null);
   /** Niveau du signal micro en direct (0..1) — sert de VU-mètre pendant l'enregistrement et de diagnostic : s'il reste à 0, le son ne parvient pas du tout au navigateur (problème de périphérique/pilote), indépendamment de tout ce qui se passe ensuite (encodage, lecture). */
   const [audioLevel, setAudioLevel] = useState(0);
   const [hasDetectedSound, setHasDetectedSound] = useState(false);
@@ -65,6 +68,13 @@ export function useVoiceRecorder() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const meterRafRef = useRef<number | null>(null);
   const currentLevelRef = useRef(0);
+
+  /** Remplace l'URL de prévisualisation en révoquant systématiquement l'ancienne — jamais deux à la fois, jamais de fuite mémoire. */
+  const setRecordedPreviewUrl = (url: string | null) => {
+    if (recordedPreviewUrlRef.current) URL.revokeObjectURL(recordedPreviewUrlRef.current);
+    recordedPreviewUrlRef.current = url;
+    setRecordedPreviewUrlState(url);
+  };
 
   const stopStream = () => {
     if (timerRef.current) {
@@ -146,6 +156,7 @@ export function useVoiceRecorder() {
   const startRecording = async () => {
     setErrorMessage(null);
     setRecordedBlob(null);
+    setRecordedPreviewUrl(null);
     setHasDetectedSound(false);
     setLevelHistory(new Array(WAVEFORM_BAR_COUNT).fill(0));
     try {
@@ -178,6 +189,7 @@ export function useVoiceRecorder() {
         stopStream();
         if (blob.size > 0) {
           setRecordedBlob(blob);
+          setRecordedPreviewUrl(URL.createObjectURL(blob));
           setRecordedDurationSeconds(durationSeconds);
           setStatus("recorded");
         } else {
@@ -221,22 +233,30 @@ export function useVoiceRecorder() {
     setStatus("idle");
     setElapsedSeconds(0);
     setRecordedBlob(null);
+    setRecordedPreviewUrl(null);
   };
 
   const discardRecording = () => {
     setRecordedBlob(null);
+    setRecordedPreviewUrl(null);
     setRecordedDurationSeconds(0);
     setStatus("idle");
     setElapsedSeconds(0);
   };
 
-  useEffect(() => stopStream, []);
+  useEffect(() => {
+    return () => {
+      stopStream();
+      if (recordedPreviewUrlRef.current) URL.revokeObjectURL(recordedPreviewUrlRef.current);
+    };
+  }, []);
 
   return {
     status,
     elapsedSeconds,
     errorMessage,
     recordedBlob,
+    recordedPreviewUrl,
     recordedDurationSeconds,
     audioLevel,
     hasDetectedSound,

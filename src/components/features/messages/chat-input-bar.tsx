@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { validateImageFile, validateVideoFile, validateDocumentFile, FileValidationError } from "@/lib/storage";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
@@ -17,7 +17,9 @@ import {
   Mic01Icon,
   Delete02Icon,
   StopIcon,
-  VoiceIcon
+  VoiceIcon,
+  PlayIcon,
+  PauseIcon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { cn } from "@/lib/utils";
@@ -53,6 +55,29 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
   const [pendingFile, setPendingFile] = useState<PendingFilePayload | null>(null);
   const recorder = useVoiceRecorder();
   const hasContentToSend = Boolean(text.trim() || pendingFile || recorder.recordedBlob);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const previewAudioRef = useRef<HTMLAudioElement>(null);
+
+  // Le brouillon peut disparaître de deux façons (envoyé ou annulé) sans
+  // jamais passer par le bouton play/pause lui-même — l'icône doit alors
+  // se remettre à zéro pour la prochaine note vocale.
+  useEffect(() => {
+    if (!recorder.recordedBlob) setIsPreviewPlaying(false);
+  }, [recorder.recordedBlob]);
+
+  const togglePreviewPlayback = () => {
+    const audio = previewAudioRef.current;
+    if (!audio) return;
+    if (isPreviewPlaying) {
+      audio.pause();
+      setIsPreviewPlaying(false);
+      return;
+    }
+    audio
+      .play()
+      .then(() => setIsPreviewPlaying(true))
+      .catch(() => setIsPreviewPlaying(false));
+  };
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -177,11 +202,28 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
       {recorder.status === "recorded" && recorder.recordedBlob && (
         <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in duration-150">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2.5 rounded-2xl bg-card border border-border/40 text-primary shrink-0">
-              <HugeIcon icon={VoiceIcon} size={20} />
-            </div>
+            {recorder.recordedPreviewUrl && (
+              <audio
+                ref={previewAudioRef}
+                src={recorder.recordedPreviewUrl}
+                preload="metadata"
+                onEnded={() => setIsPreviewPlaying(false)}
+                className="hidden"
+              />
+            )}
+            <button
+              type="button"
+              onClick={togglePreviewPlayback}
+              disabled={!recorder.recordedPreviewUrl}
+              className="p-2.5 rounded-2xl bg-card border border-border/40 text-primary shrink-0 hover:bg-secondary transition-colors disabled:opacity-50"
+              title={isPreviewPlaying ? "Mettre en pause" : "Écouter avant d'envoyer"}
+            >
+              <HugeIcon icon={isPreviewPlaying ? PauseIcon : PlayIcon} size={18} />
+            </button>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-foreground">Note vocale</span>
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <HugeIcon icon={VoiceIcon} size={13} className="text-primary" /> Note vocale
+              </span>
               <span className="text-[10px] text-muted-foreground font-mono">{formatRecordingTime(recorder.recordedDurationSeconds)}</span>
             </div>
           </div>
