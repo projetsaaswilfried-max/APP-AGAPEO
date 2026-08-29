@@ -1,13 +1,14 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getUserIdsWithPendingVerification } from "@/lib/admin/pending-photo-queue";
 import { AdminPhotosList, type AdminPhotoRow } from "@/components/features/admin/admin-photos-list";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
 export default async function AdminPhotosPage() {
   const admin = createAdminClient();
 
-  const [{ data: photos }, { data: pendingVerifications }] = await Promise.all([
+  const [{ data: photos }, usersWithPendingVerification] = await Promise.all([
     admin.from("profile_photos").select("*").eq("moderation_status", "PENDING").order("created_at", { ascending: true }),
-    admin.from("verification_requests").select("user_id").eq("status", "PENDING")
+    getUserIdsWithPendingVerification(admin)
   ]);
 
   // Les photos d'un membre dont le dossier de vérification est encore en
@@ -15,8 +16,6 @@ export default async function AdminPhotosPage() {
   // — les afficher aussi ici ferait traiter la même photo deux fois. Elles
   // réapparaîtront naturellement ici si ce dossier est refusé (le refus ne
   // les approuve/rejette pas automatiquement, cf. rejectVerificationRequestAction).
-  const usersWithPendingVerification = new Set((pendingVerifications ?? []).map((r) => r.user_id));
-
   const rows = ((photos ?? []) as ProfilePhotoRow[]).filter((p) => !usersWithPendingVerification.has(p.profile_id));
   if (rows.length === 0) {
     return <AdminPhotosList initialItems={[]} />;
