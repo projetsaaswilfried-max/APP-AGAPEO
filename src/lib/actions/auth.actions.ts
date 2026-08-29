@@ -35,7 +35,7 @@ export async function signUpAction(_prevState: FormState, formData: FormData): P
     password,
     options: {
       data: { first_name: firstName, last_name: lastName },
-      emailRedirectTo: `${env.siteUrl}/auth/callback`
+      emailRedirectTo: `${env.siteUrl}/auth/confirm`
     }
   });
 
@@ -90,7 +90,7 @@ export async function resendConfirmationAction(_prevState: FormState, formData: 
   const { error } = await supabase.auth.resend({
     type: "signup",
     email,
-    options: { emailRedirectTo: `${env.siteUrl}/auth/callback` }
+    options: { emailRedirectTo: `${env.siteUrl}/auth/confirm` }
   });
 
   if (error) return { message: error.message };
@@ -112,7 +112,7 @@ export async function requestPasswordResetAction(_prevState: FormState, formData
 
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(validated.data.email, {
-    redirectTo: `${env.siteUrl}/auth/callback?next=/reset-password`
+    redirectTo: `${env.siteUrl}/auth/confirm?next=/reset-password`
   });
 
   // Réponse identique que l'e-mail existe ou non : évite de révéler quels emails sont inscrits.
@@ -214,7 +214,7 @@ export async function changeEmailAction(_prevState: FormState, formData: FormDat
 
   const { error } = await supabase.auth.updateUser(
     { email: validated.data.newEmail },
-    { emailRedirectTo: `${env.siteUrl}/auth/callback` }
+    { emailRedirectTo: `${env.siteUrl}/auth/confirm` }
   );
   if (error) return { message: error.message };
 
