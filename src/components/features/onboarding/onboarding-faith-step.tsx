@@ -18,10 +18,14 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatusType | "">(profile.marital_status ?? "");
   const [heightCm, setHeightCm] = useState(profile.height_cm ? String(profile.height_cm) : "");
   const [isPending, startTransition] = useTransition();
+  const [showErrors, setShowErrors] = useState(false);
   const isComplete = Boolean(denomination.trim()) && Boolean(maritalStatus);
 
   const handleSaveAndNext = () => {
-    if (!isComplete) return;
+    if (!isComplete) {
+      setShowErrors(true);
+      return;
+    }
     const parsedHeight = heightCm.trim() ? Number(heightCm) : null;
     startTransition(async () => {
       await updateProfileAction({
@@ -43,18 +47,21 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
       </div>
 
       <Input
-        label="Confession chrétienne"
+        label="Confession chrétienne *"
         placeholder="Ex : Évangélique, Catholique, Baptiste..."
         value={denomination}
         onChange={(e) => setDenomination(e.target.value)}
+        error={showErrors && !denomination.trim() ? "Champ obligatoire" : undefined}
       />
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-foreground">Situation matrimoniale</label>
+        <label className="text-sm font-medium text-foreground">Situation matrimoniale *</label>
         <select
           value={maritalStatus}
           onChange={(e) => setMaritalStatus(e.target.value as MaritalStatusType)}
-          className="w-full h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={`w-full h-11 rounded-xl border bg-card px-3.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+            showErrors && !maritalStatus ? "border-destructive focus-visible:ring-destructive" : "border-border"
+          }`}
         >
           <option value="">Sélectionner</option>
           {MARITAL_STATUS_OPTIONS.map((opt) => (
@@ -63,6 +70,7 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
             </option>
           ))}
         </select>
+        {showErrors && !maritalStatus && <p className="text-xs text-destructive font-medium pl-1">Champ obligatoire</p>}
       </div>
 
       <Input
@@ -76,7 +84,7 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
         onChange={(e) => setHeightCm(e.target.value)}
       />
 
-      <OnboardingStepFooter onSaveAndNext={handleSaveAndNext} onBack={onBack} isSaving={isPending} isNextDisabled={!isComplete} />
+      <OnboardingStepFooter onSaveAndNext={handleSaveAndNext} onBack={onBack} isSaving={isPending} />
     </div>
   );
 }

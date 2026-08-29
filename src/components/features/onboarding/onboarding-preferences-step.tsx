@@ -35,6 +35,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [showErrors, setShowErrors] = useState(false);
   // Seul champ réellement requis pour la vérification (cf. isProfileComplete côté serveur) —
   // évite de faire capturer un selfie pour un profil qu'on sait déjà incomplet.
   const isComplete = Boolean(whyMarriage.trim());
@@ -92,7 +93,10 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
    * qui a déjà son badge pour un simple ajustement de préférences.
    */
   const handleSubmit = () => {
-    if (!isComplete) return;
+    if (!isComplete) {
+      setShowErrors(true);
+      return;
+    }
     setSubmitError(null);
     startTransition(async () => {
       await savePreferences();
@@ -163,7 +167,12 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
             </span>
           )}
         </div>
-        <Textarea value={whyMarriage} onChange={(e) => setWhyMarriage(e.target.value)} maxLength={1000} />
+        <Textarea
+          value={whyMarriage}
+          onChange={(e) => setWhyMarriage(e.target.value)}
+          maxLength={1000}
+          error={showErrors && !whyMarriage.trim() ? "Champ obligatoire" : undefined}
+        />
       </div>
 
       <TagInput
@@ -240,7 +249,6 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
         onSaveAndNext={handleSubmit}
         onBack={onBack}
         isSaving={isPending || isFinishing}
-        isNextDisabled={!isComplete}
         saveLabel={needsVerificationSubmission ? "Soumettre" : "Enregistrer"}
       />
 
