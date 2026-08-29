@@ -19,7 +19,9 @@ export default async function AdminOverviewPage() {
     { data: personalPosts },
     { data: officialPosts },
     { data: favorites },
-    { data: transactions }
+    { data: transactions },
+    { data: onboardingEventsRaw },
+    { data: testAccountRows }
   ] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("is_test_account", false),
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("is_test_account", true),
@@ -37,8 +39,13 @@ export default async function AdminOverviewPage() {
     admin.from("posts").select("created_at").eq("post_type", "PERSONAL"),
     admin.from("posts").select("created_at").eq("post_type", "OFFICIAL"),
     admin.from("favorites").select("created_at"),
-    admin.from("transactions").select("created_at")
+    admin.from("transactions").select("created_at"),
+    admin.from("onboarding_events").select("user_id, event_type, step_key, created_at"),
+    admin.from("profiles").select("id").eq("is_test_account", true)
   ]);
+
+  const testAccountIds = new Set((testAccountRows ?? []).map((p) => p.id));
+  const onboardingEvents = (onboardingEventsRaw ?? []).filter((e) => !testAccountIds.has(e.user_id));
 
   const currentStats = [
     { label: "Membres réels", value: totalUsers ?? 0, icon: Users, accent: false },
@@ -80,6 +87,7 @@ export default async function AdminOverviewPage() {
           officialPosts={officialPosts ?? []}
           favorites={favorites ?? []}
           transactions={transactions ?? []}
+          onboardingEvents={onboardingEvents}
         />
       </div>
 

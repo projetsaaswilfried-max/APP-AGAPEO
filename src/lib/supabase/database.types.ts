@@ -127,6 +127,8 @@ export interface ProfileRow {
 
   onboarding_completed: boolean;
   onboarding_step: number;
+  /** Selfie capturé tôt dans l'onboarding, en attente de la soumission réelle — vidé une fois consommé. */
+  pending_selfie_storage_path: string | null;
 
   is_test_account: boolean;
   /** Dérivé de `profile_restricted.role <> 'USER'` — badge public "équipe", jamais le rôle exact (cf. migration lock_down_restricted_profile_fields). */
@@ -178,6 +180,8 @@ export interface ProfileRestrictedRow {
   onboarding_sequence_stage: number | null;
   /** Palier déjà envoyé (1/3/5/7) de la séquence "passe Premium" — null si aucun ; remis à null à chaque nouvelle validation de profil. */
   premium_sequence_stage: number | null;
+  /** Vrai une fois la relance dédiée "il ne te reste qu'un selfie" envoyée — indépendante des paliers J1/J3/J5/J7. */
+  almost_done_nudge_sent: boolean;
   latitude: number | null;
   longitude: number | null;
 }
@@ -197,6 +201,16 @@ export interface VerificationRequestRow {
 }
 export type VerificationRequestInsert = Pick<VerificationRequestRow, "user_id" | "is_priority" | "selfie_storage_path">;
 export type VerificationRequestUpdate = Partial<Pick<VerificationRequestRow, "status" | "reviewed_at" | "reviewed_by" | "rejection_reason">>;
+
+export type OnboardingEventType = "STEP_VIEWED" | "SELFIE_CAMERA_DENIED" | "SELFIE_CAPTURED" | "VERIFICATION_SUBMITTED";
+export interface OnboardingEventRow {
+  id: string;
+  user_id: string;
+  event_type: OnboardingEventType;
+  step_key: string | null;
+  created_at: string;
+}
+export type OnboardingEventInsert = Pick<OnboardingEventRow, "user_id" | "event_type"> & Partial<Pick<OnboardingEventRow, "step_key">>;
 
 export interface ProfilePhotoRow {
   id: string;
@@ -473,6 +487,7 @@ export interface Database {
       profile_private: Rel<ProfilePrivateRow, ProfilePrivateRow, ProfilePrivateUpdate>;
       profile_restricted: Rel<ProfileRestrictedRow, ProfileRestrictedRow, ProfileRestrictedUpdate>;
       verification_requests: Rel<VerificationRequestRow, VerificationRequestInsert, VerificationRequestUpdate>;
+      onboarding_events: Rel<OnboardingEventRow, OnboardingEventInsert, never>;
       profile_photos: Rel<ProfilePhotoRow, ProfilePhotoInsert, Partial<ProfilePhotoRow>>;
       favorites: Rel<FavoriteRow, Omit<FavoriteRow, "id" | "created_at">, Partial<FavoriteRow>>;
       posts: Rel<PostRow, PostInsert, Partial<PostRow>>;

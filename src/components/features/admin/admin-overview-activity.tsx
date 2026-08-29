@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { ScrollableRow } from "@/components/ui/scrollable-row";
-import { UserCheck, MessageSquare, FileText, Heart, Receipt, Venus, Mars } from "lucide-react";
+import { UserCheck, MessageSquare, FileText, Heart, Receipt, Venus, Mars, CameraOff } from "lucide-react";
 
 interface TimestampRow {
   created_at: string;
@@ -11,6 +11,12 @@ interface TimestampRow {
 
 interface NewUserRow extends TimestampRow {
   gender: "MALE" | "FEMALE";
+}
+
+interface OnboardingEventRow extends TimestampRow {
+  user_id: string;
+  event_type: "STEP_VIEWED" | "SELFIE_CAMERA_DENIED" | "SELFIE_CAPTURED" | "VERIFICATION_SUBMITTED";
+  step_key: string | null;
 }
 
 export interface AdminOverviewActivityProps {
@@ -21,7 +27,17 @@ export interface AdminOverviewActivityProps {
   officialPosts: TimestampRow[];
   favorites: TimestampRow[];
   transactions: TimestampRow[];
+  onboardingEvents: OnboardingEventRow[];
 }
+
+// Ordre du tunnel de conversion "premier profil soumis" — reflète l'ordre
+// réel des étapes de l'assistant d'onboarding (cf. OnboardingWizard).
+const FUNNEL_STEPS: { key: string; label: string }[] = [
+  { key: "photos", label: "Photos" },
+  { key: "selfie", label: "Selfie" },
+  { key: "faith", label: "Ma foi" },
+  { key: "preferences", label: "Préférences" }
+];
 
 const RANGE_PRESETS = [
   { id: "7d", label: "7 derniers jours", days: 7 },
@@ -101,6 +117,26 @@ export function AdminOverviewActivity(props: AdminOverviewActivityProps) {
   const genderTotal = counts.femmes + counts.hommes;
   const femmesPct = genderTotal > 0 ? Math.round((counts.femmes / genderTotal) * 100) : 0;
   const hommesPct = genderTotal > 0 ? 100 - femmesPct : 0;
+
+  // Un même membre peut visiter une étape plusieurs fois (retour en arrière,
+  // rafraîchissement) — on compte des membres DISTINCTS atteignant chaque
+  // étape, jamais des évènements bruts, sinon le tunnel serait faussé.
+  const funnel = useMemo(() => {
+    const eventsInRange = filterInRange(props.onboardingEvents, dateFrom, dateTo);
+    const distinctUsersFor = (predicate: (e: OnboardingEventRow) => boolean) =>
+      new Set(eventsInRange.filter(predicate).map((e) => e.user_id)).size;
+
+    const steps = FUNNEL_STEPS.map((step) => ({
+      ...step,
+      count: distinctUsersFor((e) => e.event_type === "STEP_VIEWED" && e.step_key === step.key)
+    }));
+    const submittedCount = distinctUsersFor((e) => e.event_type === "VERIFICATION_SUBMITTED");
+    const cameraDeniedCount = distinctUsersFor((e) => e.event_type === "SELFIE_CAMERA_DENIED");
+
+    return { steps: [...steps, { key: "submitted", label: "Soumis pour vérification", count: submittedCount }], cameraDeniedCount };
+  }, [props.onboardingEvents, dateFrom, dateTo]);
+
+  const funnelMax = Math.max(...funnel.steps.map((s) => s.count), 1);
 
   const stats = [
     { label: "Nouveaux membres", value: counts.newUsers, icon: UserCheck },
@@ -205,6 +241,38 @@ export function AdminOverviewActivity(props: AdminOverviewActivityProps) {
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">Aucun nouveau membre sur cette période.</p>
+        )}
+      </Card>
+
+      <Card variant="base" className="p-4 border-border/60 shadow-2xs space-y-4">
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Entonnoir d&apos;onboarding — premier profil soumis</p>
+
+        {funnelMax > 1 ? (
+          <div className="space-y-2.5">
+            {funnel.steps.map((step) => {
+              const pct = Math.round((step.count / funnelMax) * 100);
+              return (
+                <div key={step.key} className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground w-32 shrink-0 truncate">{step.label}</span>
+                  <div className="flex-1 h-3 rounded-full bg-secondary/60 overflow-hidden">
+                    <div className="h-full bg-accent rounded-full transition-[width]" style={{ width: `${Math.max(pct, step.count > 0 ? 3 : 0)}%` }} />
+                  </div>
+                  <span className="text-xs font-medium text-foreground w-20 shrink-0 text-right tabular-nums">
+                    {step.count} · {pct}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Pas encore assez de données sur cette période.</p>
+        )}
+
+        {funnel.cameraDeniedCount > 0 && (
+          <div className="flex items-center gap-2 text-xs text-amber-600">
+            <CameraOff size={13} className="shrink-0" />
+            {funnel.cameraDeniedCount} membre(s) ont rencontré un refus d&apos;accès à la caméra sur cette période.
+          </div>
         )}
       </Card>
     </div>
