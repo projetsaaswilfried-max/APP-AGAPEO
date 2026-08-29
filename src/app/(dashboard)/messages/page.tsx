@@ -8,7 +8,7 @@ import { messageService } from "@/domain/services/message.service";
 import { useSession } from "@/core/providers/session-provider";
 import { ConversationListItem } from "@/components/features/messages/conversation-list-item";
 import { MessageBubble } from "@/components/features/messages/message-bubble";
-import { ChatInputBar, PendingFilePayload } from "@/components/features/messages/chat-input-bar";
+import { ChatInputBar, PendingFilePayload, PendingVoicePayload } from "@/components/features/messages/chat-input-bar";
 import { SearchInput } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -255,6 +255,8 @@ function MessagesPageContent() {
 
   const handleSendMessage = (text: string) => runSend(() => messageService.sendMessage(activeConvId!, text));
   const handleSendFileAttachment = (payload: PendingFilePayload) => runSend(() => messageService.sendFileAttachment(activeConvId!, payload.file, payload.type));
+  const handleSendVoiceMessage = (payload: PendingVoicePayload) =>
+    runSend(() => messageService.sendVoiceMessage(activeConvId!, payload.blob, payload.mimeType, payload.durationSeconds));
 
   const handleDeleteMessage = async (msgId: string) => {
     setMessages((prev) => prev.filter((m) => m.id !== msgId));
@@ -556,6 +558,7 @@ function MessagesPageContent() {
                   <ChatInputBar
                     onSendMessage={handleSendMessage}
                     onSendFileAttachment={handleSendFileAttachment}
+                    onSendVoiceMessage={handleSendVoiceMessage}
                     onTyping={handleTyping}
                   />
                 </>

@@ -4,6 +4,7 @@ import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { validateImageFile, validateVideoFile, validateDocumentFile, FileValidationError } from "@/lib/storage";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
+import { useVoiceRecorder } from "@/components/features/messages/use-voice-recorder";
 import {
   SentIcon,
   Attachment01Icon,
@@ -12,9 +13,14 @@ import {
   Video01Icon,
   Cancel01Icon,
   AlertCircleIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  Mic01Icon,
+  Delete02Icon,
+  StopIcon,
+  VoiceIcon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
+import { cn } from "@/lib/utils";
 
 export interface PendingFilePayload {
   file: File;
@@ -22,16 +28,30 @@ export interface PendingFilePayload {
   previewUrl?: string;
 }
 
+export interface PendingVoicePayload {
+  blob: Blob;
+  mimeType: string;
+  durationSeconds: number;
+}
+
 interface ChatInputBarProps {
   onSendMessage: (text: string) => void;
   onSendFileAttachment?: (payload: PendingFilePayload) => void;
+  onSendVoiceMessage?: (payload: PendingVoicePayload) => void;
   onTyping?: () => void;
 }
 
-export function ChatInputBar({ onSendMessage, onSendFileAttachment, onTyping }: ChatInputBarProps) {
+function formatRecordingTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceMessage, onTyping }: ChatInputBarProps) {
   const [text, setText] = useState("");
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [pendingFile, setPendingFile] = useState<PendingFilePayload | null>(null);
+  const recorder = useVoiceRecorder();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -55,6 +75,12 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onTyping }: 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (recorder.recordedBlob) {
+      onSendVoiceMessage?.({ blob: recorder.recordedBlob, mimeType: recorder.recordedBlob.type, durationSeconds: recorder.recordedDurationSeconds });
+      recorder.discardRecording();
+      return;
+    }
 
     if (pendingFile) {
       onSendFileAttachment?.(pendingFile);
@@ -140,6 +166,36 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onTyping }: 
         </div>
       )}
 
+      {recorder.errorMessage && (
+        <div className="mb-2 p-2.5 rounded-2xl bg-destructive/10 border border-destructive/30 flex items-center gap-2 text-xs text-destructive">
+          <HugeIcon icon={AlertCircleIcon} size={15} />
+          <span>{recorder.errorMessage}</span>
+        </div>
+      )}
+
+      {recorder.status === "recorded" && recorder.recordedBlob && (
+        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in duration-150">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 rounded-2xl bg-card border border-border/40 text-primary shrink-0">
+              <HugeIcon icon={VoiceIcon} size={20} />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-semibold text-foreground">Note vocale</span>
+              <span className="text-[10px] text-muted-foreground font-mono">{formatRecordingTime(recorder.recordedDurationSeconds)}</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={recorder.discardRecording}
+            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-card rounded-full transition-colors"
+            title="Annuler"
+          >
+            <HugeIcon icon={Cancel01Icon} size={16} />
+          </button>
+        </div>
+      )}
+
       {pendingFile && (
         <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in duration-150">
           <div className="flex items-center gap-3 min-w-0">
@@ -207,38 +263,95 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onTyping }: 
       )}
 
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
-          className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-primary bg-secondary/70 hover:bg-accent-subtle rounded-full transition-colors shrink-0"
-          title="Joindre un fichier"
-        >
-          <HugeIcon icon={Attachment01Icon} size={18} />
-        </button>
+        {recorder.status === "recording" ? (
+          <>
+            <button
+              type="button"
+              onClick={recorder.cancelRecording}
+              className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-destructive bg-secondary/70 hover:bg-destructive/10 rounded-full transition-colors shrink-0"
+              title="Annuler l'enregistrement"
+            >
+              <HugeIcon icon={Delete02Icon} size={17} />
+            </button>
 
-        <div className="flex-1 bg-secondary/60 border border-border/40 rounded-full px-4 py-2 flex items-center gap-2 focus-within:ring-2 focus-within:ring-ring focus-within:bg-card transition-all">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            placeholder={pendingFile ? `Appuyez sur Envoyer pour joindre ${pendingFile.file.name}` : "Écrivez votre message..."}
-            className="flex-1 bg-transparent border-none text-xs text-foreground placeholder:text-muted-foreground focus:outline-none resize-none max-h-28"
-          />
-          <EmojiPicker onSelect={(emoji) => setText((prev) => prev + emoji)} />
-        </div>
+            <div
+              className={cn(
+                "flex-1 border rounded-full px-4 py-2 flex items-center gap-2.5 transition-colors",
+                recorder.elapsedSeconds >= 2 && !recorder.hasDetectedSound
+                  ? "bg-destructive/10 border-destructive/30"
+                  : "bg-secondary/60 border-border/40"
+              )}
+            >
+              <span
+                className="w-2 h-2 rounded-full bg-destructive shrink-0 transition-transform duration-75"
+                style={{ transform: `scale(${1 + recorder.audioLevel * 1.8})` }}
+              />
+              <span className="text-xs font-mono tabular-nums text-foreground">{formatRecordingTime(recorder.elapsedSeconds)}</span>
+              {recorder.elapsedSeconds >= 2 && !recorder.hasDetectedSound ? (
+                <span className="text-[11px] text-destructive font-medium">Aucun son détecté — vérifie ton micro</span>
+              ) : (
+                <span className="text-[11px] text-muted-foreground">Enregistrement en cours...</span>
+              )}
+            </div>
 
-        <Button
-          type="submit"
-          size="icon"
-          variant="primary"
-          className="h-10 w-10 rounded-full shrink-0 shadow-accent-glow disabled:opacity-40"
-          title="Envoyer"
-          disabled={!text.trim() && !pendingFile}
-        >
-          <HugeIcon icon={SentIcon} size={16} />
-        </Button>
+            <Button
+              type="button"
+              onClick={recorder.stopRecording}
+              size="icon"
+              variant="primary"
+              className="h-10 w-10 rounded-full shrink-0 shadow-accent-glow"
+              title="Arrêter l'enregistrement"
+            >
+              <HugeIcon icon={StopIcon} size={15} />
+            </Button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+              className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-primary bg-secondary/70 hover:bg-accent-subtle rounded-full transition-colors shrink-0"
+              title="Joindre un fichier"
+            >
+              <HugeIcon icon={Attachment01Icon} size={18} />
+            </button>
+
+            <div className="flex-1 bg-secondary/60 border border-border/40 rounded-full px-4 py-2 flex items-center gap-2 focus-within:ring-2 focus-within:ring-ring focus-within:bg-card transition-all">
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={text}
+                onChange={handleTextChange}
+                onKeyDown={handleKeyDown}
+                placeholder={pendingFile ? `Appuyez sur Envoyer pour joindre ${pendingFile.file.name}` : "Écrivez votre message..."}
+                className="flex-1 bg-transparent border-none text-xs text-foreground placeholder:text-muted-foreground focus:outline-none resize-none max-h-28"
+              />
+              <EmojiPicker onSelect={(emoji) => setText((prev) => prev + emoji)} />
+            </div>
+
+            {onSendVoiceMessage && !text.trim() && !pendingFile && !recorder.recordedBlob && (
+              <button
+                type="button"
+                onClick={recorder.startRecording}
+                className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-primary bg-secondary/70 hover:bg-accent-subtle rounded-full transition-colors shrink-0"
+                title="Enregistrer une note vocale"
+              >
+                <HugeIcon icon={Mic01Icon} size={18} />
+              </button>
+            )}
+
+            <Button
+              type="submit"
+              size="icon"
+              variant="primary"
+              className="h-10 w-10 rounded-full shrink-0 shadow-accent-glow disabled:opacity-40"
+              title="Envoyer"
+              disabled={!text.trim() && !pendingFile && !recorder.recordedBlob}
+            >
+              <HugeIcon icon={SentIcon} size={16} />
+            </Button>
+          </>
+        )}
       </form>
     </div>
   );

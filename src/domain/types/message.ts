@@ -10,6 +10,8 @@ export interface MessageAttachment {
   name?: string;
   sizeBytes?: number;
   durationSeconds?: number;
+  /** Type MIME complet tel qu'enregistré à l'upload (avec codec, ex. "audio/webm;codecs=opus") — le Content-Type servi par Supabase Storage le tronque parfois, cf. VoiceMessagePlayer. */
+  mimeType?: string;
 }
 
 export interface ChatMessage {

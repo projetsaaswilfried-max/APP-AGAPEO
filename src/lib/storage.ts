@@ -195,7 +195,7 @@ export async function uploadPostMedia(
   return { url: data.publicUrl, path };
 }
 
-export type MessageAttachmentKind = "IMAGE" | "VIDEO" | "DOCUMENT";
+export type MessageAttachmentKind = "IMAGE" | "VIDEO" | "DOCUMENT" | "AUDIO";
 
 export async function uploadMessageFile(conversationId: string, file: File, kind: MessageAttachmentKind) {
   if (kind === "IMAGE") validateImageFile(file);
@@ -205,7 +205,16 @@ export async function uploadMessageFile(conversationId: string, file: File, kind
   const supabase = createClient();
   const path = `${conversationId}/${slugifyFileName(file.name)}`;
 
-  const { error } = await supabase.storage.from("message-attachments").upload(path, file, { upsert: false });
+  // `contentType` explicite : pour un `File`/`Blob`, le client Supabase Storage
+  // envoie de toute façon le type MIME natif de l'objet en multipart, mais un
+  // enregistrement vocal (MediaRecorder → Blob) n'a un `.type` correct QUE si
+  // le Blob a été construit avec ce type dès le départ — sans ce filet, un
+  // fichier audio mal typé s'uploade "silencieusement" (aucune erreur) et ne
+  // joue ensuite aucun son à la lecture, faute de Content-Type exploitable.
+  const { error } = await supabase.storage.from("message-attachments").upload(path, file, {
+    upsert: false,
+    contentType: file.type || "application/octet-stream"
+  });
   if (error) throw new Error(`Échec de l'envoi de la pièce jointe : ${error.message}`);
 
   return { path };

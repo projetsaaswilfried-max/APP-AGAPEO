@@ -23,6 +23,7 @@ export interface IMessageService {
   declineInvitation(conversationId: string): Promise<void>;
   sendMessage(conversationId: string, content: string): Promise<ChatMessage>;
   sendFileAttachment(conversationId: string, file: File, kind: "IMAGE" | "VIDEO" | "DOCUMENT"): Promise<ChatMessage>;
+  sendVoiceMessage(conversationId: string, blob: Blob, mimeType: string, durationSeconds: number): Promise<ChatMessage>;
   markAsRead(conversationId: string): Promise<void>;
   deleteMessage(messageId: string): Promise<void>;
   toggleFavoriteConversation(conversationId: string, isFavorite: boolean): Promise<void>;
@@ -304,6 +305,41 @@ class MessageServiceSupabase implements IMessageService {
       file_name: file.name,
       size_bytes: file.size,
       mime_type: file.type
+    });
+
+    const [hydrated] = await hydrateMessages([message as MessageRow], myId);
+    return hydrated;
+  }
+
+  async sendVoiceMessage(conversationId: string, blob: Blob, mimeType: string, durationSeconds: number): Promise<ChatMessage> {
+    const supabase = createClient();
+    const myId = await getCurrentUserId();
+
+    // L'extension n'a qu'une valeur cosmétique (nom de fichier affiché) — c'est
+    // le `type` du Blob, préservé jusque dans le File ci-dessous, qui détermine
+    // le Content-Type réellement stocké et donc la lecture côté destinataire.
+    const extension = mimeType.includes("mp4") || mimeType.includes("aac") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
+    const file = new File([blob], `voice-${Date.now()}.${extension}`, { type: mimeType });
+
+    const { path } = await uploadMessageFile(conversationId, file, "AUDIO");
+
+    const { data: message, error } = await supabase
+      .from("messages")
+      .insert({ conversation_id: conversationId, sender_id: myId, type: "VOICE", status: "SENT" })
+      .select()
+      .single();
+
+    if (isRlsViolation(error)) await throwSendError(conversationId, myId);
+    if (error || !message) throw new Error(error?.message ?? "L'envoi a échoué.");
+
+    await supabase.from("message_attachments").insert({
+      message_id: message.id,
+      type: "AUDIO",
+      storage_path: path,
+      file_name: file.name,
+      size_bytes: file.size,
+      mime_type: mimeType,
+      duration_seconds: Math.round(durationSeconds)
     });
 
     const [hydrated] = await hydrateMessages([message as MessageRow], myId);

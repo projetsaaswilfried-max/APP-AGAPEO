@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ChatMessage } from "@/domain/types/message";
 import { FileAttachment } from "@/components/ui/file-attachment";
+import { VoiceMessagePlayer } from "@/components/features/messages/voice-message-player";
 import { Tooltip } from "@/components/ui/tooltip";
 import {
   Tick01Icon,
@@ -140,6 +141,17 @@ export function MessageBubble({
                     <div key={att.id} className="rounded-2xl overflow-hidden max-w-xs border border-border/40 bg-black shadow-xs">
                       <video src={att.url} controls className="w-full h-auto max-h-64" />
                     </div>
+                  );
+                }
+                if (att.type === "AUDIO") {
+                  return (
+                    <VoiceMessagePlayer
+                      key={att.id}
+                      url={att.url}
+                      durationSeconds={att.durationSeconds}
+                      mimeType={att.mimeType}
+                      isCurrentUser={isCurrentUser}
+                    />
                   );
                 }
                 return null;

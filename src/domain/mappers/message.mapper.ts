@@ -13,7 +13,8 @@ export function mapAttachmentRow(row: MessageAttachmentRow, signedUrl?: string):
     url: signedUrl ?? row.url ?? "",
     name: row.file_name ?? undefined,
     sizeBytes: row.size_bytes ?? undefined,
-    durationSeconds: row.duration_seconds ?? undefined
+    durationSeconds: row.duration_seconds ?? undefined,
+    mimeType: row.mime_type ?? undefined
   };
 }
 
