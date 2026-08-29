@@ -12,11 +12,11 @@ interface OnboardingEssentialInfoStepProps {
 }
 
 /**
- * Étape réservée aux comptes créés via Google (OAuth) : le fournisseur ne
- * transmet jamais genre/date de naissance, et rarement le pays — sans cette
- * étape, ces champs resteraient vides pour toujours (ils ne sont plus
- * modifiables une fois posés, cf. ProfileEditableSchema). N'apparaît jamais
- * pour une inscription email/mot de passe classique, qui les a déjà tous.
+ * Étape affichée tant que genre/date de naissance/pays manquent — collectés
+ * ici plutôt qu'à l'inscription (pour tout le monde, pas seulement les
+ * comptes Google, qui eux ne les transmettent jamais) afin d'alléger le tout
+ * premier écran. Ces champs ne sont plus modifiables une fois posés (cf.
+ * ProfileEditableSchema).
  */
 export function OnboardingEssentialInfoStep({ onNext }: OnboardingEssentialInfoStepProps) {
   const [gender, setGender] = useState("");
@@ -42,7 +42,7 @@ export function OnboardingEssentialInfoStep({ onNext }: OnboardingEssentialInfoS
       <div>
         <h2 className="text-lg font-display font-semibold text-foreground">Tes informations essentielles</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Ton compte Google ne nous transmet pas ces informations — elles ne pourront plus être modifiées ensuite.
+          Encore quelques informations avant de commencer — elles ne pourront plus être modifiées ensuite.
         </p>
       </div>
 

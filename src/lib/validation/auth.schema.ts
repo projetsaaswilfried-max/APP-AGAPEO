@@ -6,6 +6,11 @@ const passwordSchema = z
   .regex(/[a-zA-Z]/, "Le mot de passe doit contenir au moins une lettre.")
   .regex(/[0-9]/, "Le mot de passe doit contenir au moins un chiffre.");
 
+// Genre/date de naissance/pays ne sont plus demandés ici : collectés dans
+// l'onboarding (étape "Tes informations", déjà utilisée pour les comptes
+// Google, qui ne les transmettent jamais) — ça allège le tout premier écran,
+// là où le taux d'abandon est statistiquement le plus élevé, et rend le
+// parcours identique quel que soit le mode d'inscription.
 export const RegisterSchema = z
   .object({
     firstName: z.string().trim().min(2, "Le prénom doit contenir au moins 2 caractères."),
@@ -13,15 +18,6 @@ export const RegisterSchema = z
     email: z.string().trim().email("Adresse e-mail invalide."),
     password: passwordSchema,
     confirmPassword: z.string(),
-    gender: z.enum(["MALE", "FEMALE"], { message: "Sélectionne ton genre." }),
-    birthDate: z
-      .string()
-      .refine((val) => !Number.isNaN(Date.parse(val)), "Date de naissance invalide.")
-      .refine((val) => {
-        const age = (Date.now() - new Date(val).getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-        return age >= 18;
-      }, "Tu dois avoir au moins 18 ans pour t'inscrire."),
-    country: z.string().trim().min(2, "Sélectionne ton pays de résidence."),
     acceptTerms: z
       .union([z.literal("on"), z.literal(true)])
       .refine((val) => val === "on" || val === true, "Tu dois accepter les conditions d'utilisation.")

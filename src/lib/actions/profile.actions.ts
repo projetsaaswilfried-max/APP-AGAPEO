@@ -29,11 +29,13 @@ export async function updateProfileAction(updates: Partial<ProfileUpdate>) {
 }
 
 /**
- * Réservée aux comptes créés par OAuth (Google) : `gender`/`birth_date`/
- * `country` y sont NULL juste après la création. Ces champs sont
- * volontairement absents de `ProfileEditableSchema` (posés une fois, non
- * modifiables ensuite) — cette action ne fait rien si l'un d'eux est déjà
- * renseigné, pour ne jamais devenir une porte dérobée de modification.
+ * `gender`/`birth_date`/`country` ne sont plus collectés à l'inscription
+ * (allège le tout premier écran) — cette étape d'onboarding les pose une
+ * bonne fois pour toutes, que le compte vienne de Google (qui ne les
+ * transmet jamais) ou d'une inscription email classique. Volontairement
+ * absents de `ProfileEditableSchema` (posés une fois, non modifiables
+ * ensuite) — cette action ne fait rien si l'un d'eux est déjà renseigné,
+ * pour ne jamais devenir une porte dérobée de modification.
  */
 export async function completeEssentialInfoAction(input: unknown) {
   const parsed = EssentialInfoSchema.safeParse(input);
@@ -111,6 +113,27 @@ export async function saveOnboardingStepAction(step: number) {
   // profil") après être reparti au milieu de l'assistant pouvait servir une
   // page mise en cache reflétant un onboarding_step périmé, ramenant
   // toujours à la première étape au lieu de reprendre où la personne s'était arrêtée.
+  revalidatePath("/onboarding");
+  return { success: true };
+}
+
+/**
+ * Étape dédiée "Selfie" de l'onboarding (juste après les photos) : capture le
+ * selfie de vérification tôt dans le parcours plutôt qu'à la toute fin, pour
+ * ne pas l'empiler avec le champ "pourquoi le mariage" au moment où la
+ * motivation est la plus fragile. Consommé et vidé par
+ * `submitVerificationRequestAction` au moment de la soumission réelle.
+ */
+export async function savePendingSelfieAction(selfieStoragePath: string) {
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Session expirée." };
+
+  const { error } = await supabase.from("profiles").update({ pending_selfie_storage_path: selfieStoragePath }).eq("id", user.id);
+  if (error) return { error: error.message };
+
   revalidatePath("/onboarding");
   return { success: true };
 }

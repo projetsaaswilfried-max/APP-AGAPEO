@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleAuthButton } from "@/components/features/auth/google-auth-button";
-import { SUPPORTED_COUNTRIES } from "@/config/countries";
 import { Mail, Lock, User, AlertCircle, MailCheck } from "lucide-react";
 
 const initialState: FormState = undefined;
@@ -90,54 +89,6 @@ export default function RegisterPage() {
                 autoComplete="new-password"
                 required
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-foreground">Genre</label>
-                <select
-                  name="gender"
-                  required
-                  className="w-full h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Sélectionner</option>
-                  <option value="FEMALE">Femme</option>
-                  <option value="MALE">Homme</option>
-                </select>
-                {state?.errors?.gender?.[0] && (
-                  <p className="text-xs text-destructive font-medium pl-1">{state.errors.gender[0]}</p>
-                )}
-              </div>
-
-              <Input
-                name="birthDate"
-                type="date"
-                label="Date de naissance"
-                error={state?.errors?.birthDate?.[0]}
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground">Pays de résidence</label>
-              <select
-                name="country"
-                required
-                defaultValue=""
-                className="w-full h-11 rounded-xl border border-border bg-card px-3.5 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="" disabled>
-                  Sélectionner un pays
-                </option>
-                {SUPPORTED_COUNTRIES.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
-                  </option>
-                ))}
-              </select>
-              {state?.errors?.country?.[0] && (
-                <p className="text-xs text-destructive font-medium pl-1">{state.errors.country[0]}</p>
-              )}
             </div>
 
             <Checkbox

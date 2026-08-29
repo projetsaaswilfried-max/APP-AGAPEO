@@ -20,9 +20,6 @@ export async function signUpAction(_prevState: FormState, formData: FormData): P
     email: formData.get("email"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
-    gender: formData.get("gender"),
-    birthDate: formData.get("birthDate"),
-    country: formData.get("country"),
     acceptTerms: formData.get("acceptTerms")
   });
 
@@ -30,14 +27,14 @@ export async function signUpAction(_prevState: FormState, formData: FormData): P
     return { errors: validated.error.flatten().fieldErrors as Record<string, string[]> };
   }
 
-  const { firstName, lastName, email, password, gender, birthDate, country } = validated.data;
+  const { firstName, lastName, email, password } = validated.data;
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { first_name: firstName, last_name: lastName, gender, birth_date: birthDate, country },
+      data: { first_name: firstName, last_name: lastName },
       emailRedirectTo: `${env.siteUrl}/auth/callback`
     }
   });
@@ -50,7 +47,7 @@ export async function signUpAction(_prevState: FormState, formData: FormData): P
   }
 
   if (data.session) {
-    redirect("/feed");
+    redirect("/onboarding");
   }
 
   return { message: "CHECK_EMAIL" };
