@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Loader2, Check, Trash2, AlertCircle, ShieldAlert, Clock3, Hourglass, Ban, ScanFace } from "lucide-react";
+import { Camera, Loader2, Check, Trash2, AlertCircle, ShieldAlert, Clock3, Hourglass, Ban, ScanFace, FileClock } from "lucide-react";
 import { FileSizeHint } from "@/components/ui/file-size-hint";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,10 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
   // lot de fichiers choisi en une fois, pas un par photo.
   const requiresSelfieForNewPhotos = photoVerificationStatus === "VERIFIED";
   const hasPendingPhoto = photos.some((p) => p.moderation_status === "PENDING");
+  // Tant que le profil n'a jamais été soumis (ou a été refusé et doit
+  // resoumettre), les photos ajoutées restent des brouillons — l'équipe ne
+  // les voit qu'au moment de la soumission finale (cf. addProfilePhotoAction).
+  const photosAreDraftUntilSubmission = photoVerificationStatus === "UNVERIFIED" || photoVerificationStatus === "REJECTED";
 
   const handleFileChangeDirect = async (files: File[]) => {
     setIsUploading(true);
@@ -219,6 +223,13 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
             >
               <Trash2 size={12} />
             </button>
+            {photo.moderation_status === "DRAFT" && (
+              <div className="absolute inset-x-0 bottom-0 flex justify-center pb-1.5 px-1">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-secondary-foreground/70 text-white text-[10px] font-semibold shadow-2xs whitespace-nowrap">
+                  <FileClock size={10} className="shrink-0" /> Brouillon
+                </span>
+              </div>
+            )}
             {photo.moderation_status === "PENDING" && (
               <div className="absolute inset-x-0 bottom-0 flex justify-center pb-1.5 px-1">
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500 text-white text-[10px] font-semibold shadow-2xs whitespace-nowrap">
@@ -264,7 +275,9 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
       <p className="text-[11px] text-muted-foreground">
         {requiresSelfieForNewPhotos
           ? "Tu peux sélectionner plusieurs photos à la fois — un selfie en direct te sera demandé juste avant l'envoi pour confirmer que c'est bien toi. Chacune est ensuite revue par notre équipe avant d'être visible par les autres membres."
-          : "Tu peux sélectionner plusieurs photos à la fois. Chacune est revue individuellement par notre équipe avant d'être visible par les autres membres."}
+          : photosAreDraftUntilSubmission
+            ? "Tu peux sélectionner plusieurs photos à la fois. Elles restent en brouillon et ne sont envoyées à notre équipe qu'au moment de ta soumission finale."
+            : "Tu peux sélectionner plusieurs photos à la fois. Chacune est revue individuellement par notre équipe avant d'être visible par les autres membres."}
       </p>
 
       <FileSizeHint maxSizeMb={15} formats="JPG, PNG, WEBP, GIF" />
@@ -319,6 +332,11 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
       />
 
       <ImageLightbox src={viewingPhoto?.url ?? null} alt="Photo de profil" onClose={() => setViewingPhoto(null)}>
+        {viewingPhoto?.moderation_status === "DRAFT" && (
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <FileClock size={14} className="shrink-0" /> Brouillon — sera envoyée à notre équipe au moment de ta soumission finale.
+          </div>
+        )}
         {viewingPhoto?.moderation_status === "PENDING" && (
           <div className="flex items-center gap-2 text-xs font-medium text-amber-700">
             <Hourglass size={14} className="shrink-0" /> En cours d&apos;examen par notre équipe.

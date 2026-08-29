@@ -168,12 +168,20 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
     await supabase.from("profile_photos").update({ is_primary: false }).eq("profile_id", user.id);
   }
 
-  // Chaque photo ajoutée démarre PENDING (colonne par défaut) — plateforme
-  // chrétienne, aucune photo n'apparaît aux AUTRES membres avant d'avoir été
-  // revue par l'équipe.
+  // Tant qu'une soumission future doit encore avoir lieu (jamais soumis, ou
+  // refusé et à resoumettre), la photo reste un brouillon (DRAFT) : elle
+  // n'entre dans la file de modération de l'équipe qu'au moment réel de
+  // cette soumission (submitVerificationRequestAction la promeut alors en
+  // PENDING), pas dès l'upload. Si une demande est déjà PENDING (en cours
+  // d'examen), en revanche, aucune soumission future ne viendra la
+  // promouvoir — elle part alors directement en PENDING, comme un ajout
+  // après vérification (VERIFIED), pour ne pas rester bloquée en brouillon indéfiniment.
+  const initialStatus =
+    viewerRow?.photo_verification_status === "UNVERIFIED" || viewerRow?.photo_verification_status === "REJECTED" ? "DRAFT" : "PENDING";
+
   const { data, error } = await supabase
     .from("profile_photos")
-    .insert({ profile_id: user.id, url, storage_path: storagePath, is_primary: isPrimary })
+    .insert({ profile_id: user.id, url, storage_path: storagePath, is_primary: isPrimary, moderation_status: initialStatus })
     .select()
     .single();
 
@@ -191,7 +199,9 @@ export async function addProfilePhotoAction(url: string, storagePath: string, is
     await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
   }
 
-  if (user.email) {
+  // Un brouillon (DRAFT) n'a encore rien "soumis" à l'équipe — l'email
+  // n'a de sens que pour une vraie mise en file de modération (PENDING).
+  if (user.email && initialStatus === "PENDING") {
     await sendPhotoEmail({ to: user.email, firstName: viewerRow?.first_name ?? "", kind: "SUBMITTED" });
   }
 

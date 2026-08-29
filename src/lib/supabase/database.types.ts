@@ -10,7 +10,7 @@ export type GenderType = "MALE" | "FEMALE";
 export type RelationshipStatusDb = "AVAILABLE" | "IN_DISCUSSION" | "ON_PAUSE";
 export type MaritalStatusType = "SINGLE_NO_CHILDREN" | "SINGLE_WITH_CHILDREN" | "DIVORCED" | "WIDOWED";
 export type VerificationStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
-export type PhotoModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type PhotoModerationStatus = "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
 
 export type PostType = "OFFICIAL" | "PERSONAL";
 export type PostCategory = "TEACHING" | "TESTIMONY" | "WORKSHOP" | "ADVICE" | "ANNOUNCEMENT" | "QUOTE" | "VERSE" | "NEWS";
@@ -230,7 +230,7 @@ export interface ProfilePhotoRow {
   created_at: string;
 }
 export type ProfilePhotoInsert = Pick<ProfilePhotoRow, "profile_id" | "url" | "storage_path"> &
-  Partial<Pick<ProfilePhotoRow, "is_primary" | "caption" | "position" | "selfie_storage_path">>;
+  Partial<Pick<ProfilePhotoRow, "is_primary" | "caption" | "position" | "selfie_storage_path" | "moderation_status">>;
 
 export interface FavoriteRow {
   id: string;

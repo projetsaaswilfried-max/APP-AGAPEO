@@ -68,6 +68,14 @@ export async function submitVerificationRequestAction(selfieStoragePath?: string
   const { error: statusError } = await admin.from("profiles").update({ photo_verification_status: "PENDING" }).eq("id", user.id);
   if (statusError) return { error: statusError.message };
 
+  // Les photos ajoutées pendant l'onboarding n'étaient que des brouillons
+  // (DRAFT, cf. addProfilePhotoAction) — la soumission réelle les fait
+  // officiellement entrer dans la file de modération de l'équipe, en même
+  // temps que le profil. Passe par le client service_role : le trigger
+  // `protect_photo_moderation_status()` interdit au propriétaire lui-même de
+  // changer ce statut.
+  await admin.from("profile_photos").update({ moderation_status: "PENDING" }).eq("profile_id", user.id).eq("moderation_status", "DRAFT");
+
   // Vidé une fois consommé — une future re-soumission (après un refus) doit
   // toujours repartir d'un selfie fraîchement repris, jamais de celui-ci.
   if (profile.pending_selfie_storage_path) {
