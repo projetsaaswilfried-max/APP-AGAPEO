@@ -133,11 +133,22 @@ function DiscoverPageContent() {
   };
 
   // Exactement 3 profils "recommandés", tirés au sort pour la journée parmi
-  // les meilleurs scores de compatibilité (âge recherché, situation
-  // matrimoniale, foi, valeurs...) — stable pour ce membre toute la journée,
-  // renouvelé automatiquement le lendemain. Le reste s'affiche en second,
-  // jamais masqué.
-  const { recommended: recommendedProfiles, others: otherProfiles } = pickDailyRecommendations(profiles, profile.id, 3);
+  // les meilleurs scores de compatibilité — stable pour ce membre toute la
+  // journée, renouvelé automatiquement le lendemain. Le reste s'affiche en
+  // second, jamais masqué : "Découvrir" dans son ensemble reste volontairement
+  // large (seuls les filtres de recherche explicites, choisis par le membre
+  // lui-même, restreignent cette liste) — mais "Recommandée pour vous"
+  // affirme respecter le profil du membre, donc son intervalle d'âge
+  // recherché est une condition stricte pour y figurer, pas seulement un
+  // critère de score parmi d'autres (sinon un profil très bien assorti sur
+  // la foi/les valeurs peut sortir 15 ans hors de l'âge demandé).
+  const ageEligibleForRecommendation = profiles.filter(
+    (p) => p.profile.age >= profile.desired_age_min && p.profile.age <= profile.desired_age_max
+  );
+  const recommendationPool = ageEligibleForRecommendation.length > 0 ? ageEligibleForRecommendation : profiles;
+  const { recommended: recommendedProfiles } = pickDailyRecommendations(recommendationPool, profile.id, 3);
+  const recommendedIds = new Set(recommendedProfiles.map((item) => item.profile.id));
+  const otherProfiles = profiles.filter((item) => !recommendedIds.has(item.profile.id));
   const bannerContent = !canInteract
     ? VERIFICATION_BANNER_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
     : null;
