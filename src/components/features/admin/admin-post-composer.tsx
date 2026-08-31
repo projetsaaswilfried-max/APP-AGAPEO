@@ -17,6 +17,7 @@ import {
 } from "@/lib/actions/admin.actions";
 import { uploadPostMedia, FileValidationError, PLATFORM_MAX_UPLOAD_BYTES } from "@/lib/storage";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
+import { generateVideoThumbnail } from "@/lib/video-thumbnail";
 import { useSession } from "@/core/providers/session-provider";
 import { Camera, Video, SquarePlay, AlertCircle, Trash2, X, Pencil, Pin, PinOff, ArrowUp, ArrowDown } from "lucide-react";
 import type { PostRow } from "@/lib/supabase/database.types";
@@ -170,6 +171,7 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
       let mediaUrl: string | undefined;
       let mediaStoragePath: string | undefined;
       let mediaKind: "IMAGE" | "VIDEO" | "YOUTUBE" | undefined;
+      let mediaThumbnailUrl: string | undefined;
 
       if (imageFile) {
         const uploaded = await uploadPostMedia(profile.id, `official-${Date.now()}`, imageFile, undefined, setUploadProgress);
@@ -188,6 +190,18 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
         mediaUrl = uploaded.url;
         mediaStoragePath = uploaded.path;
         mediaKind = "VIDEO";
+
+        // Best-effort : sans miniature, la vidéo reste un rectangle noir dans
+        // le fil tant que le membre n'appuie pas dessus (bug remonté par un
+        // membre) — un échec ici ne doit jamais bloquer la publication.
+        try {
+          const thumbnailBlob = await generateVideoThumbnail(videoFile);
+          const thumbnailFile = new File([thumbnailBlob], `official-${Date.now()}-thumbnail.jpg`, { type: "image/jpeg" });
+          const uploadedThumbnail = await uploadPostMedia(profile.id, `official-${Date.now()}-thumb`, thumbnailFile);
+          mediaThumbnailUrl = uploadedThumbnail.url;
+        } catch (thumbnailErr) {
+          console.error("Génération de la miniature vidéo impossible :", thumbnailErr);
+        }
       } else if (youtubeVideoId) {
         mediaUrl = `https://www.youtube.com/watch?v=${youtubeVideoId}`;
         mediaKind = "YOUTUBE";
@@ -202,9 +216,10 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
             mediaKind,
             mediaUrl,
             mediaStoragePath,
+            mediaThumbnailUrl,
             removeMedia
           })
-        : await createOfficialPostAction({ title: title || undefined, content, category, mediaKind, mediaUrl, mediaStoragePath });
+        : await createOfficialPostAction({ title: title || undefined, content, category, mediaKind, mediaUrl, mediaStoragePath, mediaThumbnailUrl });
       if (result.error) throw new Error(result.error);
 
       resetForm();

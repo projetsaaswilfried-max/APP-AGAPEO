@@ -23,7 +23,8 @@ import {
   Quote,
   Copy,
   Flag,
-  Pin
+  Pin,
+  Play
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -330,7 +331,7 @@ export function PublicationCard({
       )}
 
       {publication.mediaType === "VIDEO" && publication.videoUrl && (
-        <div className="bg-black">
+        <div className="bg-black relative">
           {/* controlsList="nodownload" + blocage du clic droit retirent le
               bouton de téléchargement natif et le "Enregistrer la vidéo
               sous..." du menu contextuel — un frein pour un visiteur
@@ -346,6 +347,18 @@ export function PublicationCard({
             preload="metadata"
             className="w-full max-h-[32rem]"
           />
+          {/* Filet visuel pour une vidéo sans miniature (ancienne publication
+              d'avant la génération automatique, ou échec de génération) :
+              sans ça le lecteur reste un simple rectangle noir tant que les
+              contrôles natifs n'ont pas fini de charger, ce qui a été
+              remonté comme "la vidéo ne marche pas" par un membre. */}
+          {!publication.videoThumbnail && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                <Play size={22} className="text-white fill-white ml-1" />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

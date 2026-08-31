@@ -20,7 +20,9 @@ const OfficialPostSchema = z.object({
   category: z.enum(["TEACHING", "TESTIMONY", "WORKSHOP", "ADVICE", "ANNOUNCEMENT", "QUOTE", "VERSE", "NEWS"]),
   mediaKind: z.enum(["IMAGE", "VIDEO", "YOUTUBE"]).optional(),
   mediaUrl: z.string().url().optional(),
-  mediaStoragePath: z.string().optional()
+  mediaStoragePath: z.string().optional(),
+  /** Miniature générée côté client pour une vidéo uploadée directement (YouTube a la sienne, via getYouTubeThumbnailUrl). */
+  mediaThumbnailUrl: z.string().url().optional()
 });
 
 /**
@@ -59,7 +61,7 @@ export async function createOfficialPostAction(input: unknown) {
       content: parsed.data.content,
       media_type: isVideo ? "VIDEO" : isImage ? "IMAGE" : youtubeVideoId ? "YOUTUBE" : "TEXT_ONLY",
       video_url: isVideo ? parsed.data.mediaUrl : youtubeVideoId,
-      video_thumbnail: youtubeVideoId ? getYouTubeThumbnailUrl(youtubeVideoId) : null
+      video_thumbnail: isVideo ? (parsed.data.mediaThumbnailUrl ?? null) : youtubeVideoId ? getYouTubeThumbnailUrl(youtubeVideoId) : null
     })
     .select()
     .single();
@@ -93,7 +95,7 @@ export async function updateOfficialPostAction(input: unknown) {
   await requireAdminSession();
   const supabase = await createClient();
 
-  const { postId, title, content, category, mediaKind, mediaUrl, mediaStoragePath, removeMedia } = parsed.data;
+  const { postId, title, content, category, mediaKind, mediaUrl, mediaStoragePath, mediaThumbnailUrl, removeMedia } = parsed.data;
 
   const isVideo = mediaKind === "VIDEO" && Boolean(mediaUrl);
   const isImage = mediaKind === "IMAGE" && Boolean(mediaUrl);
@@ -109,7 +111,7 @@ export async function updateOfficialPostAction(input: unknown) {
   if (isVideo || isImage || youtubeVideoId) {
     updatePayload.media_type = isVideo ? "VIDEO" : isImage ? "IMAGE" : "YOUTUBE";
     updatePayload.video_url = isVideo ? mediaUrl : youtubeVideoId;
-    updatePayload.video_thumbnail = youtubeVideoId ? getYouTubeThumbnailUrl(youtubeVideoId) : null;
+    updatePayload.video_thumbnail = isVideo ? (mediaThumbnailUrl ?? null) : youtubeVideoId ? getYouTubeThumbnailUrl(youtubeVideoId) : null;
   } else if (removeMedia) {
     updatePayload.media_type = "TEXT_ONLY";
     updatePayload.video_url = null;
