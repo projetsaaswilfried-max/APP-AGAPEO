@@ -7,8 +7,8 @@ import { RecommendedProfileItem, DiscoverFilterCriteria } from "@/domain/types/d
 import { discoverService } from "@/domain/services/discover.service";
 import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
-import { CompatibilityCard } from "@/components/features/discover/compatibility-card";
 import { FilterPanel } from "@/components/features/discover/filter-panel";
+import { pickDailyRecommendations } from "@/domain/daily-recommendations";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
@@ -132,14 +132,12 @@ function DiscoverPageContent() {
     requestInvitation(profileId, target?.profile.firstName ?? "ce membre");
   };
 
-  const recommendedHighlight = profiles.find((p) => p.compatibilityPercentage >= 90);
-  // Le reste de la liste se scinde en deux groupes affichés l'un après
-  // l'autre : les mieux compatibles d'abord (même seuil que les
-  // notifications "nouvelle recommandation"), puis tous les autres profils
-  // correspondant aux critères — jamais masqués, juste affichés en second.
-  const remainingProfiles = profiles.filter((p) => p.profile.id !== recommendedHighlight?.profile.id);
-  const recommendedProfiles = remainingProfiles.filter((p) => p.compatibilityPercentage >= 85);
-  const otherProfiles = remainingProfiles.filter((p) => p.compatibilityPercentage < 85);
+  // Exactement 3 profils "recommandés", tirés au sort pour la journée parmi
+  // les meilleurs scores de compatibilité (âge recherché, situation
+  // matrimoniale, foi, valeurs...) — stable pour ce membre toute la journée,
+  // renouvelé automatiquement le lendemain. Le reste s'affiche en second,
+  // jamais masqué.
+  const { recommended: recommendedProfiles, others: otherProfiles } = pickDailyRecommendations(profiles, profile.id, 3);
   const bannerContent = !canInteract
     ? VERIFICATION_BANNER_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
     : null;
@@ -223,18 +221,6 @@ function DiscoverPageContent() {
         />
       )}
 
-      {recommendedHighlight && !isLoading && !isError && (
-        <CompatibilityCard
-          item={recommendedHighlight}
-          canInteract={canInteract}
-          onInspectProfile={(prof) => {
-            setSelectedProfile(prof);
-            setIsInspectorOpen(true);
-          }}
-          onRequireVerification={handleRequireVerification}
-        />
-      )}
-
       {!isLoading && !isError && scoringGaps.length > 0 && profiles.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
           <Heart size={14} className="text-accent shrink-0" />
@@ -280,9 +266,14 @@ function DiscoverPageContent() {
 
       {!isLoading && !isError && recommendedProfiles.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Profils recommandés pour vous ({recommendedProfiles.length})
-          </h2>
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Heart size={13} className="text-accent" /> Recommandée pour vous
+            </h2>
+            <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+              Sélection renouvelée chaque jour selon votre profil (âge recherché, situation matrimoniale, foi, valeurs...).
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {recommendedProfiles.map((item) => (
