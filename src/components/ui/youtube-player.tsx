@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Play, RotateCcw } from "lucide-react";
+import { Play, RotateCcw, ExternalLink } from "lucide-react";
 import { loadYouTubeIframeApi, type YouTubePlayerInstance } from "@/lib/youtube-iframe-api";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +33,16 @@ const API_LOAD_TIMEOUT_MS = 8000;
  * arrière-plan dès le premier rendu, et on bascule sur une intégration
  * classique (<iframe> youtube.com, sans l'API JS ni le domaine nocookie) si
  * le lecteur n'a pas démarré après quelques secondes.
+ *
+ * Signalé ensuite : sur ce même réseau, l'intégration de secours elle-même
+ * échoue ("This page couldn't load") — la miniature (img.youtube.com) passe,
+ * mais pas l'intégration vidéo (youtube.com/embed, youtube-nocookie.com) :
+ * signe que ce sont carrément les domaines vidéo de YouTube qui sont
+ * inaccessibles sur ce réseau, pas un souci propre à notre code — aucune
+ * stratégie d'intégration ne peut alors fonctionner. Seul filet fiable dans
+ * ce cas : un lien qui ouvre directement youtube.com (navigation complète,
+ * pas une iframe tierce) — souvent autorisé même quand l'intégration ne
+ * l'est pas. Affiché en permanence, pas seulement en cas d'échec détecté.
  */
 export function YouTubePlayer({ videoId, className }: YouTubePlayerProps) {
   const elementId = `yt-player-${useId().replace(/:/g, "")}`;
@@ -145,6 +155,20 @@ export function YouTubePlayer({ videoId, className }: YouTubePlayerProps) {
           </button>
         </div>
       )}
+
+      {/* Toujours disponible, jamais conditionné à une détection d'échec
+          (peu fiable pour une iframe tierce) : si l'intégration elle-même
+          est bloquée sur ce réseau, ce lien reste la seule façon fiable de
+          quand même regarder la vidéo. */}
+      <a
+        href={`https://www.youtube.com/watch?v=${videoId}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="absolute bottom-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/60 text-white text-[11px] font-medium hover:bg-black/80 transition-colors"
+      >
+        <ExternalLink size={11} /> Ouvrir sur YouTube
+      </a>
     </div>
   );
 }
