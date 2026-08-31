@@ -53,7 +53,16 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .eq("photo_verification_status", "VERIFIED")
       .eq("is_matched", false)
       .order("last_active_at", { ascending: false })
-      .limit(60);
+      // Un plafond de 60 coupait silencieusement la liste dès que la
+      // communauté dépassait ce nombre de profils vérifiés (signalé : 80+
+      // hommes vérifiés réels, seuls 60 visibles depuis un compte femme) —
+      // Découvrir doit montrer TOUS les profils vérifiés correspondant au
+      // genre recherché, du plus proche au plus éloigné (le tri par
+      // compatibilité ci-dessous s'applique de toute façon après coup, sur
+      // l'ensemble récupéré ici). Ce plafond n'est qu'un garde-fou contre une
+      // requête réellement illimitée, pas une limite voulue à ce stade de la
+      // communauté.
+      .limit(500);
 
     if (filters.searchQuery?.trim()) {
       const q = filters.searchQuery.trim();
