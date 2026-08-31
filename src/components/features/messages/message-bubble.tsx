@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ChatMessage } from "@/domain/types/message";
 import { FileAttachment } from "@/components/ui/file-attachment";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { VoiceMessagePlayer } from "@/components/features/messages/voice-message-player";
 import { Tooltip } from "@/components/ui/tooltip";
 import {
@@ -43,6 +44,7 @@ export function MessageBubble({
   senderAvatarFallback
 }: MessageBubbleProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Message Système Centré
   if (message.type === "SYSTEM") {
@@ -135,7 +137,14 @@ export function MessageBubble({
                 }
                 if (att.type === "IMAGE") {
                   return (
-                    <div key={att.id} className="rounded-2xl overflow-hidden max-w-xs border border-border/40 shadow-xs">
+                    <div
+                      key={att.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLightboxUrl(att.url);
+                      }}
+                      className="rounded-2xl overflow-hidden max-w-xs border border-border/40 shadow-xs cursor-pointer"
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={att.url} alt="Image jointe" className="w-full h-auto object-cover" />
                     </div>
@@ -195,6 +204,8 @@ export function MessageBubble({
           </div>
         </div>
       </div>
+
+      <ImageLightbox src={lightboxUrl} alt="Image jointe" onClose={() => setLightboxUrl(null)} />
     </div>
   );
 }

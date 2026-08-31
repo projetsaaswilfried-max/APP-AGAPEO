@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MediaGallery } from "@/components/ui/media-gallery";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import {
   MapPin,
   Briefcase,
@@ -36,20 +37,28 @@ export function ProfileHero({
   isOwnProfile = false
 }: ProfileHeroProps) {
   const [showGallery, setShowGallery] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   return (
     <div className="bg-card border border-border/40 rounded-3xl p-6 md:p-8 space-y-6 shadow-soft select-none">
       {/* Container Haut : Avatar + Infos Majeures + CTAs */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-border/40 pb-6">
         <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-5 text-center sm:text-left w-full md:w-auto">
-          {/* Avatar XL avec Badge d'Authenticité */}
-          <Avatar
-            size="xl"
-            src={profile.avatarUrl}
-            fallback={profile.firstName.charAt(0)}
-            isVerified={profile.badges.some((b) => b.code === "VERIFIED_FAITH")}
-            className="ring-4 ring-background shadow-md"
-          />
+          {/* Avatar XL avec Badge d'Authenticité — cliquable pour l'agrandir */}
+          <button
+            type="button"
+            onClick={() => profile.avatarUrl && setLightboxUrl(profile.avatarUrl)}
+            className="shrink-0 rounded-full cursor-pointer"
+            title="Agrandir la photo"
+          >
+            <Avatar
+              size="xl"
+              src={profile.avatarUrl}
+              fallback={profile.firstName.charAt(0)}
+              isVerified={profile.badges.some((b) => b.code === "VERIFIED_FAITH")}
+              className="ring-4 ring-background shadow-md"
+            />
+          </button>
 
           <div className="space-y-1.5 flex-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -156,9 +165,11 @@ export function ProfileHero({
               {showGallery ? "Masquer la galerie" : "Afficher les photos"}
             </button>
           </div>
-          {showGallery && <MediaGallery photos={profile.photos} />}
+          {showGallery && <MediaGallery photos={profile.photos} onPhotoClick={(photo) => setLightboxUrl(photo.url)} />}
         </div>
       )}
+
+      <ImageLightbox src={lightboxUrl} alt={`Photo de ${profile.firstName}`} onClose={() => setLightboxUrl(null)} />
     </div>
   );
 }
