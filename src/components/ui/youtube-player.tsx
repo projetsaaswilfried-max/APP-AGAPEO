@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Play, RotateCcw, ExternalLink } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { loadYouTubeIframeApi, type YouTubePlayerInstance } from "@/lib/youtube-iframe-api";
 import { cn } from "@/lib/utils";
 
@@ -30,19 +30,9 @@ const API_LOAD_TIMEOUT_MS = 8000;
  * de filet de secours si l'un des deux était lent ou bloqué (pare-feu
  * d'opérateur mobile, etc.) : le conteneur restait vide pour toujours, sans
  * jamais rien afficher. On affiche désormais la vraie miniature YouTube en
- * arrière-plan dès le premier rendu, et on bascule sur une intégration
- * classique (<iframe> youtube.com, sans l'API JS ni le domaine nocookie) si
- * le lecteur n'a pas démarré après quelques secondes.
- *
- * Signalé ensuite : sur ce même réseau, l'intégration de secours elle-même
- * échoue ("This page couldn't load") — la miniature (img.youtube.com) passe,
- * mais pas l'intégration vidéo (youtube.com/embed, youtube-nocookie.com) :
- * signe que ce sont carrément les domaines vidéo de YouTube qui sont
- * inaccessibles sur ce réseau, pas un souci propre à notre code — aucune
- * stratégie d'intégration ne peut alors fonctionner. Seul filet fiable dans
- * ce cas : un lien qui ouvre directement youtube.com (navigation complète,
- * pas une iframe tierce) — souvent autorisé même quand l'intégration ne
- * l'est pas. Affiché en permanence, pas seulement en cas d'échec détecté.
+ * arrière-plan dès le premier rendu, et on bascule automatiquement sur une
+ * intégration classique (<iframe> youtube.com, sans l'API JS ni le domaine
+ * nocookie) si le lecteur n'a pas démarré après quelques secondes.
  */
 export function YouTubePlayer({ videoId, className }: YouTubePlayerProps) {
   const elementId = `yt-player-${useId().replace(/:/g, "")}`;
@@ -124,26 +114,6 @@ export function YouTubePlayer({ videoId, className }: YouTubePlayerProps) {
         <div id={elementId} ref={containerRef} className="absolute inset-0 w-full h-full" />
       )}
 
-      {/* Le bouton play du lecteur YouTube natif n'existe qu'une fois
-          l'iframe réellement chargée — sur un réseau lent, la miniature
-          restait affichée seule, sans rien à appuyer, pendant plusieurs
-          secondes (signalé par un membre : "pas de bouton play"). Ce
-          bouton reste visible tant que le lecteur n'est pas prêt, et
-          bascule immédiatement sur l'intégration de secours au clic plutôt
-          que de faire attendre les 8 secondes complètes. */}
-      {!isReady && !useFallbackEmbed && (
-        <button
-          type="button"
-          onClick={() => setUseFallbackEmbed(true)}
-          className="absolute inset-0 flex items-center justify-center group"
-          aria-label="Lire la vidéo"
-        >
-          <span className="w-16 h-16 rounded-full bg-black/50 group-hover:bg-black/65 flex items-center justify-center transition-colors">
-            <Play size={26} className="text-white fill-white ml-1" />
-          </span>
-        </button>
-      )}
-
       {hasEnded && (
         <div className="absolute inset-0 z-30 bg-black/85 flex flex-col items-center justify-center gap-3">
           <button
@@ -155,20 +125,6 @@ export function YouTubePlayer({ videoId, className }: YouTubePlayerProps) {
           </button>
         </div>
       )}
-
-      {/* Toujours disponible, jamais conditionné à une détection d'échec
-          (peu fiable pour une iframe tierce) : si l'intégration elle-même
-          est bloquée sur ce réseau, ce lien reste la seule façon fiable de
-          quand même regarder la vidéo. */}
-      <a
-        href={`https://www.youtube.com/watch?v=${videoId}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-2 right-2 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/60 text-white text-[11px] font-medium hover:bg-black/80 transition-colors"
-      >
-        <ExternalLink size={11} /> Ouvrir sur YouTube
-      </a>
     </div>
   );
 }
