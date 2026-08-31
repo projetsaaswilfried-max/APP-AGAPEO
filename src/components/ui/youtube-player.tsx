@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { Play, RotateCcw } from "lucide-react";
 import { loadYouTubeIframeApi, type YouTubePlayerInstance } from "@/lib/youtube-iframe-api";
 import { cn } from "@/lib/utils";
 
@@ -112,6 +112,26 @@ export function YouTubePlayer({ videoId, className }: YouTubePlayerProps) {
         />
       ) : (
         <div id={elementId} ref={containerRef} className="absolute inset-0 w-full h-full" />
+      )}
+
+      {/* Le bouton play du lecteur YouTube natif n'existe qu'une fois
+          l'iframe réellement chargée — sur un réseau lent, la miniature
+          restait affichée seule, sans rien à appuyer, pendant plusieurs
+          secondes (signalé par un membre : "pas de bouton play"). Ce
+          bouton reste visible tant que le lecteur n'est pas prêt, et
+          bascule immédiatement sur l'intégration de secours au clic plutôt
+          que de faire attendre les 8 secondes complètes. */}
+      {!isReady && !useFallbackEmbed && (
+        <button
+          type="button"
+          onClick={() => setUseFallbackEmbed(true)}
+          className="absolute inset-0 flex items-center justify-center group"
+          aria-label="Lire la vidéo"
+        >
+          <span className="w-16 h-16 rounded-full bg-black/50 group-hover:bg-black/65 flex items-center justify-center transition-colors">
+            <Play size={26} className="text-white fill-white ml-1" />
+          </span>
+        </button>
       )}
 
       {hasEnded && (

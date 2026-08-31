@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { VerifiedMemberBadge } from "@/components/ui/verified-member-badge";
 import { MediaGallery } from "@/components/ui/media-gallery";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { createClient } from "@/lib/supabase/client";
 import { Heart, MessageSquare, Church, MapPin, CheckCircle2, Bookmark, Flag } from "lucide-react";
@@ -31,6 +32,7 @@ export function ProfileDrawerInspector({
   onViewLimitReached
 }: ProfileDrawerInspectorProps) {
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen || !item) return;
@@ -94,11 +96,18 @@ export function ProfileDrawerInspector({
       <div className="space-y-6 select-none text-foreground">
         {/* En-tête du profil avec photo principale */}
         <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-secondary/40 border border-border/40">
-          <Avatar
-            size="xl"
-            src={profile.avatarUrl}
-            fallback={profile.firstName.charAt(0)}
-          />
+          <button
+            type="button"
+            onClick={() => profile.avatarUrl && setLightboxUrl(profile.avatarUrl)}
+            className="shrink-0 rounded-full cursor-pointer"
+            title="Agrandir la photo"
+          >
+            <Avatar
+              size="xl"
+              src={profile.avatarUrl}
+              fallback={profile.firstName.charAt(0)}
+            />
+          </button>
           <div className="flex-1 text-center sm:text-left space-y-1">
             <div className="flex items-center justify-center sm:justify-start gap-2">
               <h2 className="text-lg font-display font-semibold tracking-tight">
@@ -182,10 +191,12 @@ export function ProfileDrawerInspector({
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Photos du membre
             </h4>
-            <MediaGallery photos={profile.photos} />
+            <MediaGallery photos={profile.photos} onPhotoClick={(photo) => setLightboxUrl(photo.url)} />
           </div>
         )}
       </div>
+
+      <ImageLightbox src={lightboxUrl} alt={`Photo de ${profile.firstName}`} onClose={() => setLightboxUrl(null)} />
 
       <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} targetType="PROFILE" targetId={profile.id} />
     </Modal>
