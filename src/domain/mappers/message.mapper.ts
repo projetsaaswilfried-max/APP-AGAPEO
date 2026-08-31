@@ -66,7 +66,12 @@ export function mapConversationSummary(
     isOnline,
     lastSeen: !participant.show_online_status || isOnline ? undefined : new Date(participant.last_active_at).toLocaleDateString("fr-FR"),
     isFavorite,
-    updatedAt: formatTime(updatedAt),
+    // Volontairement PAS formaté en "HH:MM" ici (contrairement à ChatMessage.createdAt,
+    // affiché tel quel) : ce champ ne sert qu'au tri par activité récente
+    // (cf. getConversations()) — un format déjà réduit à l'heure du jour
+    // triait "23:50" (hier soir) avant "09:15" (ce matin), la conversation
+    // active remontait donc rarement en tête de liste.
+    updatedAt,
     status,
     initiatedByMe
   };

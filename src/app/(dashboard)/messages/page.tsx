@@ -25,6 +25,19 @@ import { isProfileComplete } from "@/domain/profile-completeness";
 import { requestMatchAction, respondToMatchAction, cancelMatchAction, getMatchForConversationAction } from "@/lib/actions/match.actions";
 import type { MatchRow } from "@/lib/supabase/database.types";
 
+/** Fait remonter une conversation en tête de liste tout en lui appliquant des mises à jour (dernier message, compteur non lu...) — jamais un simple `.map()` qui laisserait sa position inchangée. */
+function moveConversationToTop(
+  conversations: ConversationSummary[],
+  conversationId: string,
+  updates: Partial<ConversationSummary>
+): ConversationSummary[] {
+  const idx = conversations.findIndex((c) => c.id === conversationId);
+  if (idx === -1) return conversations;
+  const updated = { ...conversations[idx], ...updates };
+  const rest = conversations.filter((_, i) => i !== idx);
+  return [updated, ...rest];
+}
+
 function MessagesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -75,6 +88,10 @@ function MessagesPageContent() {
       const data = await messageService.getMessages(convId);
       setMessages(data);
       await messageService.markAsRead(convId);
+      // Le marquage côté serveur ci-dessus ne met pas à jour, à lui seul, le
+      // badge affiché dans la liste de gauche — sans ça, le chiffre restait
+      // affiché tant que la page n'était pas rechargée.
+      setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, unreadCount: 0 } : c)));
     } catch (err) {
       console.error(err);
     } finally {
@@ -129,6 +146,27 @@ function MessagesPageContent() {
       setOtherIsTyping(false);
     };
   }, [activeConvId, user.id]);
+
+  // Toutes conversations confondues (pas seulement celle ouverte) : sans ça,
+  // recevoir un message dans une AUTRE discussion ne la faisait ni remonter
+  // en tête de liste, ni apparaître avec son compteur non lu à jour, tant
+  // que la page n'était pas rechargée.
+  useEffect(() => {
+    const unsubscribe = messageService.subscribeToAllConversations((message) => {
+      if (message.senderId === user.id) return;
+      setConversations((prev) => {
+        const isActive = message.conversationId === activeConvId;
+        const current = prev.find((c) => c.id === message.conversationId);
+        if (!current) return prev;
+        return moveConversationToTop(prev, message.conversationId, {
+          lastMessage: message,
+          updatedAt: new Date().toISOString(),
+          unreadCount: isActive ? current.unreadCount : current.unreadCount + 1
+        });
+      });
+    });
+    return unsubscribe;
+  }, [user.id, activeConvId]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
   const filteredConversations = conversations.filter((c) =>
@@ -242,7 +280,7 @@ function MessagesPageContent() {
     try {
       const newMsg = await action();
       setMessages((prev) => [...prev, newMsg]);
-      setConversations((prev) => prev.map((c) => (c.id === activeConvId ? { ...c, lastMessage: newMsg, updatedAt: newMsg.createdAt } : c)));
+      setConversations((prev) => moveConversationToTop(prev, activeConvId, { lastMessage: newMsg, updatedAt: new Date().toISOString() }));
     } catch (err) {
       if (err instanceof PremiumRequiredError) {
         setIsPremiumRequiredOpen(true);

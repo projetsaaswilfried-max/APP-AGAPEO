@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import { supportService, SupportMessage, SupportTicket } from "@/domain/services/support.service";
 import { notifyStaffOfSupportMessageAction } from "@/lib/actions/support.actions";
 import { validateImageFile, FileValidationError } from "@/lib/storage";
@@ -23,6 +24,7 @@ interface PendingImage {
 }
 
 export function SupportTicketThread({ ticket, viewerIsStaff = false, onTicketClosed, className }: SupportTicketThreadProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [text, setText] = useState("");
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
@@ -45,11 +47,16 @@ export function SupportTicketThread({ ticket, viewerIsStaff = false, onTicketClo
       setMessages(thread);
       setIsLoading(false);
       await supportService.markTicketRead(ticket.id, viewerIsStaff);
+      // Le badge "dossiers ouverts" de la nav admin (AdminLayout) est calculé
+      // côté serveur à chaque navigation — sans ça il restait affiché tant
+      // que la page n'était pas rechargée, alors que ce dossier venait
+      // d'être lu.
+      router.refresh();
     })();
 
     const unsubscribe = supportService.subscribeToTicket(ticket.id, (message) => {
       setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
-      void supportService.markTicketRead(ticket.id, viewerIsStaff);
+      void supportService.markTicketRead(ticket.id, viewerIsStaff).then(() => router.refresh());
     });
 
     return () => {

@@ -55,9 +55,33 @@ export function useUnreadCounts() {
 
     doRefresh();
     const interval = setInterval(doRefresh, POLL_INTERVAL_MS);
+
+    // Sans ceci, ce badge (affiché dans Header/Sidebar/BottomNav) ne se
+    // mettait à jour qu'au prochain sondage (jusqu'à 30s) — un membre qui
+    // ouvre une conversation et lit son message voyait le chiffre rester
+    // affiché pendant tout ce temps. `conversation_participants` UPDATE
+    // capte le marquage "lu" (n'importe où dans l'app) ; `messages` INSERT
+    // capte l'arrivée d'un nouveau message (la RLS `messages_select` limite
+    // déjà ce que Realtime peut transmettre à mes propres conversations).
+    const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user || cancelled) return;
+      channel = supabase
+        .channel(`unread-counts:${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "conversation_participants", filter: `user_id=eq.${user.id}` },
+          () => doRefresh()
+        )
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => doRefresh())
+        .subscribe();
+    });
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [refreshToken]);
 

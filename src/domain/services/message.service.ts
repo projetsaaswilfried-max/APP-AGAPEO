@@ -30,6 +30,8 @@ export interface IMessageService {
   /** Masque la conversation de ma propre liste — réapparaît automatiquement au prochain message échangé. */
   hideConversation(conversationId: string): Promise<void>;
   subscribeToConversation(conversationId: string, onMessage: (message: ChatMessage) => void): () => void;
+  /** Tous mes nouveaux messages, toutes conversations confondues — sert à faire remonter/mettre à jour la liste des discussions même quand ce n'est pas la conversation actuellement ouverte. */
+  subscribeToAllConversations(onMessage: (message: ChatMessage) => void): () => void;
   /** Propage en temps réel les changements de statut (accusés de lecture) et les suppressions. */
   subscribeToMessageUpdates(conversationId: string, onUpdate: (update: MessageUpdate) => void): () => void;
   broadcastTyping(conversationId: string): Promise<void>;
@@ -410,6 +412,34 @@ class MessageServiceSupabase implements IMessageService {
           onMessage(hydrated);
         }
       )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }
+
+  /**
+   * Sans filtre `conversation_id` — la RLS `messages_select` (participant
+   * uniquement) s'applique déjà à ce que Realtime peut me transmettre, donc
+   * je ne reçois jamais que mes propres conversations. Nécessaire pour faire
+   * remonter/mettre à jour une discussion dans la liste de gauche même
+   * lorsqu'elle n'est pas celle actuellement ouverte (`subscribeToConversation`
+   * est scoping à une seule conversation à la fois).
+   */
+  subscribeToAllConversations(onMessage: (message: ChatMessage) => void): () => void {
+    const supabase = createClient();
+    let cancelled = false;
+
+    const channel = supabase
+      .channel("messages:all")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload) => {
+        if (cancelled) return;
+        const myId = await getCurrentUserId();
+        const [hydrated] = await hydrateMessages([payload.new as MessageRow], myId);
+        onMessage(hydrated);
+      })
       .subscribe();
 
     return () => {

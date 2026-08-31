@@ -1,0 +1,22 @@
+-- ============================================================================
+-- Trouvé en creusant un bug remonté par un membre (badges de non-lu qui ne se
+-- mettaient jamais à jour, conversations qui ne remontaient jamais en tête de
+-- liste) : `messages`, `conversation_participants` et `support_messages`
+-- n'ont JAMAIS été ajoutées à la publication `supabase_realtime`. Seule
+-- `posts` y était. Résultat concret, vérifié en direct sur la vraie base
+-- (deux comptes de test, un vrai message inséré via RLS, souscription
+-- postgres_changes active) : AUCUN évènement INSERT/UPDATE sur `messages`
+-- n'a jamais été livré à un abonné Realtime, quels que soient le filtre ou
+-- les policies RLS — la réplication logique Postgres ne diffuse que les
+-- tables explicitement ajoutées à une publication, indépendamment de RLS.
+--
+-- Portée du bug réel, une fois la cause comprise : la messagerie
+-- (subscribeToConversation, subscribeToMessageUpdates), le badge de
+-- non-lu (use-unread-counts.ts) et le support (subscribeToTicket) reposent
+-- tous sur `postgres_changes` pour ces tables — aucun n'a donc jamais reçu
+-- de mise à jour en temps réel, y compris l'affichage live d'un message
+-- reçu pendant qu'une conversation est déjà ouverte (repli uniquement sur un
+-- rechargement complet de la page).
+-- ============================================================================
+
+alter publication supabase_realtime add table messages, conversation_participants, support_messages;
