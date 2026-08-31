@@ -46,7 +46,7 @@ export function ProfileDrawerInspector({
 
   if (!item) return null;
 
-  const { profile, compatibilityPercentage, justifications, isFavorite } = item;
+  const { profile, justifications, isFavorite } = item;
   const isVerified = profile.badges.some((b) => b.code === "VERIFIED_FAITH");
 
   return (
@@ -111,15 +111,12 @@ export function ProfileDrawerInspector({
               <MapPin size={13} /> {profile.city}, {profile.country}
             </div>
           </div>
-          <Badge variant="premium" className="text-xs px-3 py-1 self-center sm:self-start">
-            <Heart size={12} className="mr-1 text-accent fill-accent" /> {compatibilityPercentage}% Compatible
-          </Badge>
         </div>
 
         {/* Pourquoi cette recommandation ? */}
         <div className="p-4 rounded-2xl bg-accent-subtle/60 border border-accent/20 space-y-2">
           <h4 className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
-            <Heart size={13} className="text-accent" /> Explication de la compatibilité ({compatibilityPercentage}%)
+            <Heart size={13} className="text-accent" /> Pourquoi cette recommandation ?
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs">
             {justifications.map((j, idx) => (

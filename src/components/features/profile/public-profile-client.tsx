@@ -23,7 +23,6 @@ import { ArrowLeft, Flag, Ban } from "lucide-react";
 interface PublicProfileClientProps {
   profile: UserProfile;
   personalPublications: FeedPublication[];
-  compatibilityPercentage: number;
   compatibilityReasons: string[];
   isFavorite: boolean;
 }
@@ -31,7 +30,6 @@ interface PublicProfileClientProps {
 export function PublicProfileClient({
   profile,
   personalPublications,
-  compatibilityPercentage,
   compatibilityReasons,
   isFavorite: initialIsFavorite
 }: PublicProfileClientProps) {
@@ -109,7 +107,7 @@ export function PublicProfileClient({
       </div>
 
       <ProfileHero profile={profile} isFavorite={isFavorite} onToggleFavorite={handleToggleFavorite} onSendMessage={handleSendMessage} />
-      <CompatibilityExplainedSection percentage={compatibilityPercentage} reasons={compatibilityReasons} />
+      <CompatibilityExplainedSection reasons={compatibilityReasons} />
       <FaithSection faith={profile.faith} />
       <MarriageVisionSection marriageVision={profile.marriageVision} aboutMe={profile.aboutMe} preferences={profile.preferences} />
       <UserPublicationsSection userName={profile.firstName} profileId={profile.id} publications={personalPublications} isOwner={false} />

@@ -2,12 +2,11 @@
 
 import { RecommendedProfileItem } from "@/domain/types/discover";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { VerifiedMemberBadge } from "@/components/ui/verified-member-badge";
 import { MARITAL_STATUS_LABELS } from "@/domain/marital-status";
-import { Bookmark, Heart, MapPin, MessageSquare, Lock, Users, Ruler } from "lucide-react";
+import { Bookmark, MapPin, MessageSquare, Lock, Users, Ruler } from "lucide-react";
 import { cn, maskForPreview } from "@/lib/utils";
 
 interface DiscoverProfileCardProps {
@@ -28,7 +27,7 @@ export function DiscoverProfileCard({
   onSendMessage,
   onRequireVerification
 }: DiscoverProfileCardProps) {
-  const { profile, compatibilityPercentage, isFavorite } = item;
+  const { profile, isFavorite } = item;
   // La photo reste nette pour tout le monde (seul le choix de flou du membre
   // lui-même s'applique) — c'est le nom/l'âge/la localisation qui sont
   // masqués tant que le visiteur n'a pas fait valider son propre profil.
@@ -65,10 +64,6 @@ export function DiscoverProfileCard({
           </div>
 
           <div className="flex flex-col items-end gap-2">
-            <Badge variant="premium" className="text-xs px-2.5 py-0.5 shadow-2xs">
-              <Heart size={11} className="mr-1 text-accent fill-accent" /> {compatibilityPercentage}%
-            </Badge>
-
             <button
               onClick={(e) => {
                 e.stopPropagation();

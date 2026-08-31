@@ -2,7 +2,6 @@
 
 import { RecommendedProfileItem } from "@/domain/types/discover";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Heart, CheckCircle2, ArrowRight, Lock } from "lucide-react";
 import { cn, maskForPreview } from "@/lib/utils";
@@ -21,7 +20,7 @@ export function CompatibilityCard({
   onInspectProfile,
   onRequireVerification
 }: CompatibilityCardProps) {
-  const { profile, compatibilityPercentage, justifications } = item;
+  const { profile, justifications } = item;
   // La photo reste nette pour tout le monde (seul le choix de flou du membre
   // lui-même s'applique) — c'est le nom/l'âge/la localisation qui sont
   // masqués tant que le visiteur n'a pas fait valider son propre profil.
@@ -51,11 +50,6 @@ export function CompatibilityCard({
               </span>
             </div>
           )}
-          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 md:left-auto md:right-0 md:translate-x-0">
-            <Badge variant="premium" className="text-[10px] px-2.5 py-0.5 shadow-2xs whitespace-nowrap">
-              <Heart size={11} className="mr-1 text-primary fill-primary" /> {compatibilityPercentage}%
-            </Badge>
-          </div>
         </div>
 
         {/* Détails & Compatibilité Expliquée (Fonctionnalité Signature) */}

@@ -13,7 +13,6 @@ import {
   Languages,
   Bookmark,
   MessageSquare,
-  Heart,
   Calendar,
   Users,
   Ruler
@@ -75,13 +74,9 @@ export function ProfileHero({
           </div>
         </div>
 
-        {/* Colonne Droite : Badge Compatibilité + Boutons d'Action */}
+        {/* Colonne Droite : Boutons d'Action */}
         {!isOwnProfile && (
           <div className="flex flex-col sm:flex-row md:flex-col items-center md:items-end gap-3 w-full md:w-auto shrink-0">
-            <Badge variant="premium" className="text-xs px-3 py-1 shadow-2xs">
-              <Heart size={13} className="mr-1.5 text-accent fill-accent" /> {profile.compatibilityPercentage}% Compatible
-            </Badge>
-
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <Button
                 variant="outline"

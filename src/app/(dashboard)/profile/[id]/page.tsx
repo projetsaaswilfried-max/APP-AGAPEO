@@ -153,7 +153,6 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     <PublicProfileClient
       profile={profile}
       personalPublications={personalPublications}
-      compatibilityPercentage={score}
       compatibilityReasons={reasons}
       isFavorite={Boolean(favoriteRow)}
     />
