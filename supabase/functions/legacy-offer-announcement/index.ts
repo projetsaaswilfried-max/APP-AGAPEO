@@ -22,7 +22,7 @@ const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 
 // Doit rester synchronisé avec PREMIUM_PLANS.ACCESS dans src/domain/premium-plans.ts
 // (runtime Deno isolé de l'app Next.js, aucun module partageable entre les deux).
-const PRICE_LABEL = "2 329 FCFA";
+const PRICE_LABEL = "4 083 FCFA";
 const CTA_URL = `${SITE_URL}/login?redirectTo=/premium`;
 
 // Index = palier. En minutes pour pouvoir exprimer "1 heure" comme J+1..J+5.

@@ -1,5 +1,5 @@
 // Cron toutes les 5 minutes : relance une nouvelle inscription qui n'a pas
-// encore payé les 2 329 FCFA d'accès (paywall pré-onboarding, cf. migration
+// encore payé les 4 083 FCFA d'accès (paywall pré-onboarding, cf. migration
 // new_signup_payment_required) — 6 paliers : 10 minutes, J+1, J+2, J+3, J+4,
 // J+5 après profiles.created_at. Un seul envoi par palier et par compte,
 // suivi via profile_restricted.access_payment_reminder_stage — même principe
@@ -24,7 +24,7 @@ const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 
 // Doit rester synchronisé avec PREMIUM_PLANS.ACCESS dans src/domain/premium-plans.ts
 // (runtime Deno isolé de l'app Next.js, aucun module partageable entre les deux).
-const PRICE_LABEL = "2 329 FCFA";
+const PRICE_LABEL = "4 083 FCFA";
 const CTA_URL = `${SITE_URL}/login?redirectTo=/payment-required`;
 
 // Index = palier. En minutes pour pouvoir exprimer "10 minutes" comme J+1..J+5.

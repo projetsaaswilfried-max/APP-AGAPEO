@@ -33,12 +33,12 @@ export const PREMIUM_PLANS: Record<PremiumPlanKey, PremiumPlanConfig> = {
   // === priceUsd (cf. chariow-webhook-handler.ts) — priceUsd DOIT donc être
   // un nombre ENTIER (jamais de centimes), sinon aucun paiement réel ne
   // pourra jamais correspondre et l'accès ne sera jamais débloqué même en
-  // cas de paiement réussi. Prix rigoureux fixé par le fondateur : 2 329 FCFA
-  // (taux implicite des deux autres plans ~583 FCFA/$, donc 2 329 FCFA = 4$
-  // pile) — LE PRODUIT CHARIOW DOIT ÊTRE CONFIGURÉ À EXACTEMENT 4 USD, sans
-  // quoi les paiements réels seront enregistrés mais l'accès ne sera jamais
-  // débloqué, silencieusement.
-  ACCESS: { dbValue: "premium_access", label: "Accès complet", periodDays: 30, priceUsd: 4, priceFcfaLabel: "2 329 FCFA" }
+  // cas de paiement réussi. Passé de 4$ à 7$ le 2026-09-01 (nouvelle décision
+  // du fondateur) — 4 083 FCFA est une estimation au même taux implicite que
+  // les deux autres plans (~583 FCFA/$) — LE PRODUIT CHARIOW DOIT ÊTRE
+  // RECONFIGURÉ À EXACTEMENT 7 USD, sans quoi les paiements réels seront
+  // enregistrés mais l'accès ne sera jamais débloqué, silencieusement.
+  ACCESS: { dbValue: "premium_access", label: "Accès complet", periodDays: 30, priceUsd: 7, priceFcfaLabel: "4 083 FCFA" }
 };
 
 export function planKeyFromDbValue(dbValue: string | null | undefined): PremiumPlanKey | null {

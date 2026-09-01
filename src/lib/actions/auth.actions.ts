@@ -47,10 +47,7 @@ export async function signUpAction(_prevState: FormState, formData: FormData): P
   }
 
   if (data.session) {
-    // Tout compte créé à partir de maintenant est payment_required = true par
-    // défaut colonne (cf. migration new_signup_payment_required) — direction
-    // sûre à 100%, ce chemin ne concerne que des comptes tout juste créés.
-    redirect("/payment-required");
+    redirect("/onboarding");
   }
 
   return { message: "CHECK_EMAIL" };

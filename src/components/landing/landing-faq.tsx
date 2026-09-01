@@ -1,5 +1,4 @@
 import { Icon } from "@iconify/react";
-import { PREMIUM_PLANS } from "@/domain/premium-plans";
 
 const FAQ_ITEMS = [
   {
@@ -24,7 +23,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Est-ce gratuit ?",
-    a: `L'accès complet à AGAPEO (Découvrir, messagerie, invitations...) nécessite un paiement unique de ${PREMIUM_PLANS.ACCESS.priceFcfaLabel}, valable 30 jours. Ton fil d'actualité (contenus et enseignements) reste toujours accessible.`
+    a: "Tu peux créer ton profil et commencer à découvrir AGAPEO gratuitement. Certaines fonctionnalités supplémentaires sont accessibles avec AGAPEO+."
   },
   {
     q: "Comment AGAPEO protège-t-il sa communauté ?",

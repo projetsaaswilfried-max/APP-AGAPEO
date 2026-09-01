@@ -5,7 +5,7 @@ import { Icon } from "@iconify/react";
 const TRUST_ITEMS = [
   { icon: "solar:check-circle-linear", label: "Profils vérifiés" },
   { icon: "solar:users-group-rounded-linear", label: "Célibataires chrétiens" },
-  { icon: "solar:wallet-2-linear", label: "Paiement 100% sécurisé" }
+  { icon: "solar:wallet-2-linear", label: "Inscription gratuite" }
 ];
 
 export function LandingHero() {
@@ -96,7 +96,7 @@ export function LandingHero() {
             href="/register"
             className="w-auto max-w-[280px] xs:max-w-[300px] sm:max-w-[620px] md:max-w-[760px] lg:max-w-[840px] bg-white text-zinc-900 font-semibold text-sm sm:text-lg md:text-xl lg:text-2xl px-5 py-3 sm:px-12 md:px-16 sm:py-5 md:py-6 rounded-full hover:bg-zinc-100 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.25)] hover:shadow-[0_0_35px_rgba(255,255,255,0.7)] text-center"
           >
-            Créer mon profil
+            Créer mon profil gratuitement
           </Link>
         </div>
 

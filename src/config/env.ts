@@ -55,7 +55,7 @@ export function getChariowProductId(plan: ChariowPlanKey): string {
  * interdit de réutiliser une même URL sur deux Pulses différents, chaque
  * plan a donc sa propre route (`/api/webhooks/chariow` pour le mensuel,
  * `/api/webhooks/chariow/quarterly` pour le trimestriel, `/api/webhooks/chariow/access`
- * pour l'accès payant 2 329 FCFA) et donc son propre secret, distinct des autres plans.
+ * pour l'accès complet 4 083 FCFA) et donc son propre secret, distinct des autres plans.
  */
 export function getChariowPulseSecret(plan: ChariowPlanKey): string {
   const varName =
