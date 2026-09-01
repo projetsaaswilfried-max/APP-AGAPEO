@@ -10,7 +10,7 @@ const TRUST_ITEMS = [
 
 export function LandingHero() {
   return (
-    <section className="relative mx-3 sm:mx-6 xl:mx-[40px] mt-[85px] sm:mt-[95px] xl:mt-[105px] pt-12 sm:pt-16 md:pt-20 xl:pt-36 pb-16 sm:pb-20 md:pb-24 xl:pb-32 overflow-hidden bg-[#E83E75] rounded-[24px] sm:rounded-[30px]">
+    <section className="relative mx-3 sm:mx-6 xl:mx-[40px] mt-[121px] sm:mt-[131px] xl:mt-[141px] pt-12 sm:pt-16 md:pt-20 xl:pt-36 pb-16 sm:pb-20 md:pb-24 xl:pb-32 overflow-hidden bg-[#E83E75] rounded-[24px] sm:rounded-[30px]">
       {/* Abstract pink gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#E83E75] via-[#e6356f] to-[#cc1c54] z-0" />
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/20 blur-[120px] rounded-full z-0 pointer-events-none" />

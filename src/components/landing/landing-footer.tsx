@@ -11,7 +11,7 @@ const NAV_LINKS = [
 
 export function LandingFooter() {
   return (
-    <footer id="telecharger" className="bg-zinc-50 pt-10 pb-6 scroll-mt-24 sm:scroll-mt-28">
+    <footer id="telecharger" className="bg-zinc-50 pt-10 pb-6 scroll-mt-32 sm:scroll-mt-36">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row gap-10 md:gap-16 lg:gap-24 mb-10 border-b border-zinc-100 pb-10">
           <div className="flex-[2] max-w-sm">
