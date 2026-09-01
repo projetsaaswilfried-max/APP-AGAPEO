@@ -153,7 +153,11 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
                   {profile.first_name}
                 </span>
                 <span className="text-[10px] text-muted-foreground truncate">
-                  {profile.photo_verification_status === "VERIFIED" ? "Membre vérifié" : "Profil en cours de vérification"}
+                  {profile.is_staff
+                    ? "Compte équipe"
+                    : profile.photo_verification_status === "VERIFIED"
+                      ? "Membre vérifié"
+                      : "Profil en cours de vérification"}
                 </span>
               </div>
             </div>

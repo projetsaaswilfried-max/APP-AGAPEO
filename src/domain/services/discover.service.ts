@@ -48,6 +48,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .select("*")
       .neq("id", viewer.id)
       .eq("gender", targetGender)
+      .eq("is_staff", false)
       .not("avatar_url", "is", null)
       .not("church_denomination", "is", null)
       .not("why_marriage", "is", null)
@@ -211,6 +212,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .select("*")
       .in("id", favoriteIds)
       .eq("gender", targetGender)
+      .eq("is_staff", false)
       .eq("photo_verification_status", "VERIFIED");
     if (!candidates || candidates.length === 0) return [];
 
@@ -293,6 +295,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .select("*")
       .in("id", candidateIds)
       .eq("gender", targetGender)
+      .eq("is_staff", false)
       .eq("photo_verification_status", "VERIFIED");
     if (!candidates || candidates.length === 0) return [];
 
@@ -363,6 +366,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .select("id")
       .in("id", candidateIds)
       .eq("gender", targetGender)
+      .eq("is_staff", false)
       .eq("photo_verification_status", "VERIFIED");
 
     return visibleCandidates?.length ?? 0;

@@ -103,12 +103,13 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   // l'URL directe. L'équipe (staff) reste exemptée pour pouvoir
   // modérer/consulter ces profils.
   const isStaffViewer = viewerRow.role !== "USER";
-  // Même règle stricte que Découvrir (hommes <-> femmes uniquement) — ferme
-  // le seul contournement possible (connaître l'URL directe d'une fiche que
-  // Découvrir n'aurait jamais proposée). Même message que le cas VERIFIED
-  // ci-dessus pour ne jamais laisser deviner qu'un profil existe bel et bien.
+  // Même règle stricte que Découvrir (hommes <-> femmes uniquement, jamais
+  // l'équipe) — ferme le seul contournement possible (connaître l'URL
+  // directe d'une fiche que Découvrir n'aurait jamais proposée). Même
+  // message que le cas VERIFIED ci-dessus pour ne jamais laisser deviner
+  // qu'un profil existe bel et bien.
   const isOppositeGender = target.gender !== viewerRow.gender;
-  if (!isStaffViewer && (target.photo_verification_status !== "VERIFIED" || !isOppositeGender)) {
+  if (!isStaffViewer && (target.photo_verification_status !== "VERIFIED" || !isOppositeGender || target.is_staff)) {
     return (
       <div className="max-w-2xl mx-auto py-16">
         <EmptyState

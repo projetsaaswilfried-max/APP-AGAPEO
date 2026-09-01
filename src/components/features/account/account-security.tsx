@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { UserProfile } from "@/domain/types/user";
+import { useSession } from "@/core/providers/session-provider";
 import { createClient } from "@/lib/supabase/client";
 import { getBlockedProfilesAction, unblockUserAction } from "@/lib/actions/moderation.actions";
 import { Card } from "@/components/ui/card";
@@ -30,6 +31,7 @@ const initialState: FormState = undefined;
  * motivé le refus.
  */
 function VerificationStatusCard({ profile }: { profile: UserProfile }) {
+  const { profile: sessionProfile } = useSession();
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,7 +48,8 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
       .then(({ data }) => setRejectionReason(data?.rejection_reason ?? null));
   }, [profile.id, profile.photoVerificationStatus]);
 
-  if (profile.photoVerificationStatus === "VERIFIED") return null;
+  // L'équipe n'a plus jamais besoin de se faire vérifier (cf. onboarding-wizard.tsx).
+  if (profile.photoVerificationStatus === "VERIFIED" || sessionProfile.is_staff) return null;
 
   return (
     <Card variant="base" className="p-6 space-y-3 border-border/60 shadow-2xs">
@@ -139,6 +142,7 @@ function BlockedUsersCard() {
 }
 
 export function AccountSecurity({ profile }: AccountSecurityProps) {
+  const { profile: sessionProfile } = useSession();
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -197,8 +201,13 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
               Sécurité du Compte & Identifiants
             </h2>
           </div>
-          <Badge variant={profile.badges.some((b) => b.code === "VERIFIED_FAITH") ? "verified" : "status"} className="text-xs">
-            <ShieldCheck size={13} /> {profile.badges.some((b) => b.code === "VERIFIED_FAITH") ? "Compte vérifié" : "Vérification en cours"}
+          <Badge variant={sessionProfile.is_staff || profile.badges.some((b) => b.code === "VERIFIED_FAITH") ? "verified" : "status"} className="text-xs">
+            <ShieldCheck size={13} />{" "}
+            {sessionProfile.is_staff
+              ? "Compte équipe"
+              : profile.badges.some((b) => b.code === "VERIFIED_FAITH")
+                ? "Compte vérifié"
+                : "Vérification en cours"}
           </Badge>
         </div>
 

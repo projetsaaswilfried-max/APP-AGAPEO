@@ -35,7 +35,10 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
   const needsEssentialInfo = !profile.gender || !profile.birth_date || !profile.country;
   // Un profil déjà VERIFIED (ou dont la demande est déjà PENDING) qui revient
   // ici pour ajuster une section n'a plus besoin de refaire un selfie.
-  const needsVerificationSubmission = profile.photo_verification_status === "UNVERIFIED" || profile.photo_verification_status === "REJECTED";
+  // L'équipe (staff) n'a plus jamais besoin de se faire vérifier — son profil
+  // ne sera de toute façon jamais montré sur la plateforme.
+  const needsVerificationSubmission =
+    !profile.is_staff && (profile.photo_verification_status === "UNVERIFIED" || profile.photo_verification_status === "REJECTED");
 
   const stepKeys: StepKey[] = [
     ...(needsEssentialInfo ? (["essential"] as StepKey[]) : []),

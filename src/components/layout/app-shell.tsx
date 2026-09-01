@@ -134,7 +134,11 @@ export function AppShell({ children }: AppShellProps) {
                   <div className="flex flex-col truncate">
                     <span className="text-xs font-semibold text-foreground">{profile.first_name}</span>
                     <span className="text-[11px] text-muted-foreground">
-                      {profile.photo_verification_status === "VERIFIED" ? "Membre vérifié" : "Profil en cours de vérification"}
+                      {profile.is_staff
+                        ? "Compte équipe"
+                        : profile.photo_verification_status === "VERIFIED"
+                          ? "Membre vérifié"
+                          : "Profil en cours de vérification"}
                     </span>
                   </div>
                 </div>
