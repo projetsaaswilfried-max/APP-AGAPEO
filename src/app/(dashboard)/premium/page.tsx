@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { cn } from "@/lib/utils";
 import { Check, X, Crown, AlertCircle } from "lucide-react";
 
 const initialState: PremiumCheckoutState = undefined;
@@ -45,45 +44,32 @@ const PREMIUM_FEATURES = [
 
 const PRICE_NOTES: Record<PremiumPlanKey, string> = {
   MONTHLY: `${PREMIUM_PLANS.MONTHLY.priceFcfaLabel} / mois — renouvelable à tout moment.`,
-  QUARTERLY: `${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel} / 3 mois (au lieu de 20 997 FCFA) — soit environ 5 832 FCFA/mois.`
+  QUARTERLY: `${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel} / 3 mois (au lieu de 20 997 FCFA) — soit environ 5 832 FCFA/mois.`,
+  ACCESS: `${PREMIUM_PLANS.ACCESS.priceFcfaLabel} / 30 jours — renouvelable à tout moment.`
 };
 
-const BUY_LABELS: Record<PremiumPlanKey, string> = {
-  MONTHLY: `S'abonner — ${PREMIUM_PLANS.MONTHLY.priceFcfaLabel} / mois`,
-  QUARTERLY: `S'abonner — ${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel} / 3 mois`
-};
+const BUY_LABEL_ACCESS = `S'abonner — ${PREMIUM_PLANS.ACCESS.priceFcfaLabel} / 30 jours`;
 
 interface PremiumPlanCardProps {
-  planKey: PremiumPlanKey;
-  recommended?: boolean;
+  /** Plan dont le libellé/prix/décompte sont affichés — celui de l'abonné actif s'il en a un ancien (MONTHLY/QUARTERLY), sinon ACCESS. */
+  displayPlanKey: PremiumPlanKey;
   isCurrentPlan: boolean;
   isExpiringSoon: boolean;
   daysUntilExpiry: number | null;
   pending: boolean;
   action: (formData: FormData) => void;
-  onSelectPlan: (plan: PremiumPlanKey) => void;
 }
 
-function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, daysUntilExpiry, pending, action, onSelectPlan }: PremiumPlanCardProps) {
+/** Seul ACCESS reste achetable désormais (MONTHLY/QUARTERLY restent définis uniquement pour l'affichage des abonnés déjà actifs sur l'un de ces plans). */
+function PremiumPlanCard({ displayPlanKey, isCurrentPlan, isExpiringSoon, daysUntilExpiry, pending, action }: PremiumPlanCardProps) {
   return (
-    <Card
-      variant="base"
-      className={cn(
-        "p-6 space-y-5 flex flex-col relative overflow-hidden",
-        recommended ? "border-primary/50 shadow-accent-glow ring-2 ring-primary/25" : "border-primary/30 shadow-accent-glow"
-      )}
-    >
-      {recommended && (
-        <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-bl-xl">
-          Recommandé
-        </div>
-      )}
+    <Card variant="base" className="p-6 space-y-5 flex flex-col relative overflow-hidden border-primary/30 shadow-accent-glow">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-display font-semibold text-foreground tracking-tight flex items-center gap-2">
-            <Crown size={18} className="text-primary" /> {PREMIUM_PLANS[planKey].label}
+            <Crown size={18} className="text-primary" /> {PREMIUM_PLANS[displayPlanKey].label}
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{PRICE_NOTES[planKey]}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{PRICE_NOTES[displayPlanKey]}</p>
         </div>
         {isCurrentPlan && (
           <Badge variant="premium" className="text-xs shrink-0">
@@ -109,8 +95,8 @@ function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
                 ? "Ton abonnement expire aujourd'hui"
                 : `Expire dans ${daysUntilExpiry} jour${daysUntilExpiry! > 1 ? "s" : ""}`}
             </p>
-            <form action={action} onSubmit={() => onSelectPlan(planKey)}>
-              <input type="hidden" name="plan" value={planKey} />
+            <form action={action}>
+              <input type="hidden" name="plan" value="ACCESS" />
               <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
                 Se réabonner
               </Button>
@@ -122,10 +108,10 @@ function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
           </p>
         )
       ) : (
-        <form action={action} onSubmit={() => onSelectPlan(planKey)} className="pt-2 border-t border-border/40">
-          <input type="hidden" name="plan" value={planKey} />
+        <form action={action} className="pt-2 border-t border-border/40">
+          <input type="hidden" name="plan" value="ACCESS" />
           <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
-            {BUY_LABELS[planKey]}
+            {BUY_LABEL_ACCESS}
           </Button>
         </form>
       )}
@@ -136,10 +122,11 @@ function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
 export default function PremiumPage() {
   const { profile } = useSession();
   const isPremium = profile.subscription_status === "ACTIVE";
+  const isExpired = profile.subscription_status === "EXPIRED";
   const currentPlanKey = planKeyFromDbValue(profile.subscription_plan);
+  const displayPlanKey: PremiumPlanKey = isPremium && currentPlanKey ? currentPlanKey : "ACCESS";
   const [state, action, pending] = useActionState(startPremiumCheckoutAction, initialState);
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<PremiumPlanKey>("MONTHLY");
 
   useEffect(() => {
     if (state?.errors?.phone) setIsPhoneModalOpen(true);
@@ -161,8 +148,10 @@ export default function PremiumPage() {
         <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Mon Plan</h1>
         <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
           {isPremium && periodEndLabel
-            ? `Ton accès Premium est actif jusqu'au ${periodEndLabel}.`
-            : "Compare les plans et débloque tout le potentiel d'Agapeo."}
+            ? `Ton accès est actif jusqu'au ${periodEndLabel}.`
+            : isExpired
+              ? "Ton accès a expiré — réactive-le pour retrouver toutes tes fonctionnalités."
+              : "Débloque tout le potentiel d'Agapeo."}
         </p>
       </div>
 
@@ -173,7 +162,7 @@ export default function PremiumPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
         {/* Carte Gratuit */}
         <Card variant="base" className="p-6 space-y-5 border-border/60 shadow-2xs flex flex-col">
           <div className="flex items-center justify-between">
@@ -181,7 +170,7 @@ export default function PremiumPage() {
               <h2 className="text-base font-display font-semibold text-foreground tracking-tight">Gratuit</h2>
               <p className="text-xs text-muted-foreground mt-0.5">L&apos;essentiel pour commencer ta recherche.</p>
             </div>
-            {!isPremium && (
+            {!isPremium && !isExpired && (
               <Badge variant="status" className="text-xs shrink-0">
                 Plan actuel
               </Badge>
@@ -202,35 +191,23 @@ export default function PremiumPage() {
           </ul>
 
           <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
-            {isPremium ? "Inclus dans ton abonnement Premium." : "Choisis un plan Premium ci-contre pour débloquer plus."}
+            {isPremium ? "Inclus dans ton accès actif." : "Choisis le plan ci-contre pour débloquer plus."}
           </p>
         </Card>
 
         <PremiumPlanCard
-          planKey="MONTHLY"
-          isCurrentPlan={isPremium && currentPlanKey === "MONTHLY"}
+          displayPlanKey={displayPlanKey}
+          isCurrentPlan={isPremium}
           isExpiringSoon={isExpiringSoon}
           daysUntilExpiry={daysUntilExpiry}
           pending={pending}
           action={action}
-          onSelectPlan={setSelectedPlan}
-        />
-
-        <PremiumPlanCard
-          planKey="QUARTERLY"
-          recommended
-          isCurrentPlan={isPremium && currentPlanKey === "QUARTERLY"}
-          isExpiringSoon={isExpiringSoon}
-          daysUntilExpiry={daysUntilExpiry}
-          pending={pending}
-          action={action}
-          onSelectPlan={setSelectedPlan}
         />
       </div>
 
       <Modal isOpen={isPhoneModalOpen} onClose={() => setIsPhoneModalOpen(false)} title="Un dernier détail" maxWidth="sm">
         <form action={action} className="space-y-3">
-          <input type="hidden" name="plan" value={selectedPlan} />
+          <input type="hidden" name="plan" value="ACCESS" />
           <p className="text-xs text-muted-foreground">
             Un numéro de téléphone est requis par notre prestataire de paiement pour finaliser ton abonnement.
           </p>

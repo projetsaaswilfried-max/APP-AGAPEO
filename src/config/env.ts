@@ -41,11 +41,12 @@ export function getChariowApiKey(): string {
   return requireEnv("CHARIOW_API_KEY", process.env.CHARIOW_API_KEY);
 }
 
-export type ChariowPlanKey = "MONTHLY" | "QUARTERLY";
+export type ChariowPlanKey = "MONTHLY" | "QUARTERLY" | "ACCESS";
 
 /** ID du produit Chariow "Abonnement Premium Agapeo" (paiement unique, renouvelé manuellement chaque cycle) — un produit distinct par plan. */
 export function getChariowProductId(plan: ChariowPlanKey): string {
-  const varName = plan === "QUARTERLY" ? "CHARIOW_PRODUCT_ID_QUARTERLY" : "CHARIOW_PRODUCT_ID";
+  const varName =
+    plan === "QUARTERLY" ? "CHARIOW_PRODUCT_ID_QUARTERLY" : plan === "ACCESS" ? "CHARIOW_PRODUCT_ID_ACCESS" : "CHARIOW_PRODUCT_ID";
   return requireEnv(varName, process.env[varName]);
 }
 
@@ -53,10 +54,11 @@ export function getChariowProductId(plan: ChariowPlanKey): string {
  * Secret de signature du Pulse (webhook) Chariow pour ce plan — Chariow
  * interdit de réutiliser une même URL sur deux Pulses différents, chaque
  * plan a donc sa propre route (`/api/webhooks/chariow` pour le mensuel,
- * `/api/webhooks/chariow/quarterly` pour le trimestriel) et donc son propre
- * secret, distinct de celui de l'autre plan.
+ * `/api/webhooks/chariow/quarterly` pour le trimestriel, `/api/webhooks/chariow/access`
+ * pour l'accès payant 2 329 FCFA) et donc son propre secret, distinct des autres plans.
  */
 export function getChariowPulseSecret(plan: ChariowPlanKey): string {
-  const varName = plan === "QUARTERLY" ? "CHARIOW_PULSE_SECRET_QUARTERLY" : "CHARIOW_PULSE_SECRET";
+  const varName =
+    plan === "QUARTERLY" ? "CHARIOW_PULSE_SECRET_QUARTERLY" : plan === "ACCESS" ? "CHARIOW_PULSE_SECRET_ACCESS" : "CHARIOW_PULSE_SECRET";
   return requireEnv(varName, process.env[varName]);
 }

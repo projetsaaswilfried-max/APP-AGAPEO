@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { AccessExpiredState } from "@/components/features/premium/access-expired-state";
 import { PremiumRequiredError } from "@/domain/errors";
 import { isProfileComplete } from "@/domain/profile-completeness";
 import { requestMatchAction, respondToMatchAction, cancelMatchAction, getMatchForConversationAction } from "@/lib/actions/match.actions";
@@ -323,6 +324,17 @@ function MessagesPageContent() {
     setIsDeletingConv(false);
     setIsDeleteConvOpen(false);
   };
+
+  // Restriction paywall (compte EXPIRED, jamais FREE) : remplace tout le
+  // panneau, pas seulement la bannière "Passe Premium" ci-dessous qui laisse
+  // volontairement lire les messages pour un compte FREE — cf. plan paywall §6.
+  if (profile.subscription_status === "EXPIRED" && !profile.is_staff) {
+    return (
+      <div className="w-full pb-16 select-none">
+        <AccessExpiredState feature="messages" />
+      </div>
+    );
+  }
 
   return (
     <div className={cn("space-y-4 w-full select-none", isMobileChatOpen ? "pb-0" : "pb-16")}>

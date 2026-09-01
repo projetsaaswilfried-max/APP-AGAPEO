@@ -14,6 +14,16 @@ export async function resolvePostAuthRedirect(
   next: string
 ): Promise<string> {
   if (next !== "/feed") return next;
-  const { data: profile } = await supabase.from("profiles").select("onboarding_completed").eq("id", userId).maybeSingle();
-  return profile && !profile.onboarding_completed ? "/onboarding" : next;
+
+  const [{ data: profile }, { data: restricted }] = await Promise.all([
+    supabase.from("profiles").select("onboarding_completed, payment_required").eq("id", userId).maybeSingle(),
+    supabase.from("profile_restricted").select("subscription_status").eq("id", userId).maybeSingle()
+  ]);
+  if (!profile) return next;
+
+  // Nouvelle inscription pas encore payée (cf. migration new_signup_payment_required)
+  // — passe devant le garde onboarding_completed ci-dessous, avant même la
+  // confirmation email ou le premier callback Google OAuth.
+  if (profile.payment_required && restricted?.subscription_status !== "ACTIVE") return "/payment-required";
+  return !profile.onboarding_completed ? "/onboarding" : next;
 }

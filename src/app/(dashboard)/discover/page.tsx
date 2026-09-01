@@ -11,6 +11,7 @@ import { FilterPanel } from "@/components/features/discover/filter-panel";
 import { pickDailyRecommendations } from "@/domain/daily-recommendations";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { AccessExpiredState } from "@/components/features/premium/access-expired-state";
 import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
 import { SendInvitationModal } from "@/components/features/messages/send-invitation-modal";
 import { useSendInvitation } from "@/core/hooks/use-send-invitation";
@@ -152,6 +153,16 @@ function DiscoverPageContent() {
   const bannerContent = !canInteract
     ? VERIFICATION_BANNER_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
     : null;
+
+  // Restriction paywall (compte EXPIRED, jamais FREE) : plus stricte que le
+  // traitement des non-vérifiés ci-dessus, volontairement — cf. plan paywall §6.
+  if (profile.subscription_status === "EXPIRED" && !profile.is_staff) {
+    return (
+      <div className="w-full pb-16 select-none">
+        <AccessExpiredState feature="discover" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full pb-16 select-none">

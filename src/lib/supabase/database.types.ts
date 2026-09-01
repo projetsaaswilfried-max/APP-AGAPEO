@@ -131,6 +131,8 @@ export interface ProfileRow {
   pending_selfie_storage_path: string | null;
 
   is_test_account: boolean;
+  /** true pour tout compte créé depuis le pivot paywall (défaut colonne) — false pour tous les comptes existants avant (cf. migration new_signup_payment_required). Conditionne le paywall pré-onboarding, jamais la restriction EXPIRED (indépendante). */
+  payment_required: boolean;
   /** Dérivé de `profile_restricted.role <> 'USER'` — badge public "équipe", jamais le rôle exact (cf. migration lock_down_restricted_profile_fields). */
   is_staff: boolean;
   /** Dérivé de `profile_restricted.subscription_status = 'ACTIVE'` — booléen public utilisé pour prioriser Découvrir, jamais le détail de l'abonnement. */
@@ -182,6 +184,8 @@ export interface ProfileRestrictedRow {
   premium_sequence_stage: number | null;
   /** Vrai une fois la relance dédiée "il ne te reste qu'un selfie" envoyée — indépendante des paliers J1/J3/J5/J7. */
   almost_done_nudge_sent: boolean;
+  /** Palier déjà envoyé de la relance "paiement d'accès non effectué" (0=10min, 1=J+1 ... 5=J+5) — null tant qu'aucune relance n'a encore été envoyée. Cf. supabase/functions/new-signup-payment-reminder. */
+  access_payment_reminder_stage: number | null;
   latitude: number | null;
   longitude: number | null;
 }

@@ -20,7 +20,8 @@ export type PremiumCheckoutState = { errors?: Record<string, string[]>; message?
  */
 export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutState, formData: FormData): Promise<PremiumCheckoutState> {
   const submittedPlan = formData.get("plan");
-  const plan: ChariowPlanKey = submittedPlan === "QUARTERLY" ? "QUARTERLY" : "MONTHLY";
+  const plan: ChariowPlanKey =
+    submittedPlan === "QUARTERLY" ? "QUARTERLY" : submittedPlan === "ACCESS" ? "ACCESS" : "MONTHLY";
 
   const supabase = await createClient();
   const {

@@ -1,8 +1,13 @@
 "use client";
 
+import { useSession } from "@/core/providers/session-provider";
 import { SupportPageClient } from "@/components/features/support/support-page-client";
+import { AccessExpiredState } from "@/components/features/premium/access-expired-state";
 
 export default function SupportPage() {
+  const { profile } = useSession();
+  const isExpired = profile.subscription_status === "EXPIRED" && !profile.is_staff;
+
   return (
     <div className="space-y-4 w-full h-full flex flex-col pb-4">
       <div className="border-b border-border/60 pb-3">
@@ -11,7 +16,8 @@ export default function SupportPage() {
       </div>
 
       <div className="flex-1 min-h-[70dvh]">
-        <SupportPageClient />
+        {/* Restriction paywall (compte EXPIRED, jamais FREE) — cf. plan paywall §6. */}
+        {isExpired ? <AccessExpiredState feature="support" /> : <SupportPageClient />}
       </div>
     </div>
   );

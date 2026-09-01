@@ -49,6 +49,16 @@ export async function requireSession() {
   if (profile.is_suspended) {
     redirect("/suspended");
   }
+  // Paywall pré-onboarding (nouvelles inscriptions uniquement, cf. migration
+  // new_signup_payment_required) : !onboarding_completed est le garde-fou
+  // définitif — un compte déjà payé et onboardé un jour ne repasse plus
+  // jamais par cette porte, même des années plus tard s'il devient EXPIRED
+  // (cette expiration-là relève uniquement de la restriction EXPIRED,
+  // ailleurs, jamais confondue avec ce paywall d'entrée). role === "USER"
+  // exempte tout le staff.
+  if (profile.role === "USER" && profile.payment_required && !profile.onboarding_completed && profile.subscription_status !== "ACTIVE") {
+    redirect("/payment-required");
+  }
   return { user, profile: profile! };
 }
 
