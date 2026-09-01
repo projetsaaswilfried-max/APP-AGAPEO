@@ -371,6 +371,8 @@ export interface NotificationRow {
   body: string | null;
   target_url: string | null;
   is_read: boolean;
+  /** Occurrences empilées tant que non lue (ex: "15 personnes ont aimé votre profil") — cf. upsert_aggregated_notification(). Jamais consommé côté app, le texte final est déjà dans `title`. */
+  aggregate_count: number;
   created_at: string;
 }
 
