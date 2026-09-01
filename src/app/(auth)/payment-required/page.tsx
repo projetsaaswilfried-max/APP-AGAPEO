@@ -4,7 +4,7 @@ import { getCurrentSession } from "@/lib/supabase/session";
 import { PaymentRequiredView } from "./payment-required-view";
 
 export const metadata: Metadata = {
-  title: "Débloquer mon accès",
+  title: "Achat d'accès à Agapeo obligatoire",
   robots: { index: false, follow: false }
 };
 

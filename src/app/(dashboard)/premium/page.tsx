@@ -14,6 +14,9 @@ import { Check, X, Crown, AlertCircle } from "lucide-react";
 
 const initialState: PremiumCheckoutState = undefined;
 
+// Membres déjà présents avant le pivot paywall (payment_required = false) —
+// gardent EXACTEMENT leur ancien plan gratuit, jamais la carte restreinte
+// ci-dessous. Ne jamais modifier ces libellés sans revalider ce principe.
 const FREE_FEATURES = [
   { label: "Créer et compléter son profil", included: true },
   { label: "Être visible dans Découvrir", included: true },
@@ -28,6 +31,19 @@ const FREE_FEATURES = [
   { label: "Voir qui s'intéresse à toi", included: false },
   { label: "Filtres de recherche avancés", included: false },
   { label: "Profil mis en avant dans Découvrir", included: false }
+];
+
+// Nouvelle cohorte (payment_required = true) sans accès actif — n'a jamais eu
+// la grâce de l'ancien plan gratuit : un seul avantage reste accessible,
+// tout le reste exige de débloquer l'accès complet.
+const RESTRICTED_FEATURES = [
+  { label: "Accéder aux ressources d'enseignement (fil d'actualité)", included: true },
+  { label: "Parcourir Découvrir et consulter des profils", included: false },
+  { label: "Envoyer des invitations", included: false },
+  { label: "Envoyer et recevoir des messages", included: false },
+  { label: "Répondre à un message ou accepter une invitation", included: false },
+  { label: "Mettre des profils en favori", included: false },
+  { label: "Contacter le support", included: false }
 ];
 
 const PREMIUM_FEATURES = [
@@ -77,6 +93,17 @@ function PremiumPlanCard({ displayPlanKey, isCurrentPlan, isExpiringSoon, daysUn
           </Badge>
         )}
       </div>
+
+      {isCurrentPlan && daysUntilExpiry !== null && (
+        <div className="text-center py-3 rounded-2xl bg-secondary/50 border border-border/40">
+          <p className="text-2xl font-display font-bold text-foreground tabular-nums">
+            -{Math.max(daysUntilExpiry, 0)}{" "}
+            <span className="text-sm font-normal text-muted-foreground">
+              jour{Math.max(daysUntilExpiry, 0) > 1 ? "s" : ""} restant{Math.max(daysUntilExpiry, 0) > 1 ? "s" : ""}
+            </span>
+          </p>
+        </div>
+      )}
 
       <ul className="space-y-2.5 flex-1">
         {PREMIUM_FEATURES.map((label) => (
@@ -141,6 +168,9 @@ export default function PremiumPage() {
     : null;
   // "5 jours avant jusqu'au jour J" — daysUntilExpiry peut être 0 (jour J) ou négatif si le cron n'est pas encore passé.
   const isExpiringSoon = isPremium && daysUntilExpiry !== null && daysUntilExpiry <= 5;
+  // Carte "Gratuit" : un membre déjà présent avant le pivot garde l'ancien
+  // plan gratuit tel quel (jamais la carte restreinte) — cf. FREE_FEATURES.
+  const freeCardFeatures = profile.payment_required ? RESTRICTED_FEATURES : FREE_FEATURES;
 
   return (
     <div className="space-y-6 w-full pb-16 select-none">
@@ -178,7 +208,7 @@ export default function PremiumPage() {
           </div>
 
           <ul className="space-y-2.5 flex-1">
-            {FREE_FEATURES.map(({ label, included }) => (
+            {freeCardFeatures.map(({ label, included }) => (
               <li key={label} className="flex items-start gap-2.5 text-xs">
                 {included ? (
                   <Check size={15} className="text-emerald-600 shrink-0 mt-0.5" />
@@ -191,7 +221,11 @@ export default function PremiumPage() {
           </ul>
 
           <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
-            {isPremium ? "Inclus dans ton accès actif." : "Choisis le plan ci-contre pour débloquer plus."}
+            {isPremium
+              ? "Inclus dans ton accès actif."
+              : profile.payment_required
+                ? "Débloque ton accès pour tout retrouver."
+                : "Choisis le plan ci-contre pour débloquer plus."}
           </p>
         </Card>
 

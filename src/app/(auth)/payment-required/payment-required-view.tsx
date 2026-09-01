@@ -35,7 +35,7 @@ export function PaymentRequiredView() {
             <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
               <Crown size={22} />
             </div>
-            <h1 className="text-base font-display font-semibold text-foreground">Débloque ton accès à Agapeo</h1>
+            <h1 className="text-base font-display font-semibold text-foreground">Achat d&apos;accès à Agapeo obligatoire</h1>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
               Un accès complet de 30 jours pour rencontrer des personnes dans le cadre de ton choix de partenaire, en
               toute sérénité.
