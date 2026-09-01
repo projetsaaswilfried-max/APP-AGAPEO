@@ -57,6 +57,20 @@ export function AccountFavorites() {
     }
   };
 
+  const handleToggleLike = async (profileId: string) => {
+    setFavorites((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isLiked: !item.isLiked } : item)));
+    try {
+      await discoverService.toggleLike(profileId);
+    } catch (err) {
+      setFavorites((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isLiked: !item.isLiked } : item)));
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("liker ce profil");
+        return;
+      }
+      console.error(err);
+    }
+  };
+
   const { pendingTarget: pendingInvitation, isSending: isSendingInvitation, requestSend: requestInvitation, cancel: cancelInvitation, confirmSend: confirmInvitation } = useSendInvitation({
     onSuccess: (conversationId) => router.push(`/messages?conversation=${conversationId}`),
     onPremiumRequired: () => {
@@ -122,6 +136,7 @@ export function AccountFavorites() {
                 setIsInspectorOpen(true);
               }}
               onToggleFavorite={handleToggleFavorite}
+              onToggleLike={handleToggleLike}
               onSendMessage={handleSendMessage}
               onRequireVerification={handleRequireVerification}
             />
@@ -134,6 +149,7 @@ export function AccountFavorites() {
         isOpen={isInspectorOpen}
         onClose={() => setIsInspectorOpen(false)}
         onToggleFavorite={handleToggleFavorite}
+        onToggleLike={handleToggleLike}
         onSendMessage={handleSendMessage}
         onViewLimitReached={() => {
           setPremiumReason("consulter plus de 10 profils ce mois-ci");

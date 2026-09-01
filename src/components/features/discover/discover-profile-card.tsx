@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { VerifiedMemberBadge } from "@/components/ui/verified-member-badge";
 import { MARITAL_STATUS_LABELS } from "@/domain/marital-status";
-import { Bookmark, MapPin, MessageSquare, Lock, Users, Ruler } from "lucide-react";
+import { Bookmark, Heart, MapPin, MessageSquare, Lock, Users, Ruler } from "lucide-react";
 import { cn, maskForPreview } from "@/lib/utils";
 
 interface DiscoverProfileCardProps {
@@ -15,6 +15,7 @@ interface DiscoverProfileCardProps {
   canInteract: boolean;
   onInspectProfile: (item: RecommendedProfileItem) => void;
   onToggleFavorite: (id: string) => void;
+  onToggleLike: (id: string) => void;
   onSendMessage: (profileId: string) => void;
   onRequireVerification: (reason: string) => void;
 }
@@ -24,10 +25,11 @@ export function DiscoverProfileCard({
   canInteract,
   onInspectProfile,
   onToggleFavorite,
+  onToggleLike,
   onSendMessage,
   onRequireVerification
 }: DiscoverProfileCardProps) {
-  const { profile, isFavorite } = item;
+  const { profile, isFavorite, isLiked } = item;
   // La photo reste nette pour tout le monde (seul le choix de flou du membre
   // lui-même s'applique) — c'est le nom/l'âge/la localisation qui sont
   // masqués tant que le visiteur n'a pas fait valider son propre profil.
@@ -39,6 +41,7 @@ export function DiscoverProfileCard({
 
   const handleInspect = () => (canInteract ? onInspectProfile(item) : onRequireVerification("consulter ce profil"));
   const handleFavorite = () => (canInteract ? onToggleFavorite(profile.id) : onRequireVerification("mettre ce membre en favori"));
+  const handleLike = () => (canInteract ? onToggleLike(profile.id) : onRequireVerification("liker ce profil"));
   const handleMessage = () => (canInteract ? onSendMessage(profile.id) : onRequireVerification("contacter ce membre"));
 
   return (
@@ -63,7 +66,22 @@ export function DiscoverProfileCard({
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex items-start gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLike();
+              }}
+              className={cn(
+                "p-2 rounded-full border transition-all shadow-2xs",
+                isLiked
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border/60 hover:bg-secondary hover:text-foreground"
+              )}
+              title={isLiked ? "Retirer le like" : "Liker ce profil"}
+            >
+              <Heart size={15} className={cn(isLiked && "fill-current")} />
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();

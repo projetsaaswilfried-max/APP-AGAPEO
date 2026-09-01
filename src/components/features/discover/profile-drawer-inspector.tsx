@@ -18,6 +18,7 @@ interface ProfileDrawerInspectorProps {
   isOpen: boolean;
   onClose: () => void;
   onToggleFavorite: (id: string) => void;
+  onToggleLike: (id: string) => void;
   onSendMessage: (profileId: string) => void;
   /** Appelé (et le drawer refermé) si la limite mensuelle de consultation gratuite est atteinte. */
   onViewLimitReached?: () => void;
@@ -28,6 +29,7 @@ export function ProfileDrawerInspector({
   isOpen,
   onClose,
   onToggleFavorite,
+  onToggleLike,
   onSendMessage,
   onViewLimitReached
 }: ProfileDrawerInspectorProps) {
@@ -48,7 +50,7 @@ export function ProfileDrawerInspector({
 
   if (!item) return null;
 
-  const { profile, justifications, isFavorite } = item;
+  const { profile, justifications, isFavorite, isLiked } = item;
   const isVerified = profile.badges.some((b) => b.code === "VERIFIED_FAITH");
 
   return (
@@ -70,6 +72,14 @@ export function ProfileDrawerInspector({
             Signaler
           </Button>
           <div className="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onToggleLike(profile.id)}
+              leftIcon={<Heart size={15} className={isLiked ? "fill-current text-primary" : ""} />}
+            >
+              {isLiked ? "Liké" : "Liker"}
+            </Button>
             <Button
               variant="ghost"
               size="sm"

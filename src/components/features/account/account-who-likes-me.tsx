@@ -72,6 +72,18 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
     }
   };
 
+  const handleToggleLike = async (profileId: string) => {
+    setItems((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isLiked: !item.isLiked } : item)));
+    try {
+      await discoverService.toggleLike(profileId);
+    } catch (err) {
+      setItems((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isLiked: !item.isLiked } : item)));
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("liker ce profil");
+      }
+    }
+  };
+
   const { pendingTarget: pendingInvitation, isSending: isSendingInvitation, requestSend: requestInvitation, cancel: cancelInvitation, confirmSend: confirmInvitation } = useSendInvitation({
     onSuccess: (conversationId) => router.push(`/messages?conversation=${conversationId}`),
     onPremiumRequired: () => {
@@ -108,7 +120,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
         <EmptyState
           icon={<Heart size={24} />}
           title="Personne pour l'instant"
-          description="Dès qu'un membre consulte ou met ton profil en favori, il apparaîtra ici."
+          description="Dès qu'un membre consulte, met en favori, ou like ton profil, il apparaîtra ici."
         />
       )}
 
@@ -127,7 +139,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
             <p className="text-sm font-semibold text-foreground">
               {count} membre{count > 1 ? "s" : ""} s&apos;intéresse{count > 1 ? "nt" : ""} à toi
             </p>
-            <p className="text-xs text-muted-foreground max-w-xs">Passe Premium pour découvrir qui a consulté ou favori ton profil.</p>
+            <p className="text-xs text-muted-foreground max-w-xs">Passe Premium pour découvrir qui a consulté, favori, ou liké ton profil.</p>
             <Link href="/premium">
               <Button variant="primary" size="sm" leftIcon={<Crown size={15} />}>
                 Découvrir Premium
@@ -149,6 +161,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
                 setIsInspectorOpen(true);
               }}
               onToggleFavorite={handleToggleFavorite}
+              onToggleLike={handleToggleLike}
               onSendMessage={handleSendMessage}
               onRequireVerification={handleRequireVerification}
             />
@@ -161,6 +174,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
         isOpen={isInspectorOpen}
         onClose={() => setIsInspectorOpen(false)}
         onToggleFavorite={handleToggleFavorite}
+        onToggleLike={handleToggleLike}
         onSendMessage={handleSendMessage}
         onViewLimitReached={() => {
           setPremiumReason("consulter plus de 10 profils ce mois-ci");

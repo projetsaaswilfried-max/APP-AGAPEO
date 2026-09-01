@@ -25,16 +25,19 @@ interface PublicProfileClientProps {
   personalPublications: FeedPublication[];
   compatibilityReasons: string[];
   isFavorite: boolean;
+  isLiked: boolean;
 }
 
 export function PublicProfileClient({
   profile,
   personalPublications,
   compatibilityReasons,
-  isFavorite: initialIsFavorite
+  isFavorite: initialIsFavorite,
+  isLiked: initialIsLiked
 }: PublicProfileClientProps) {
   const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isBlockOpen, setIsBlockOpen] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -56,6 +59,18 @@ export function PublicProfileClient({
         setPremiumReason("mettre des profils en favori");
         setIsPremiumRequiredOpen(true);
       }
+    }
+  };
+
+  // Cette page n'est jamais atteignable sans être VERIFIED (cf. garde côté
+  // page.tsx) — VerificationRequiredError ne peut donc jamais survenir ici en pratique.
+  const handleToggleLike = async () => {
+    setIsLiked((prev) => !prev);
+    try {
+      await discoverService.toggleLike(profile.id);
+    } catch (err) {
+      setIsLiked((prev) => !prev);
+      console.error(err);
     }
   };
 
@@ -106,7 +121,14 @@ export function PublicProfileClient({
         </div>
       </div>
 
-      <ProfileHero profile={profile} isFavorite={isFavorite} onToggleFavorite={handleToggleFavorite} onSendMessage={handleSendMessage} />
+      <ProfileHero
+        profile={profile}
+        isFavorite={isFavorite}
+        onToggleFavorite={handleToggleFavorite}
+        isLiked={isLiked}
+        onToggleLike={handleToggleLike}
+        onSendMessage={handleSendMessage}
+      />
       <CompatibilityExplainedSection reasons={compatibilityReasons} />
       <FaithSection faith={profile.faith} />
       <MarriageVisionSection marriageVision={profile.marriageVision} aboutMe={profile.aboutMe} preferences={profile.preferences} />

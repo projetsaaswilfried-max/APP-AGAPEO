@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Languages,
   Bookmark,
+  Heart,
   MessageSquare,
   Calendar,
   Users,
@@ -25,6 +26,8 @@ interface ProfileHeroProps {
   profile: UserProfile;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  isLiked: boolean;
+  onToggleLike: () => void;
   onSendMessage: () => void;
   isOwnProfile?: boolean;
 }
@@ -33,6 +36,8 @@ export function ProfileHero({
   profile,
   isFavorite,
   onToggleFavorite,
+  isLiked,
+  onToggleLike,
   onSendMessage,
   isOwnProfile = false
 }: ProfileHeroProps) {
@@ -87,6 +92,16 @@ export function ProfileHero({
         {!isOwnProfile && (
           <div className="flex flex-col sm:flex-row md:flex-col items-center md:items-end gap-3 w-full md:w-auto shrink-0">
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={onToggleLike}
+                leftIcon={<Heart size={16} className={cn(isLiked && "fill-current text-primary")} />}
+                className="flex-1 sm:flex-none"
+              >
+                {isLiked ? "Liké" : "Liker"}
+              </Button>
+
               <Button
                 variant="outline"
                 size="md"

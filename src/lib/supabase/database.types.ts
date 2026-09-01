@@ -26,6 +26,7 @@ export type NotificationTypeDb =
   | "CONVERSATION_ACCEPTED"
   | "NEW_FAVORITE"
   | "PROFILE_VISIT"
+  | "PROFILE_LIKE"
   | "MATCH_REQUEST"
   | "MATCH_ACCEPTED"
   | "POST_LIKE"
@@ -240,6 +241,14 @@ export interface FavoriteRow {
   id: string;
   user_id: string;
   favorite_profile_id: string;
+  created_at: string;
+}
+
+/** Distinct de FavoriteRow — action gratuite depuis Découvrir, notification toujours anonymisée (cf. migration profile_likes). */
+export interface ProfileLikeRow {
+  id: string;
+  user_id: string;
+  liked_profile_id: string;
   created_at: string;
 }
 
@@ -494,6 +503,7 @@ export interface Database {
       onboarding_events: Rel<OnboardingEventRow, OnboardingEventInsert, never>;
       profile_photos: Rel<ProfilePhotoRow, ProfilePhotoInsert, Partial<ProfilePhotoRow>>;
       favorites: Rel<FavoriteRow, Omit<FavoriteRow, "id" | "created_at">, Partial<FavoriteRow>>;
+      profile_likes: Rel<ProfileLikeRow, Omit<ProfileLikeRow, "id" | "created_at">, Partial<ProfileLikeRow>>;
       posts: Rel<PostRow, PostInsert, Partial<PostRow>>;
       post_media: Rel<PostMediaRow, Omit<PostMediaRow, "id">, Partial<PostMediaRow>>;
       post_likes: Rel<PostLikeRow, PostLikeRow, Partial<PostLikeRow>>;

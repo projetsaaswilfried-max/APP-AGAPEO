@@ -20,7 +20,8 @@ const MILESTONES_MINUTES = [5, 24 * 60, 3 * 24 * 60];
 
 const PLAN_LABELS: Record<string, string> = {
   premium_monthly: "Premium mensuel",
-  premium_quarterly: "Premium trimestriel"
+  premium_quarterly: "Premium trimestriel",
+  premium_access: "Accès complet"
 };
 
 interface FailedTransactionRow {

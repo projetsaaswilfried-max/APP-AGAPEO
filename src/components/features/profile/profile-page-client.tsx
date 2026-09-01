@@ -201,7 +201,15 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
 
       {mode === "PUBLIC_PREVIEW" && (
         <div className="space-y-6">
-          <ProfileHero profile={profile} isFavorite={false} onToggleFavorite={() => {}} onSendMessage={() => {}} isOwnProfile />
+          <ProfileHero
+            profile={profile}
+            isFavorite={false}
+            onToggleFavorite={() => {}}
+            isLiked={false}
+            onToggleLike={() => {}}
+            onSendMessage={() => {}}
+            isOwnProfile
+          />
           <FaithSection faith={profile.faith} />
           <MarriageVisionSection marriageVision={profile.marriageVision} aboutMe={profile.aboutMe} preferences={profile.preferences} />
           <UserPublicationsSection userName={profile.firstName} profileId={profile.id} publications={personalPosts} isOwner />

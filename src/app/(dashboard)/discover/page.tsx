@@ -115,6 +115,20 @@ function DiscoverPageContent() {
     }
   };
 
+  const handleToggleLike = async (profileId: string) => {
+    setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isLiked: !item.isLiked } : item)));
+    try {
+      await discoverService.toggleLike(profileId);
+    } catch (err) {
+      setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isLiked: !item.isLiked } : item)));
+      if (err instanceof VerificationRequiredError) {
+        handleRequireVerification("liker ce profil");
+        return;
+      }
+      console.error(err);
+    }
+  };
+
   const { pendingTarget: pendingInvitation, isSending: isSendingInvitation, requestSend: requestInvitation, cancel: cancelInvitation, confirmSend: confirmInvitation } = useSendInvitation({
     onSuccess: (conversationId) => router.push(`/messages?conversation=${conversationId}`),
     onPremiumRequired: () => {
@@ -308,6 +322,7 @@ function DiscoverPageContent() {
                   setIsInspectorOpen(true);
                 }}
                 onToggleFavorite={handleToggleFavorite}
+                onToggleLike={handleToggleLike}
                 onSendMessage={handleSendMessage}
                 onRequireVerification={handleRequireVerification}
               />
@@ -333,6 +348,7 @@ function DiscoverPageContent() {
                   setIsInspectorOpen(true);
                 }}
                 onToggleFavorite={handleToggleFavorite}
+                onToggleLike={handleToggleLike}
                 onSendMessage={handleSendMessage}
                 onRequireVerification={handleRequireVerification}
               />
@@ -346,6 +362,7 @@ function DiscoverPageContent() {
         isOpen={isInspectorOpen}
         onClose={() => setIsInspectorOpen(false)}
         onToggleFavorite={handleToggleFavorite}
+        onToggleLike={handleToggleLike}
         onSendMessage={handleSendMessage}
         onViewLimitReached={() => {
           setPremiumReason("consulter plus de 10 profils ce mois-ci");

@@ -103,7 +103,12 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   // l'URL directe. L'équipe (staff) reste exemptée pour pouvoir
   // modérer/consulter ces profils.
   const isStaffViewer = viewerRow.role !== "USER";
-  if (!isStaffViewer && target.photo_verification_status !== "VERIFIED") {
+  // Même règle stricte que Découvrir (hommes <-> femmes uniquement) — ferme
+  // le seul contournement possible (connaître l'URL directe d'une fiche que
+  // Découvrir n'aurait jamais proposée). Même message que le cas VERIFIED
+  // ci-dessus pour ne jamais laisser deviner qu'un profil existe bel et bien.
+  const isOppositeGender = target.gender !== viewerRow.gender;
+  if (!isStaffViewer && (target.photo_verification_status !== "VERIFIED" || !isOppositeGender)) {
     return (
       <div className="max-w-2xl mx-auto py-16">
         <EmptyState
@@ -115,10 +120,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     );
   }
 
-  const [{ data: photos }, { data: posts }, { data: favoriteRow }] = await Promise.all([
+  const [{ data: photos }, { data: posts }, { data: favoriteRow }, { data: likeRow }] = await Promise.all([
     supabase.from("profile_photos").select("*").eq("profile_id", target.id).order("position", { ascending: true }),
     supabase.from("posts").select("*").eq("post_type", "PERSONAL").eq("author_id", target.id).order("created_at", { ascending: false }),
-    supabase.from("favorites").select("id").eq("user_id", user.id).eq("favorite_profile_id", target.id).maybeSingle()
+    supabase.from("favorites").select("id").eq("user_id", user.id).eq("favorite_profile_id", target.id).maybeSingle(),
+    supabase.from("profile_likes").select("id").eq("user_id", user.id).eq("liked_profile_id", target.id).maybeSingle()
   ]);
 
   const postRows = (posts ?? []) as PostRow[];
@@ -155,6 +161,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       personalPublications={personalPublications}
       compatibilityReasons={reasons}
       isFavorite={Boolean(favoriteRow)}
+      isLiked={Boolean(likeRow)}
     />
   );
 }
