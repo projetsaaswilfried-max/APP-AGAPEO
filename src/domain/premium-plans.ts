@@ -35,18 +35,16 @@ export const PREMIUM_PLANS: Record<PremiumPlanKey, PremiumPlanConfig> = {
   // === priceUsd (cf. chariow-webhook-handler.ts) — priceUsd DOIT donc être
   // un nombre ENTIER (jamais de centimes) pour chaque plan, sinon aucun
   // paiement réel ne pourra jamais correspondre et l'accès ne sera jamais
-  // débloqué même en cas de paiement réussi. Taux implicite ~583 FCFA/$
-  // (dérivé de MONTHLY/QUARTERLY, en place depuis le tout début) — les FCFA
-  // des deux nouveaux plans (WEEKLY, HALF_MONTH) sont une estimation à ce
-  // même taux, à confirmer avec le fondateur une fois leurs produits Chariow
-  // créés et leur prix réel configuré.
-  WEEKLY: { dbValue: "premium_weekly", label: "1 semaine", periodDays: 7, priceUsd: 4, priceFcfaLabel: "2 333 FCFA", purchasable: true },
-  HALF_MONTH: { dbValue: "premium_half_month", label: "Mi-mois (15 jours)", periodDays: 15, priceUsd: 7, priceFcfaLabel: "4 083 FCFA", purchasable: true },
-  MONTHLY: { dbValue: "premium_monthly", label: "Mensuel", periodDays: 30, priceUsd: 12, priceFcfaLabel: "6 999 FCFA", purchasable: true },
-  QUARTERLY: { dbValue: "premium_quarterly", label: "Trimestriel", periodDays: 90, priceUsd: 30, priceFcfaLabel: "17 497 FCFA", purchasable: true },
+  // débloqué même en cas de paiement réussi. priceFcfaLabel = conversion
+  // réelle prélevée par Chariow pour chaque montant (confirmée par le
+  // fondateur le 2026-09-02), pas une estimation à taux fixe.
+  WEEKLY: { dbValue: "premium_weekly", label: "1 semaine", periodDays: 7, priceUsd: 4, priceFcfaLabel: "2 335 FCFA", purchasable: true },
+  HALF_MONTH: { dbValue: "premium_half_month", label: "Mi-mois (15 jours)", periodDays: 15, priceUsd: 7, priceFcfaLabel: "4 086 FCFA", purchasable: true },
+  MONTHLY: { dbValue: "premium_monthly", label: "Mensuel", periodDays: 30, priceUsd: 12, priceFcfaLabel: "7 003 FCFA", purchasable: true },
+  QUARTERLY: { dbValue: "premium_quarterly", label: "Trimestriel", periodDays: 90, priceUsd: 30, priceFcfaLabel: "17 507 FCFA", purchasable: true },
   // Retiré de la vente le 2026-09-02 (retour à une offre multi-durées) — reste
   // défini pour les abonnés déjà actifs sur ce plan. Ne jamais supprimer.
-  ACCESS: { dbValue: "premium_access", label: "Accès complet", periodDays: 30, priceUsd: 7, priceFcfaLabel: "4 083 FCFA", purchasable: false }
+  ACCESS: { dbValue: "premium_access", label: "Accès complet", periodDays: 30, priceUsd: 7, priceFcfaLabel: "4 086 FCFA", purchasable: false }
 };
 
 /** Plans proposés à l'achat aujourd'hui, dans l'ordre d'affichage (le plus court au plus long). */
