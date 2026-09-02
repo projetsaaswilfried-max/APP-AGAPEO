@@ -5,13 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 import { PhoneSchema } from "@/lib/validation/profile.schema";
 import { initiateChariowCheckout } from "@/lib/chariow";
 import { env, type ChariowPlanKey } from "@/config/env";
+import { PURCHASABLE_PLAN_KEYS } from "@/domain/premium-plans";
 
 export type PremiumCheckoutState = { errors?: Record<string, string[]>; message?: string } | undefined;
 
 /**
- * Ouvre un paiement unique d'accès Premium (mensuel ou trimestriel, cf. le
- * champ caché "plan" porté par chaque formulaire de la page Premium — y
- * compris celui de la modale de récupération du téléphone, qui doit
+ * Ouvre un paiement unique d'accès Premium (un des plans proposés à l'achat,
+ * cf. le champ caché "plan" porté par chaque formulaire de la page Premium —
+ * y compris celui de la modale de récupération du téléphone, qui doit
  * reporter le plan en cours de sélection). Chariow n'a pas de numéro de
  * téléphone enregistré pour un membre qui n'en a jamais renseigné (champ
  * requis par leur API) — le formulaire le demande dans ce cas et
@@ -20,8 +21,12 @@ export type PremiumCheckoutState = { errors?: Record<string, string[]>; message?
  */
 export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutState, formData: FormData): Promise<PremiumCheckoutState> {
   const submittedPlan = formData.get("plan");
-  const plan: ChariowPlanKey =
-    submittedPlan === "QUARTERLY" ? "QUARTERLY" : submittedPlan === "ACCESS" ? "ACCESS" : "MONTHLY";
+  // Seuls les plans réellement en vente (PURCHASABLE_PLAN_KEYS) sont résolus
+  // — un plan retiré de la vente (ex: ACCESS) ne peut jamais être racheté
+  // même si un vieux formulaire en cache soumettait encore cette valeur.
+  const plan: ChariowPlanKey = PURCHASABLE_PLAN_KEYS.includes(submittedPlan as ChariowPlanKey)
+    ? (submittedPlan as ChariowPlanKey)
+    : "MONTHLY";
 
   const supabase = await createClient();
   const {

@@ -41,12 +41,29 @@ export function getChariowApiKey(): string {
   return requireEnv("CHARIOW_API_KEY", process.env.CHARIOW_API_KEY);
 }
 
-export type ChariowPlanKey = "MONTHLY" | "QUARTERLY" | "ACCESS";
+export type ChariowPlanKey = "WEEKLY" | "HALF_MONTH" | "MONTHLY" | "QUARTERLY" | "ACCESS";
+
+// MONTHLY garde les noms de variables historiques (sans suffixe) pour ne pas
+// casser la configuration déjà en place en production.
+const CHARIOW_PRODUCT_ID_VAR: Record<ChariowPlanKey, string> = {
+  MONTHLY: "CHARIOW_PRODUCT_ID",
+  QUARTERLY: "CHARIOW_PRODUCT_ID_QUARTERLY",
+  ACCESS: "CHARIOW_PRODUCT_ID_ACCESS",
+  WEEKLY: "CHARIOW_PRODUCT_ID_WEEKLY",
+  HALF_MONTH: "CHARIOW_PRODUCT_ID_HALF_MONTH"
+};
+
+const CHARIOW_PULSE_SECRET_VAR: Record<ChariowPlanKey, string> = {
+  MONTHLY: "CHARIOW_PULSE_SECRET",
+  QUARTERLY: "CHARIOW_PULSE_SECRET_QUARTERLY",
+  ACCESS: "CHARIOW_PULSE_SECRET_ACCESS",
+  WEEKLY: "CHARIOW_PULSE_SECRET_WEEKLY",
+  HALF_MONTH: "CHARIOW_PULSE_SECRET_HALF_MONTH"
+};
 
 /** ID du produit Chariow "Abonnement Premium Agapeo" (paiement unique, renouvelé manuellement chaque cycle) — un produit distinct par plan. */
 export function getChariowProductId(plan: ChariowPlanKey): string {
-  const varName =
-    plan === "QUARTERLY" ? "CHARIOW_PRODUCT_ID_QUARTERLY" : plan === "ACCESS" ? "CHARIOW_PRODUCT_ID_ACCESS" : "CHARIOW_PRODUCT_ID";
+  const varName = CHARIOW_PRODUCT_ID_VAR[plan];
   return requireEnv(varName, process.env[varName]);
 }
 
@@ -54,11 +71,11 @@ export function getChariowProductId(plan: ChariowPlanKey): string {
  * Secret de signature du Pulse (webhook) Chariow pour ce plan — Chariow
  * interdit de réutiliser une même URL sur deux Pulses différents, chaque
  * plan a donc sa propre route (`/api/webhooks/chariow` pour le mensuel,
- * `/api/webhooks/chariow/quarterly` pour le trimestriel, `/api/webhooks/chariow/access`
- * pour l'accès complet 4 083 FCFA) et donc son propre secret, distinct des autres plans.
+ * `/api/webhooks/chariow/quarterly`, `/api/webhooks/chariow/access`,
+ * `/api/webhooks/chariow/weekly`, `/api/webhooks/chariow/half-month`) et
+ * donc son propre secret, distinct des autres plans.
  */
 export function getChariowPulseSecret(plan: ChariowPlanKey): string {
-  const varName =
-    plan === "QUARTERLY" ? "CHARIOW_PULSE_SECRET_QUARTERLY" : plan === "ACCESS" ? "CHARIOW_PULSE_SECRET_ACCESS" : "CHARIOW_PULSE_SECRET";
+  const varName = CHARIOW_PULSE_SECRET_VAR[plan];
   return requireEnv(varName, process.env[varName]);
 }

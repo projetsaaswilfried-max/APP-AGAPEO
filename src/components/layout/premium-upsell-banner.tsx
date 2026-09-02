@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Crown, ArrowRight } from "lucide-react";
 import { useSession } from "@/core/providers/session-provider";
-import { isProfileComplete } from "@/domain/profile-completeness";
+import { isProfileComplete, needsVerificationSubmission } from "@/domain/profile-completeness";
 import { cn } from "@/lib/utils";
 
 function PremiumUpsellBannerContent() {
@@ -13,8 +13,10 @@ function PremiumUpsellBannerContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // On laisse la priorité au bandeau "profil incomplet" — pas deux bandeaux à la fois.
-  if (!isProfileComplete(profile) || profile.subscription_status === "ACTIVE" || pathname === "/onboarding") return null;
+  // On laisse la priorité au bandeau "profil incomplet"/"à soumettre" — pas
+  // deux bandeaux à la fois (cf. incomplete-profile-banner.tsx).
+  const pendingSubmission = !profile.is_staff && needsVerificationSubmission(profile);
+  if (!isProfileComplete(profile) || pendingSubmission || profile.subscription_status === "ACTIVE" || pathname === "/onboarding") return null;
 
   const isMobileConversationOpen = pathname === "/messages" && Boolean(searchParams.get("conversation"));
 

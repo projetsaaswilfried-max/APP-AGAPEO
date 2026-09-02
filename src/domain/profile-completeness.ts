@@ -34,6 +34,18 @@ export function getMissingProfileFields(
   return missing;
 }
 
+/**
+ * Vrai pour un profil dont toutes les infos sont remplies (isProfileComplete)
+ * mais qui n'a jamais soumis (ou dont la soumission a été refusée) sa demande
+ * de vérification — arrivable via "Terminer sans soumettre" dans l'assistant
+ * d'onboarding (cf. onboarding-wizard.tsx, même prédicat). Distinct
+ * d'isProfileComplete : un profil peut être "complet" sans jamais avoir
+ * demandé sa validation.
+ */
+export function needsVerificationSubmission(profile: Pick<ProfileRow, "photo_verification_status">): boolean {
+  return profile.photo_verification_status === "UNVERIFIED" || profile.photo_verification_status === "REJECTED";
+}
+
 type ScoringProfile = Pick<
   ProfileRow,
   "faith_engagement_level" | "marriage_timeline" | "desired_children_count" | "core_values" | "passions" | "hobbies"

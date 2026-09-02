@@ -12,6 +12,7 @@ import { OnboardingPreferencesStep } from "./onboarding-preferences-step";
 import { saveOnboardingStepAction } from "@/lib/actions/profile.actions";
 import { logOnboardingEventAction } from "@/lib/actions/onboarding-events.actions";
 import { trackMetaEventOnce } from "@/lib/meta-pixel";
+import { needsVerificationSubmission as computeNeedsVerificationSubmission } from "@/domain/profile-completeness";
 import { X } from "lucide-react";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
@@ -36,9 +37,9 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
   // Un profil déjà VERIFIED (ou dont la demande est déjà PENDING) qui revient
   // ici pour ajuster une section n'a plus besoin de refaire un selfie.
   // L'équipe (staff) n'a plus jamais besoin de se faire vérifier — son profil
-  // ne sera de toute façon jamais montré sur la plateforme.
-  const needsVerificationSubmission =
-    !profile.is_staff && (profile.photo_verification_status === "UNVERIFIED" || profile.photo_verification_status === "REJECTED");
+  // ne sera de toute façon jamais montré sur la plateforme. Même prédicat
+  // que la bannière du dashboard (cf. incomplete-profile-banner.tsx).
+  const needsVerificationSubmission = !profile.is_staff && computeNeedsVerificationSubmission(profile);
 
   const stepKeys: StepKey[] = [
     ...(needsEssentialInfo ? (["essential"] as StepKey[]) : []),
