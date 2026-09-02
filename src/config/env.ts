@@ -1,5 +1,3 @@
-import { PREMIUM_PLANS } from "@/domain/premium-plans";
-
 function requireEnv(name: string, value: string | undefined): string {
   if (!value) {
     throw new Error(
@@ -55,6 +53,14 @@ const CHARIOW_PRODUCT_ID_VAR: Record<ChariowPlanKey, string> = {
   HALF_MONTH: "CHARIOW_PRODUCT_ID_HALF_MONTH"
 };
 
+const CHARIOW_PULSE_SECRET_VAR: Record<ChariowPlanKey, string> = {
+  MONTHLY: "CHARIOW_PULSE_SECRET",
+  QUARTERLY: "CHARIOW_PULSE_SECRET_QUARTERLY",
+  ACCESS: "CHARIOW_PULSE_SECRET_ACCESS",
+  WEEKLY: "CHARIOW_PULSE_SECRET_WEEKLY",
+  HALF_MONTH: "CHARIOW_PULSE_SECRET_HALF_MONTH"
+};
+
 /** ID du produit Chariow "Abonnement Premium Agapeo" (paiement unique, renouvelé manuellement chaque cycle) — un produit distinct par plan. */
 export function getChariowProductId(plan: ChariowPlanKey): string {
   const varName = CHARIOW_PRODUCT_ID_VAR[plan];
@@ -62,23 +68,12 @@ export function getChariowProductId(plan: ChariowPlanKey): string {
 }
 
 /**
- * Retrouve le plan à partir de l'ID produit reçu dans le webhook Chariow —
- * un seul Pulse (webhook) couvre désormais tous les produits, donc le plan
- * n'est plus déterminé par l'URL appelée mais par ce champ du paiement.
- * Restreint aux plans `purchasable` : ACCESS a été retiré de la vente et son
- * ancien produit Chariow a été réattribué à HALF_MONTH (même ID physique),
- * donc même si une variable d'environnement orpheline CHARIOW_PRODUCT_ID_ACCESS
- * traîne encore quelque part avec cette même valeur, elle ne doit jamais
- * l'emporter sur le plan réellement en vente pour ce produit.
+ * Secret de signature du Pulse (webhook) Chariow pour ce plan — retour à un
+ * Pulse (et donc un secret) distinct par plan : le Pulse unique partagé n'a
+ * pas fonctionné côté Chariow (paiements reçus mais jamais activés), le
+ * fondateur a recréé un Pulse séparé par produit comme avant.
  */
-export function planKeyFromChariowProductId(productId: string): ChariowPlanKey | null {
-  const entry = Object.entries(CHARIOW_PRODUCT_ID_VAR).find(
-    ([key, varName]) => PREMIUM_PLANS[key as ChariowPlanKey].purchasable && process.env[varName] === productId
-  );
-  return (entry?.[0] as ChariowPlanKey | undefined) ?? null;
-}
-
-/** Secret de signature du Pulse (webhook) Chariow — un seul Pulse partagé par tous les plans. */
-export function getChariowSharedPulseSecret(): string {
-  return requireEnv("CHARIOW_PULSE_SECRET", process.env.CHARIOW_PULSE_SECRET);
+export function getChariowPulseSecret(plan: ChariowPlanKey): string {
+  const varName = CHARIOW_PULSE_SECRET_VAR[plan];
+  return requireEnv(varName, process.env[varName]);
 }
