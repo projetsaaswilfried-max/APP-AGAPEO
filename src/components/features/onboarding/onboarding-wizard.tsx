@@ -12,7 +12,7 @@ import { OnboardingPreferencesStep } from "./onboarding-preferences-step";
 import { saveOnboardingStepAction } from "@/lib/actions/profile.actions";
 import { logOnboardingEventAction } from "@/lib/actions/onboarding-events.actions";
 import { trackMetaEventOnce } from "@/lib/meta-pixel";
-import { needsVerificationSubmission as computeNeedsVerificationSubmission } from "@/domain/profile-completeness";
+import { needsVerificationSubmission as computeNeedsVerificationSubmission, type OnboardingStepKey } from "@/domain/profile-completeness";
 import { X } from "lucide-react";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
@@ -26,7 +26,7 @@ interface OnboardingWizardProps {
 // selon le profil, jamais leur propre valeur persistée dédiée.
 const BASE_STEP_KEYS = ["photos", "faith", "preferences"] as const;
 
-type StepKey = "essential" | "photos" | "selfie" | "faith" | "preferences";
+type StepKey = OnboardingStepKey;
 
 export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardProps) {
   // Uniquement vrai tant que genre/date de naissance/pays manquent — que le
@@ -102,6 +102,16 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
 
   const currentKey = stepKeys[stepIndex];
 
+  // Renvoie vers une étape précise depuis le message d'erreur de soumission
+  // (cf. onboarding-preferences-step.tsx) — si cette étape n'est pas présente
+  // dans le parcours de CE profil (cas très improbable, ex: "essential" déjà
+  // considérée comme acquise au chargement de la page), repli sur la première
+  // étape plutôt que de ne rien faire.
+  const goToStepKey = (key: OnboardingStepKey) => {
+    const index = stepKeys.indexOf(key);
+    goTo(index >= 0 ? index : 0);
+  };
+
   // Entonnoir d'onboarding (espace admin) : uniquement pour un vrai nouveau
   // compte, jamais pour un membre déjà onboardé qui revient corriger une section.
   useEffect(() => {
@@ -168,7 +178,9 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
           {currentKey === "faith" && (
             <OnboardingFaithStep profile={profile} onNext={() => goTo(stepIndex + 1)} onBack={() => goTo(stepIndex - 1)} />
           )}
-          {currentKey === "preferences" && <OnboardingPreferencesStep profile={profile} onBack={() => goTo(stepIndex - 1)} />}
+          {currentKey === "preferences" && (
+            <OnboardingPreferencesStep profile={profile} onBack={() => goTo(stepIndex - 1)} onJumpToStep={goToStepKey} />
+          )}
         </CardContent>
       </Card>
 

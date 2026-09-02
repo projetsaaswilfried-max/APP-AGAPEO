@@ -10,18 +10,29 @@ import { updateProfileAction, completeOnboardingAction } from "@/lib/actions/pro
 import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
 import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
 import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
+import type { OnboardingStepKey } from "@/domain/profile-completeness";
 import { AlertCircle, ArrowRight, Check } from "lucide-react";
 import type { ProfileRow, MaritalStatusType } from "@/lib/supabase/database.types";
+
+const STEP_LABELS: Record<OnboardingStepKey, string> = {
+  essential: "Tes informations",
+  photos: "Photos",
+  selfie: "Selfie",
+  faith: "Ma foi",
+  preferences: "Ce que je recherche"
+};
 
 interface OnboardingPreferencesStepProps {
   profile: ProfileRow;
   onBack?: () => void;
+  /** Renvoie vers une étape précédente précise — utilisé quand la soumission échoue faute d'un champ obligatoire manquant ailleurs dans l'onboarding. */
+  onJumpToStep: (step: OnboardingStepKey) => void;
 }
 
 /** Après ce délai d'inactivité, le brouillon est enregistré — protège surtout le champ "pourquoi le mariage", le plus long à rédiger et donc le plus coûteux à perdre sur un rafraîchissement accidentel. */
 const AUTOSAVE_DELAY_MS = 1500;
 
-export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPreferencesStepProps) {
+export function OnboardingPreferencesStep({ profile, onBack, onJumpToStep }: OnboardingPreferencesStepProps) {
   const [bio, setBio] = useState(profile.bio ?? "");
   const [hobbies, setHobbies] = useState(profile.hobbies);
   const [whyMarriage, setWhyMarriage] = useState(profile.why_marriage ?? "");
@@ -33,6 +44,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
   const [isPending, startTransition] = useTransition();
   const [isFinishing, startFinishTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [missingStep, setMissingStep] = useState<OnboardingStepKey | null>(null);
   const [isSelfieModalOpen, setIsSelfieModalOpen] = useState(false);
   const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [showErrors, setShowErrors] = useState(false);
@@ -98,6 +110,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       return;
     }
     setSubmitError(null);
+    setMissingStep(null);
     startTransition(async () => {
       await savePreferences();
       if (!needsVerificationSubmission) {
@@ -108,6 +121,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
         const result = await submitVerificationRequestAction();
         if (result?.error) {
           setSubmitError(result.error);
+          setMissingStep(result.missingStep ?? null);
           return;
         }
         await completeOnboardingAction();
@@ -124,6 +138,7 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       const result = await submitVerificationRequestAction(selfieStoragePath);
       if (result?.error) {
         setSubmitError(result.error);
+        setMissingStep(result.missingStep ?? null);
         return;
       }
       await completeOnboardingAction();
@@ -211,19 +226,30 @@ export function OnboardingPreferencesStep({ profile, onBack }: OnboardingPrefere
       <TagInput label="Pays acceptés" placeholder="Ex : France, Canada..." value={desiredCountries} onChange={setDesiredCountries} maxTags={8} />
 
       {submitError && (
-        <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 space-y-2">
-          <div className="flex items-center gap-2 text-xs text-destructive">
-            <AlertCircle size={14} className="shrink-0" />
+        <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 space-y-2.5">
+          <div className="flex items-start gap-2 text-xs text-destructive">
+            <AlertCircle size={14} className="shrink-0 mt-0.5" />
             {submitError}
           </div>
-          <button
-            type="button"
-            onClick={handleFinishWithoutSubmitting}
-            disabled={isFinishing}
-            className="text-xs font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-          >
-            Terminer sans soumettre pour l&apos;instant <ArrowRight size={12} />
-          </button>
+          <div className="flex items-center gap-4 flex-wrap">
+            {missingStep && missingStep !== "preferences" && (
+              <button
+                type="button"
+                onClick={() => onJumpToStep(missingStep)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-3.5 py-1.5"
+              >
+                Compléter « {STEP_LABELS[missingStep]} » <ArrowRight size={12} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleFinishWithoutSubmitting}
+              disabled={isFinishing}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+            >
+              Terminer sans soumettre pour l&apos;instant
+            </button>
+          </div>
         </div>
       )}
 

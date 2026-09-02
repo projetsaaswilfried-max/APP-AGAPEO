@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isProfileComplete } from "@/domain/profile-completeness";
+import { isProfileComplete, getMissingProfileSteps, type OnboardingStepKey } from "@/domain/profile-completeness";
 import { sendVerificationEmail } from "@/lib/verification-emails";
 import type { ProfileRow } from "@/lib/supabase/database.types";
 
@@ -27,7 +27,14 @@ import type { ProfileRow } from "@/lib/supabase/database.types";
  * user_id = auth.uid() suffit), puis bascule le badge public via le client
  * service_role pour ce seul champ — même pattern que `deleteAccountAction`.
  */
-export async function submitVerificationRequestAction(selfieStoragePath?: string) {
+export interface SubmitVerificationResult {
+  error?: string;
+  /** Étape de l'onboarding où renvoyer la personne pour corriger ce qui manque (cf. onboarding-preferences-step.tsx). */
+  missingStep?: OnboardingStepKey;
+  success?: true;
+}
+
+export async function submitVerificationRequestAction(selfieStoragePath?: string): Promise<SubmitVerificationResult> {
   const supabase = await createClient();
   const {
     data: { user }
@@ -38,12 +45,16 @@ export async function submitVerificationRequestAction(selfieStoragePath?: string
   const profile = profileData as ProfileRow | null;
   if (!profile) return { error: "Profil introuvable." };
 
-  const resolvedSelfiePath = selfieStoragePath || profile.pending_selfie_storage_path;
-  if (!resolvedSelfiePath) return { error: "Le selfie de vérification est obligatoire." };
-
   if (!isProfileComplete(profile)) {
-    return { error: "Complète d'abord ton profil (photo, confession, vision du mariage) avant de soumettre pour vérification." };
+    const missing = getMissingProfileSteps(profile);
+    return {
+      error: `Il te manque encore : ${missing.map((m) => m.label).join(", ")}.`,
+      missingStep: missing[0]?.step
+    };
   }
+
+  const resolvedSelfiePath = selfieStoragePath || profile.pending_selfie_storage_path;
+  if (!resolvedSelfiePath) return { error: "Le selfie de vérification est obligatoire.", missingStep: "selfie" };
   if (profile.photo_verification_status === "PENDING") {
     return { error: "Une demande est déjà en cours de traitement." };
   }

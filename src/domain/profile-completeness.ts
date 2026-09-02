@@ -23,15 +23,32 @@ export function isProfileComplete(
   );
 }
 
+/** Les 5 étapes navigables de l'assistant d'onboarding (cf. onboarding-wizard.tsx) — partagé pour que le renvoi vers une étape précise reste cohérent entre le bandeau, l'action de soumission et le wizard lui-même. */
+export type OnboardingStepKey = "essential" | "photos" | "selfie" | "faith" | "preferences";
+
+export interface MissingProfileStep {
+  step: OnboardingStepKey;
+  label: string;
+}
+
+/** Comme `getMissingProfileFields`, mais associe chaque manque à l'étape de l'onboarding où le corriger — permet de renvoyer directement la personne à la bonne section plutôt qu'un message générique. */
+export function getMissingProfileSteps(
+  profile: Pick<ProfileRow, "avatar_url" | "church_denomination" | "why_marriage" | "gender" | "birth_date" | "country">
+): MissingProfileStep[] {
+  const missing: MissingProfileStep[] = [];
+  if (!profile.gender || !profile.birth_date || !profile.country) {
+    missing.push({ step: "essential", label: "tes informations essentielles (genre, date de naissance, pays)" });
+  }
+  if (!profile.avatar_url) missing.push({ step: "photos", label: "une photo de profil" });
+  if (!profile.church_denomination) missing.push({ step: "faith", label: "ta confession chrétienne" });
+  if (!profile.why_marriage) missing.push({ step: "preferences", label: "ta vision du mariage" });
+  return missing;
+}
+
 export function getMissingProfileFields(
   profile: Pick<ProfileRow, "avatar_url" | "church_denomination" | "why_marriage" | "gender" | "birth_date" | "country">
 ): string[] {
-  const missing: string[] = [];
-  if (!profile.gender || !profile.birth_date || !profile.country) missing.push("tes informations essentielles (genre, date de naissance, pays)");
-  if (!profile.avatar_url) missing.push("une photo de profil");
-  if (!profile.church_denomination) missing.push("ta confession chrétienne");
-  if (!profile.why_marriage) missing.push("ta vision du mariage");
-  return missing;
+  return getMissingProfileSteps(profile).map((m) => m.label);
 }
 
 /**
