@@ -26,6 +26,13 @@ const STATUS_LABELS: Record<TransactionStatus, string> = {
   REFUNDED: "Remboursée"
 };
 
+const STATUS_COLORS: Record<TransactionStatus, string> = {
+  SUCCEEDED: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  FAILED: "bg-destructive/10 text-destructive border-destructive/30",
+  PENDING: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30",
+  REFUNDED: "bg-secondary text-secondary-foreground border-border/40"
+};
+
 const RANGE_PRESETS = [
   { id: "7d", label: "7 derniers jours", days: 7 },
   { id: "30d", label: "30 derniers jours", days: 30 },
@@ -178,11 +185,14 @@ export function AdminTransactionsList({ transactions }: { transactions: AdminTra
                     <td className="px-4 py-2.5 text-foreground">{formatAmount(t.amountCents, t.currency)}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{t.provider ?? "—"}</td>
                     <td className="px-4 py-2.5">
-                      <Badge variant="status" className="text-[10px]">
+                      <Badge variant="status" className={`text-[10px] ${STATUS_COLORS[t.status]}`}>
                         {STATUS_LABELS[t.status]}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString("fr-FR")}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
+                      {new Date(t.createdAt).toLocaleDateString("fr-FR")}{" "}
+                      {new Date(t.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
