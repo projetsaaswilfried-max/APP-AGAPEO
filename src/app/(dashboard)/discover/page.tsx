@@ -56,10 +56,13 @@ function DiscoverPageContent() {
   // (aperçu flouté), seules les interactions réelles (contacter, favori,
   // fiche complète) restent bloquées — cf. VerificationRequiredModal.
   const canInteract = profile.photo_verification_status === "VERIFIED" || profile.is_staff;
+  // Recherche et filtres (y compris la recherche de base âge/pays/statut)
+  // réservés Premium — cf. le même garde côté serveur dans discover.service.ts.
+  const canUseAdvancedFilters = profile.subscription_status === "ACTIVE" || profile.is_staff;
   const [profiles, setProfiles] = useState<RecommendedProfileItem[]>([]);
   const [filters, setFilters] = useState<DiscoverFilterCriteria>(() => {
     const search = searchParams.get("search");
-    return search ? { ...DEFAULT_FILTERS, searchQuery: search } : DEFAULT_FILTERS;
+    return search && canUseAdvancedFilters ? { ...DEFAULT_FILTERS, searchQuery: search } : DEFAULT_FILTERS;
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<RecommendedProfileItem | null>(null);
@@ -200,17 +203,30 @@ function DiscoverPageContent() {
 
         <div className="flex items-center gap-2 w-full md:w-auto">
           <SearchInput
-            placeholder="Rechercher par prénom, ville, profession..."
+            placeholder={canUseAdvancedFilters ? "Rechercher par prénom, ville, profession..." : "Passe Premium pour rechercher"}
             value={filters.searchQuery || ""}
-            onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
+            onChange={(e) => canUseAdvancedFilters && setFilters({ ...filters, searchQuery: e.target.value })}
             onClear={() => setFilters({ ...filters, searchQuery: "" })}
+            readOnly={!canUseAdvancedFilters}
+            onClick={() => {
+              if (canUseAdvancedFilters) return;
+              setPremiumReason("utiliser la recherche");
+              setIsPremiumRequiredOpen(true);
+            }}
             className="flex-1 md:w-72 text-xs h-10 bg-card shadow-2xs"
           />
 
           <Button
             variant={isFilterOpen ? "primary" : "outline"}
             size="md"
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            onClick={() => {
+              if (!canUseAdvancedFilters) {
+                setPremiumReason("utiliser les filtres de recherche");
+                setIsPremiumRequiredOpen(true);
+                return;
+              }
+              setIsFilterOpen(!isFilterOpen);
+            }}
             leftIcon={<SlidersHorizontal size={16} />}
             className="shrink-0"
           >
@@ -229,13 +245,13 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {isFilterOpen && (
+      {isFilterOpen && canUseAdvancedFilters && (
         <div className="animate-in fade-in duration-150">
           <FilterPanel
             filters={filters}
             onChangeFilters={setFilters}
             onResetFilters={() => setFilters(DEFAULT_FILTERS)}
-            isPremium={profile.subscription_status === "ACTIVE"}
+            isPremium={canUseAdvancedFilters}
             onRequirePremium={() => {
               setPremiumReason("débloquer les filtres avancés");
               setIsPremiumRequiredOpen(true);

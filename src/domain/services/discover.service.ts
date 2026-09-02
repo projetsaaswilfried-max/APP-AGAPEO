@@ -22,6 +22,12 @@ function birthDateFromAge(age: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Plage appliquée à tout compte non-Premium, quoi qu'il transmette lui-même
+// (cf. getProfiles) — doit rester identique à DEFAULT_FILTERS dans
+// discover/page.tsx, la seule vue qu'un compte gratuit peut voir désormais.
+const DEFAULT_AGE_MIN = 20;
+const DEFAULT_AGE_MAX = 50;
+
 class DiscoverServiceSupabase implements IDiscoverService {
   async getProfiles(filters: DiscoverFilterCriteria = {}): Promise<RecommendedProfileItem[]> {
     const supabase = createClient();
@@ -66,26 +72,31 @@ class DiscoverServiceSupabase implements IDiscoverService {
       // communauté.
       .limit(500);
 
-    if (filters.searchQuery?.trim()) {
+    // Recherche et filtres (y compris la "recherche de base" âge/pays/statut,
+    // désormais réservée Premium elle aussi) — appliqués ici côté serveur
+    // (pas seulement désactivés dans l'UI) pour qu'un appel direct au service
+    // ne puisse pas contourner la restriction. Un compte non-Premium reçoit
+    // systématiquement la plage d'âge par défaut, jamais ce qu'il a pu
+    // transmettre lui-même.
+    const canUseAdvancedFilters = viewer.is_premium || viewer.is_staff;
+
+    if (canUseAdvancedFilters && filters.searchQuery?.trim()) {
       const q = filters.searchQuery.trim();
       query = query.or(`first_name.ilike.%${q}%,city.ilike.%${q}%,profession.ilike.%${q}%,country.ilike.%${q}%`);
     }
-    // "Recherche de base" (gratuit) : age, pays, statut. Tout le reste est
-    // un "filtre de recherche avancé" reserve Premium sur la page tarifs —
-    // applique ici cote serveur (pas seulement desactive dans l'UI) pour
-    // qu'un appel direct au service ne puisse pas contourner la restriction.
-    if (filters.ageMax) query = query.gte("birth_date", birthDateFromAge(filters.ageMax + 1));
-    if (filters.ageMin) query = query.lte("birth_date", birthDateFromAge(filters.ageMin));
-    if (filters.country) query = query.eq("country", filters.country);
-    if (filters.status && filters.status !== "ALL") query = query.eq("status", filters.status as ProfileRow["status"]);
+
+    const ageMax = canUseAdvancedFilters ? (filters.ageMax ?? DEFAULT_AGE_MAX) : DEFAULT_AGE_MAX;
+    const ageMin = canUseAdvancedFilters ? (filters.ageMin ?? DEFAULT_AGE_MIN) : DEFAULT_AGE_MIN;
+    query = query.gte("birth_date", birthDateFromAge(ageMax + 1)).lte("birth_date", birthDateFromAge(ageMin));
+    if (canUseAdvancedFilters && filters.country) query = query.eq("country", filters.country);
+    if (canUseAdvancedFilters && filters.status && filters.status !== "ALL") query = query.eq("status", filters.status as ProfileRow["status"]);
 
     // La situation matrimoniale acceptée n'exclut plus personne de la
     // requête — c'est désormais un critère de score (cf. compatibility.ts),
     // pas un filtre strict. Qui veut vraiment restreindre là-dessus peut
     // utiliser le filtre de recherche ci-dessous.
-    if (filters.maritalStatus) query = query.eq("marital_status", filters.maritalStatus);
+    if (canUseAdvancedFilters && filters.maritalStatus) query = query.eq("marital_status", filters.maritalStatus);
 
-    const canUseAdvancedFilters = viewer.is_premium || viewer.is_staff;
     if (canUseAdvancedFilters) {
       if (filters.city) query = query.ilike("city", `%${filters.city}%`);
       if (filters.profession) query = query.ilike("profession", `%${filters.profession}%`);
