@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getChariowPulseSecret, env, type ChariowPlanKey } from "@/config/env";
+import { getChariowSharedPulseSecret, planKeyFromChariowProductId, env } from "@/config/env";
 import { sendPremiumActivatedEmail } from "@/lib/premium-emails";
 import { sendMetaPurchaseEvent } from "@/lib/meta-conversions-api";
 import { PREMIUM_PLANS } from "@/domain/premium-plans";
@@ -19,7 +19,21 @@ interface ChariowSaleEventPayload {
     amount: ChariowMoney;
     status: string;
     custom_metadata?: Record<string, string> | null;
+    product_id?: string;
+    product_uuid?: string;
+    product?: { id?: string; uuid?: string } | null;
   } | null;
+}
+
+/**
+ * Le nom exact du champ portant l'ID produit dans le payload réel de
+ * Chariow n'a jamais été confirmé (un seul Pulse par produit suffisait
+ * jusqu'ici, l'URL seule déterminait le plan). On tente les formes les
+ * plus plausibles ; si aucune ne correspond à un produit configuré, le
+ * payload complet est loggé pour ajuster ce mapping au premier vrai envoi.
+ */
+function extractProductId(sale: NonNullable<ChariowSaleEventPayload["sale"]>): string | null {
+  return sale.product_id ?? sale.product?.id ?? sale.product_uuid ?? sale.product?.uuid ?? null;
 }
 
 const SALE_EVENT_TO_STATUS: Record<string, "SUCCEEDED" | "FAILED"> = {
@@ -39,34 +53,31 @@ function verifySignature(rawBody: string, signatureHeader: string | null, secret
 }
 
 /**
- * Réception des "Pulses" (webhooks) Chariow — une route par plan
- * (`/api/webhooks/chariow` pour le mensuel, `/api/webhooks/chariow/quarterly`
- * pour le trimestriel) car Chariow interdit de réutiliser une même URL sur
- * deux Pulses différents ; chaque route appelle cette fonction partagée avec
- * son propre `plan`, ce qui détermine à la fois quel secret vérifier et
- * quelle durée/valeur appliquer. Chariow ne gère pas les abonnements
- * récurrents — chaque `successful.sale` correspond à un paiement unique
- * d'accès Premium, qu'on active ici nous-mêmes.
+ * Réception du "Pulse" (webhook) Chariow — un seul Pulse/URL/secret couvre
+ * désormais tous les plans (Chariow autorise un produit par Pulse mais le
+ * fondateur a reconfiguré un Pulse unique pointant ici pour les 4 produits) ;
+ * le plan concerné est donc déterminé à partir de l'ID produit présent dans
+ * le paiement plutôt que par l'URL appelée. Chariow ne gère pas les
+ * abonnements récurrents — chaque `successful.sale` correspond à un paiement
+ * unique d'accès Premium, qu'on active ici nous-mêmes.
  * Idempotent via la contrainte unique transactions(provider, provider_reference) :
  * un retry (jusqu'à 5x côté Chariow) ne double jamais l'activation.
  */
-export async function handleChariowWebhook(request: Request, planKey: ChariowPlanKey): Promise<NextResponse> {
+export async function handleChariowWebhook(request: Request): Promise<NextResponse> {
   const rawBody = await request.text();
   const signature = request.headers.get("x-chariow-signature");
 
   let secret: string;
   try {
-    secret = getChariowPulseSecret(planKey);
+    secret = getChariowSharedPulseSecret();
   } catch {
-    console.error(`Webhook Chariow (${planKey}) reçu mais son secret de Pulse n'est pas configuré.`);
+    console.error("Webhook Chariow reçu mais le secret du Pulse n'est pas configuré.");
     return NextResponse.json({ error: "Webhook non configuré." }, { status: 500 });
   }
 
   if (!verifySignature(rawBody, signature, secret)) {
     return NextResponse.json({ error: "Signature invalide." }, { status: 401 });
   }
-
-  const plan = PREMIUM_PLANS[planKey];
 
   let payload: ChariowSaleEventPayload;
   try {
@@ -84,6 +95,21 @@ export async function handleChariowWebhook(request: Request, planKey: ChariowPla
   if (!sale || !transactionStatus) {
     return NextResponse.json({ received: true });
   }
+
+  const productId = extractProductId(sale);
+  const planKey = productId ? planKeyFromChariowProductId(productId) : null;
+  if (!planKey) {
+    // Le nom du champ produit dans le payload réel n'a jamais été vérifié en
+    // direct (cf. commentaire sur extractProductId) — on logge tout pour
+    // corriger le mapping immédiatement plutôt que de deviner en silence.
+    console.error(
+      `Webhook Chariow ${payload.event} (sale ${sale.id}) : produit non reconnu (id extrait: ${productId ?? "aucun"}). Payload complet :`,
+      JSON.stringify(payload)
+    );
+    return NextResponse.json({ received: true });
+  }
+
+  const plan = PREMIUM_PLANS[planKey];
 
   const userId = sale.custom_metadata?.agapeo_user_id ?? null;
   if (!userId) {
