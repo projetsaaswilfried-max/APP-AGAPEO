@@ -198,9 +198,12 @@ export function OnboardingPreferencesStep({ profile, onBack, onJumpToStep }: Onb
         maxTags={12}
       />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Input type="number" label="Âge minimum" min={18} max={99} value={ageMin} onChange={(e) => setAgeMin(Number(e.target.value))} />
-        <Input type="number" label="Âge maximum" min={18} max={99} value={ageMax} onChange={(e) => setAgeMax(Number(e.target.value))} />
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-foreground">Tranche d&apos;âge recherchée</label>
+        <div className="grid grid-cols-2 gap-3">
+          <Input type="number" label="Âge minimum" min={18} max={99} value={ageMin} onChange={(e) => setAgeMin(Number(e.target.value))} />
+          <Input type="number" label="Âge maximum" min={18} max={99} value={ageMax} onChange={(e) => setAgeMax(Number(e.target.value))} />
+        </div>
       </div>
 
       <div className="space-y-1.5">
