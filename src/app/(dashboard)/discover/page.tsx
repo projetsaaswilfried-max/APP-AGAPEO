@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, type ReactNode } from "react";
+import { Suspense, useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RecommendedProfileItem, DiscoverFilterCriteria } from "@/domain/types/discover";
@@ -19,11 +19,17 @@ import { SearchInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Pagination } from "@/components/ui/pagination";
 import { useSession } from "@/core/providers/session-provider";
 import { getScoringGaps } from "@/domain/profile-completeness";
 import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, ArrowRight, Clock, ShieldAlert } from "lucide-react";
 
 const DEFAULT_FILTERS: DiscoverFilterCriteria = { ageMin: 20, ageMax: 50, status: "ALL" };
+
+// "Recommandée pour vous" reste un tirage fixe de 3, jamais paginé — seule
+// "Autres profils" peut compter des dizaines/centaines de membres et
+// bénéficie de la pagination (évite un défilement sans fin, cf. demande).
+const OTHER_PROFILES_PAGE_SIZE = 12;
 
 // Tant que la photo n'est pas VERIFIED (jamais soumise, en attente, ou
 // refusée), Découvrir reste consultable en aperçu (photos floutées, aucune
@@ -78,6 +84,8 @@ function DiscoverPageContent() {
   const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
   const [isVerificationRequiredOpen, setIsVerificationRequiredOpen] = useState(false);
   const [verificationReason, setVerificationReason] = useState("contacter ce membre");
+  const [otherProfilesPage, setOtherProfilesPage] = useState(1);
+  const otherProfilesSectionRef = useRef<HTMLDivElement>(null);
 
   const handleRequireVerification = (reason: string) => {
     setVerificationReason(reason);
@@ -100,6 +108,7 @@ function DiscoverPageContent() {
 
   useEffect(() => {
     fetchProfiles();
+    setOtherProfilesPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
@@ -171,6 +180,16 @@ function DiscoverPageContent() {
   const { recommended: recommendedProfiles } = pickDailyRecommendations(recommendationPool, profile.id, 3);
   const recommendedIds = new Set(recommendedProfiles.map((item) => item.profile.id));
   const otherProfiles = profiles.filter((item) => !recommendedIds.has(item.profile.id));
+  const otherProfilesTotalPages = Math.max(1, Math.ceil(otherProfiles.length / OTHER_PROFILES_PAGE_SIZE));
+  const safeOtherProfilesPage = Math.min(otherProfilesPage, otherProfilesTotalPages);
+  const pagedOtherProfiles = otherProfiles.slice(
+    (safeOtherProfilesPage - 1) * OTHER_PROFILES_PAGE_SIZE,
+    safeOtherProfilesPage * OTHER_PROFILES_PAGE_SIZE
+  );
+  const handleOtherProfilesPageChange = (page: number) => {
+    setOtherProfilesPage(page);
+    otherProfilesSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const bannerContent = !canInteract
     ? VERIFICATION_BANNER_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
     : null;
@@ -357,13 +376,13 @@ function DiscoverPageContent() {
       )}
 
       {!isLoading && !isError && otherProfiles.length > 0 && (
-        <div className="space-y-3">
+        <div ref={otherProfilesSectionRef} className="space-y-3 scroll-mt-20">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Autres profils ({otherProfiles.length})
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {otherProfiles.map((item) => (
+            {pagedOtherProfiles.map((item) => (
               <DiscoverProfileCard
                 key={item.profile.id}
                 item={item}
@@ -384,6 +403,8 @@ function DiscoverPageContent() {
               />
             ))}
           </div>
+
+          <Pagination currentPage={safeOtherProfilesPage} totalPages={otherProfilesTotalPages} onPageChange={handleOtherProfilesPageChange} />
         </div>
       )}
 
