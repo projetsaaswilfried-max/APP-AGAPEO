@@ -1,8 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useSession } from "@/core/providers/session-provider";
 import { startPremiumCheckoutAction, type PremiumCheckoutState } from "@/lib/actions/premium.actions";
+import { getActivePaymentProviderAction } from "@/lib/actions/payment-settings.actions";
+import { MobileMoneyCheckoutModal } from "@/components/features/premium/mobile-money-checkout-modal";
+import type { PaymentProvider } from "@/domain/payment-provider";
 import { PHONE_COUNTRY_CODES } from "@/config/phone-country-codes";
 import { PREMIUM_PLANS, PURCHASABLE_PLAN_KEYS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
 import { Card } from "@/components/ui/card";
@@ -189,6 +192,17 @@ export default function PremiumPage() {
   const [selectedPlan, setSelectedPlan] = useState<PremiumPlanKey>("MONTHLY");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"CARD" | "MOBILE_MONEY">("MOBILE_MONEY");
   const [paymentMethodModalPlan, setPaymentMethodModalPlan] = useState<PremiumPlanKey | null>(null);
+  // Seul SasPay expose une API de paiement direct (sans redirection) — tant
+  // que Chariow est le processeur Mobile Money actif (/admin/payments), ce
+  // choix continue de rediriger vers son checkout hébergé, faute d'alternative
+  // (confirmé dans leur documentation : aucun endpoint de paiement direct).
+  const [mobileMoneyProvider, setMobileMoneyProvider] = useState<PaymentProvider>("chariow");
+  const [nativeMobileMoneyPlan, setNativeMobileMoneyPlan] = useState<PremiumPlanKey | null>(null);
+  const mobileMoneyFallbackFormRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    getActivePaymentProviderAction().then(setMobileMoneyProvider);
+  }, []);
 
   useEffect(() => {
     if (state?.errors?.phone) setIsPhoneModalOpen(true);
@@ -201,6 +215,17 @@ export default function PremiumPage() {
   const handleOpenPaymentMethod = (plan: PremiumPlanKey) => {
     setSelectedPlan(plan);
     setPaymentMethodModalPlan(plan);
+  };
+
+  const handleChooseMobileMoney = () => {
+    if (mobileMoneyProvider === "saspay") {
+      setPaymentMethodModalPlan(null);
+      setNativeMobileMoneyPlan(paymentMethodModalPlan);
+      return;
+    }
+    // SasPay indisponible pour le moment : repli sur le flux Chariow existant (redirection).
+    setSelectedPaymentMethod("MOBILE_MONEY");
+    mobileMoneyFallbackFormRef.current?.requestSubmit();
   };
 
   const periodEndLabel = profile.subscription_current_period_end
@@ -335,18 +360,20 @@ export default function PremiumPage() {
         maxWidth="sm"
       >
         <div className="space-y-3">
-          <form action={action} onSubmit={() => setSelectedPaymentMethod("MOBILE_MONEY")}>
+          <Button
+            type="button"
+            variant="primary"
+            className="w-full justify-start"
+            isLoading={pending}
+            leftIcon={<Smartphone size={16} />}
+            onClick={handleChooseMobileMoney}
+          >
+            Mobile Money — Moov, Wave, MTN, Celtiis...
+          </Button>
+          {/* Repli Chariow si SasPay n'est pas le processeur Mobile Money actif — jamais affiché, soumis via handleChooseMobileMoney. */}
+          <form ref={mobileMoneyFallbackFormRef} action={action} className="hidden">
             <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
             <input type="hidden" name="paymentMethod" value="MOBILE_MONEY" />
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full justify-start"
-              isLoading={pending}
-              leftIcon={<Smartphone size={16} />}
-            >
-              Mobile Money — Moov, Wave, MTN, Celtiis...
-            </Button>
           </form>
           <form action={action} onSubmit={() => setSelectedPaymentMethod("CARD")}>
             <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
@@ -357,6 +384,8 @@ export default function PremiumPage() {
           </form>
         </div>
       </Modal>
+
+      <MobileMoneyCheckoutModal plan={nativeMobileMoneyPlan} onClose={() => setNativeMobileMoneyPlan(null)} />
 
       <Modal isOpen={isPhoneModalOpen} onClose={() => setIsPhoneModalOpen(false)} title="Un dernier détail" maxWidth="sm">
         <form action={action} className="space-y-3">

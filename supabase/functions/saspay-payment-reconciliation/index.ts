@@ -3,11 +3,12 @@
 // incident ponctuel côté SasPay...) — même principe que
 // chariow-payment-reconciliation, mais la corrélation est ici directe : le
 // webhook SasPay ne porte aucune métadonnée permettant de retrouver le
-// membre (confirmé dans leur documentation), donc CHAQUE session de checkout
-// est stockée par nous en PENDING (`transactions.provider_reference` = id de
-// session) au moment de sa création (cf. startSasPayCheckout côté app
-// Next.js) — cette fonction compare simplement l'état réel de chaque session
-// encore PENDING chez nous à SasPay.
+// membre (confirmé dans leur documentation), donc chaque paiement softpay
+// est stocké par nous en PENDING (`transactions.provider_reference` = id du
+// paiement) au moment de sa création (cf. initiateMobileMoneyPaymentAction
+// côté app Next.js) — cette fonction compare simplement l'état réel de
+// chaque paiement encore PENDING chez nous à SasPay
+// (GET /payments/{id}/verify/).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
@@ -29,18 +30,18 @@ const PLAN_INFO: Record<string, { periodDays: number; priceFcfa: number; priceUs
   premium_access: { periodDays: 30, priceFcfa: 4086, priceUsd: 7 }
 };
 
-interface SasPaySession {
+interface SasPayPaymentStatus {
   id: string;
   status: string;
-  amount: string;
+  requested_amount: string;
 }
 
-async function getCheckoutSession(sessionId: string): Promise<SasPaySession | null> {
-  const res = await fetch(`${SASPAY_API_BASE}/checkout-sessions/${sessionId}/`, {
+async function getPaymentStatus(paymentId: string): Promise<SasPayPaymentStatus | null> {
+  const res = await fetch(`${SASPAY_API_BASE}/payments/${paymentId}/verify/`, {
     headers: { Authorization: `Bearer ${SASPAY_API_KEY}` }
   });
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Lecture session ${sessionId} échouée (${res.status})`);
+  if (!res.ok) throw new Error(`Lecture paiement ${paymentId} échouée (${res.status})`);
   // Réponse réelle enveloppée dans { success, data, code } — vérifié en
   // direct le 2026-09-04, contrairement aux exemples "à plat" de leur doc.
   const json = await res.json();
@@ -140,32 +141,33 @@ Deno.serve(async (req) => {
     const plan = PLAN_INFO[tx.plan];
     if (!plan) continue;
 
-    let session: SasPaySession | null;
+    let payment: SasPayPaymentStatus | null;
     try {
-      session = await getCheckoutSession(tx.provider_reference);
+      payment = await getPaymentStatus(tx.provider_reference);
     } catch (err) {
-      results.push({ transactionId: tx.id, outcome: `Erreur lecture session : ${err instanceof Error ? err.message : String(err)}` });
+      results.push({ transactionId: tx.id, outcome: `Erreur lecture paiement : ${err instanceof Error ? err.message : String(err)}` });
       continue;
     }
-    if (!session) continue;
+    if (!payment) continue;
 
-    if (session.status === "CANCELLED" || session.status === "EXPIRED") {
+    if (payment.status === "FAILED" || payment.status === "CANCELLED" || payment.status === "EXPIRED") {
       await admin.from("transactions").update({ status: "FAILED" }).eq("id", tx.id).eq("status", "PENDING");
-      results.push({ transactionId: tx.id, outcome: `Marquée FAILED (session ${session.status})` });
+      results.push({ transactionId: tx.id, outcome: `Marquée FAILED (paiement ${payment.status})` });
       continue;
     }
 
-    if (session.status !== "SUCCESS") continue;
+    if (payment.status !== "SUCCESS") continue;
 
-    if (Math.round(Number(session.amount)) !== plan.priceFcfa) {
+    if (Math.round(Number(payment.requested_amount)) !== plan.priceFcfa) {
       results.push({
         transactionId: tx.id,
-        outcome: `IGNORÉE — montant ${session.amount} XOF ne correspond pas au plan attendu (${plan.priceFcfa} XOF)`
+        outcome: `IGNORÉE — montant ${payment.requested_amount} XOF ne correspond pas au plan attendu (${plan.priceFcfa} XOF)`
       });
       continue;
     }
 
-    // Revendication atomique — un webhook et ce cron peuvent se chevaucher.
+    // Revendication atomique — un webhook, ce cron, et le polling de la page
+    // de paiement peuvent tous se chevaucher.
     const { data: claimedRows } = await admin
       .from("transactions")
       .update({ status: "SUCCEEDED", premium_granted_at: new Date().toISOString() })
