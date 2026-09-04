@@ -28,12 +28,15 @@ export function SendInvitationModal({ isOpen, onClose, onConfirm, firstName, isS
           Pour préserver la confidentialité de chacun, tu ne peux pas écrire directement à {firstName}. {firstName} recevra ton invitation et devra
           l&apos;accepter avant que vous puissiez échanger des messages. Tu recevras une notification dès que ce sera fait.
         </p>
-        <div className="flex items-center gap-2.5 w-full pt-2">
-          <Button variant="outline" className="flex-1" onClick={onClose} disabled={isSending}>
-            Annuler
-          </Button>
-          <Button variant="primary" className="flex-1" onClick={onConfirm} isLoading={isSending} leftIcon={<MessageSquare size={15} />}>
+        {/* Empilés (pas côte à côte) : la modale garde une largeur fixe et
+            étroite quel que soit l'écran — deux boutons à largeur égale
+            forceraient "Envoyer l'invitation" à passer sur 2 lignes. */}
+        <div className="flex flex-col gap-2.5 w-full pt-2">
+          <Button variant="primary" className="w-full" onClick={onConfirm} isLoading={isSending} leftIcon={<MessageSquare size={15} />}>
             Envoyer l&apos;invitation
+          </Button>
+          <Button variant="outline" className="w-full" onClick={onClose} disabled={isSending}>
+            Annuler
           </Button>
         </div>
       </div>

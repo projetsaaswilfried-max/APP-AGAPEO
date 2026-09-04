@@ -759,12 +759,15 @@ function MessagesPageContent() {
                 recevez chacun un email avec des conseils et une prière pour la suite, et vous ne pourrez plus proposer de match à quelqu&apos;un
                 d&apos;autre tant que celui-ci est actif — tu pourras toujours l&apos;annuler plus tard.
               </p>
-              <div className="flex items-center gap-2.5 w-full pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setIsMatchRequestConfirmOpen(false)} disabled={isMatchBusy}>
-                  Annuler
-                </Button>
-                <Button variant="primary" className="flex-1" onClick={handleRequestMatch} isLoading={isMatchBusy} leftIcon={<Heart size={15} />}>
+              {/* Empilés : la modale reste étroite (maxWidth="sm") quel que
+                  soit l'écran — deux boutons côte à côte forceraient
+                  "Proposer le match" à passer sur 2 lignes. */}
+              <div className="flex flex-col gap-2.5 w-full pt-2">
+                <Button variant="primary" className="w-full" onClick={handleRequestMatch} isLoading={isMatchBusy} leftIcon={<Heart size={15} />}>
                   Proposer le match
+                </Button>
+                <Button variant="outline" className="w-full" onClick={() => setIsMatchRequestConfirmOpen(false)} disabled={isMatchBusy}>
+                  Annuler
                 </Button>
               </div>
             </div>
@@ -785,18 +788,19 @@ function MessagesPageContent() {
                 de Découvrir, vous recevez chacun un email avec des conseils pour la suite de votre relation, et vous ne pourrez plus matcher avec
                 quelqu&apos;un d&apos;autre tant que ce match est actif. Tu pourras toujours l&apos;annuler plus tard si besoin.
               </p>
-              <div className="flex items-center gap-2.5 w-full pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setIsMatchAcceptConfirmOpen(false)} disabled={isMatchBusy}>
-                  Pas encore
-                </Button>
+              {/* Empilés, même raison que la modale de proposition de match ci-dessus. */}
+              <div className="flex flex-col gap-2.5 w-full pt-2">
                 <Button
                   variant="primary"
-                  className="flex-1"
+                  className="w-full"
                   onClick={() => handleRespondToMatch(true)}
                   isLoading={isMatchBusy}
                   leftIcon={<Heart size={15} />}
                 >
                   Confirmer le match
+                </Button>
+                <Button variant="outline" className="w-full" onClick={() => setIsMatchAcceptConfirmOpen(false)} disabled={isMatchBusy}>
+                  Pas encore
                 </Button>
               </div>
             </div>

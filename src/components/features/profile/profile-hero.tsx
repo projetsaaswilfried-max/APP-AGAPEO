@@ -91,6 +91,12 @@ export function ProfileHero({
         {/* Colonne Droite : Boutons d'Action */}
         {!isOwnProfile && (
           <div className="flex flex-col sm:flex-row md:flex-col items-center md:items-end gap-3 w-full md:w-auto shrink-0">
+            {/* Liker/Favoris partagent une ligne (libellés courts, aucun risque
+                de retour à la ligne) — "Envoyer un message" est séparé sur sa
+                propre ligne pleine largeur en mobile : à 3 boutons à largeur
+                égale (flex-1) sur un écran étroit, son libellé plus long
+                repassait sur plusieurs lignes et le bouton (rounded-full)
+                se déformait en bulle presque ronde au lieu d'une pilule. */}
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
               <Button
                 variant="outline"
@@ -116,17 +122,17 @@ export function ProfileHero({
               >
                 {isFavorite ? "Enregistré" : "Favoris"}
               </Button>
-
-              <Button
-                variant="primary"
-                size="md"
-                onClick={onSendMessage}
-                leftIcon={<MessageSquare size={16} />}
-                className="flex-1 sm:flex-none"
-              >
-                Envoyer un message
-              </Button>
             </div>
+
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onSendMessage}
+              leftIcon={<MessageSquare size={16} />}
+              className="w-full sm:w-auto sm:flex-none"
+            >
+              Envoyer un message
+            </Button>
           </div>
         )}
       </div>
