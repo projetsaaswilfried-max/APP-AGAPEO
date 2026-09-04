@@ -1,12 +1,20 @@
 /**
- * Catalogue statique pays/réseaux Mobile Money SasPay — copié depuis leur
- * documentation (docs.saspay.me/api-reference/reference/formats), seule
- * source qui expose à la fois les codes `network` ET le format de numéro
- * attendu par pays (les endpoints /countries/ et /networks/ n'exposent pas
- * ce dernier). À resynchroniser manuellement si SasPay ajoute un pays/réseau
- * — pas d'API pour le faire automatiquement sans perdre cette information.
- * Les réseaux marqués `inactive` existent dans leur catalogue mais ne sont
- * routés vers aucune passerelle pour le moment (rejetés en 422 côté SasPay).
+ * Catalogue statique pays/réseaux Mobile Money SasPay. Resynchronisé en
+ * direct le 2026-09-04 via GET /countries/ et /networks/ (paginé, 61 réseaux)
+ * — leur documentation (docs.saspay.me/api-reference/reference/formats) ne
+ * liste que 18 pays et s'est avérée périmée : Gabon, Congo-Brazzaville et
+ * Mozambique existent bien côté API (confirmés actifs par leur propre page
+ * Wallet) mais n'y figurent pas, et plusieurs réseaux manquaient sur des pays
+ * déjà listés (Djamo Côte d'Ivoire, Mixx Togo, Djamo/Expresso/PayDunya
+ * Sénégal). Ces deux endpoints n'exposent PAS le format de numéro attendu
+ * par pays (uniquement l'indicatif retenu ici, standard UIT) — c'est
+ * pourquoi ce fichier reste statique plutôt que résolu à la volée.
+ * République Centrafricaine (CF) existe comme pays actif côté SasPay mais
+ * SANS aucun réseau enregistré (payer y est donc impossible pour l'instant)
+ * — volontairement absente de cette liste. À resynchroniser manuellement si
+ * SasPay ajoute un pays/réseau. Les réseaux marqués `inactive` existent dans
+ * leur catalogue mais ne sont routés vers aucune passerelle pour le moment
+ * (rejetés en 422 côté SasPay).
  */
 export interface SasPayNetwork {
   code: string;
@@ -31,7 +39,8 @@ export const SASPAY_COUNTRIES: SasPayCountry[] = [
     networks: [
       { code: "celtiis_bj", label: "Celtiis Cash" },
       { code: "moov_bj", label: "Moov Money" },
-      { code: "mtn_bj", label: "MTN MoMo" }
+      { code: "mtn_bj", label: "MTN MoMo" },
+      { code: "coris_bj", label: "Coris Money", inactive: true }
     ]
   },
   {
@@ -43,7 +52,8 @@ export const SASPAY_COUNTRIES: SasPayCountry[] = [
       { code: "moov_ci", label: "Moov Money" },
       { code: "mtn_ci", label: "MTN MoMo" },
       { code: "orange_ci", label: "Orange Money" },
-      { code: "wave_ci", label: "Wave" }
+      { code: "wave_ci", label: "Wave" },
+      { code: "djamo_ci", label: "Djamo" }
     ]
   },
   {
@@ -53,7 +63,8 @@ export const SASPAY_COUNTRIES: SasPayCountry[] = [
     dialCode: "+228",
     networks: [
       { code: "moov_tg", label: "Moov Money" },
-      { code: "togocel", label: "Togocel Money" }
+      { code: "togocel", label: "Togocel Money" },
+      { code: "mixx_tg", label: "Mixx by Yas" }
     ]
   },
   {
@@ -66,6 +77,9 @@ export const SASPAY_COUNTRIES: SasPayCountry[] = [
       { code: "wave_sn", label: "Wave" },
       { code: "freemoney_sn", label: "Free Money" },
       { code: "wizall_sn", label: "Wizall" },
+      { code: "djamo_sn", label: "Djamo" },
+      { code: "expresso_sn", label: "Expresso" },
+      { code: "paydunya_sn", label: "Compte PayDunya" },
       { code: "e_money_sn", label: "E-Money", inactive: true }
     ]
   },
@@ -106,6 +120,23 @@ export const SASPAY_COUNTRIES: SasPayCountry[] = [
       { code: "mtn_cm", label: "MTN MoMo" },
       { code: "orange_cm", label: "Orange Money" },
       { code: "eu_mobile_cm", label: "EU Mobile Money", inactive: true }
+    ]
+  },
+  {
+    code: "GA",
+    label: "Gabon",
+    currency: "XAF",
+    dialCode: "+241",
+    networks: [{ code: "airtel_ga", label: "Airtel Money" }]
+  },
+  {
+    code: "CG",
+    label: "Congo-Brazzaville",
+    currency: "XAF",
+    dialCode: "+242",
+    networks: [
+      { code: "airtel_cg", label: "Airtel Money" },
+      { code: "mtn_cg", label: "MTN MoMo" }
     ]
   },
   {
@@ -208,6 +239,16 @@ export const SASPAY_COUNTRIES: SasPayCountry[] = [
     networks: [
       { code: "airtel_mw", label: "Airtel Money" },
       { code: "tnm_mw", label: "TNM Mpamba" }
+    ]
+  },
+  {
+    code: "MZ",
+    label: "Mozambique",
+    currency: "MZN",
+    dialCode: "+258",
+    networks: [
+      { code: "movitel_mz", label: "Movitel" },
+      { code: "vodacom_mz", label: "M-Pesa (Vodacom)" }
     ]
   }
 ];
