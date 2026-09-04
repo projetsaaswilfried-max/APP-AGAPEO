@@ -2,10 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PhoneSchema } from "@/lib/validation/profile.schema";
 import { initiateChariowCheckout } from "@/lib/chariow";
+import { initiateSasPayCheckout } from "@/lib/saspay";
+import { getActivePaymentProviderAction } from "@/lib/actions/payment-settings.actions";
 import { env, type ChariowPlanKey } from "@/config/env";
-import { PURCHASABLE_PLAN_KEYS } from "@/domain/premium-plans";
+import { PURCHASABLE_PLAN_KEYS, PREMIUM_PLANS } from "@/domain/premium-plans";
 
 export type PremiumCheckoutState = { errors?: Record<string, string[]>; message?: string } | undefined;
 
@@ -39,6 +42,19 @@ export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutStat
     supabase.from("profile_private").select("phone, phone_country_code").eq("id", user.id).single()
   ]);
   if (!profile) return { message: "Profil introuvable." };
+
+  const activeProvider = await getActivePaymentProviderAction();
+  if (activeProvider === "saspay") {
+    return startSasPayCheckout({
+      userId: user.id,
+      email: user.email,
+      firstName: profile.first_name,
+      lastName: profile.last_name,
+      phone: privateData?.phone ?? null,
+      phoneCountryCode: privateData?.phone_country_code ?? null,
+      plan
+    });
+  }
 
   let phone = privateData?.phone ?? null;
   let phoneCountryCode = privateData?.phone_country_code ?? null;
@@ -101,5 +117,62 @@ export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutStat
   // d'être avalée et traitée comme une vraie erreur.
   if (alreadyCompleted) redirect("/premium/success");
   if (!checkoutUrl) return { message: "Le paiement n'a pas pu être initié." };
+  redirect(checkoutUrl);
+}
+
+/**
+ * Checkout SasPay — pas de téléphone requis en amont contrairement à Chariow
+ * (leur page hébergée le demande elle-même, avec le réseau mobile money du
+ * client). Après création, la session est stockée en PENDING dans nos
+ * `transactions` (provider_reference = id de session) : c'est ce row que la
+ * réconciliation (webhook + cron, cf. saspay-webhook-handler.ts et
+ * supabase/functions/saspay-payment-reconciliation) retrouvera pour activer
+ * l'abonnement — le webhook SasPay lui-même ne porte aucune donnée permettant
+ * de remonter jusqu'à ce membre.
+ */
+async function startSasPayCheckout(input: {
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  phoneCountryCode: string | null;
+  plan: ChariowPlanKey;
+}): Promise<PremiumCheckoutState> {
+  const planConfig = PREMIUM_PLANS[input.plan];
+  let checkoutUrl: string;
+  try {
+    const session = await initiateSasPayCheckout({
+      amountFcfa: planConfig.priceFcfa,
+      email: input.email,
+      fullName: `${input.firstName} ${input.lastName || ""}`.trim(),
+      countryCode: input.phoneCountryCode,
+      phoneNumber: input.phone,
+      description: `Abonnement Agapeo — ${planConfig.label}`,
+      returnUrl: `${env.siteUrl}/premium/success`,
+      metadata: { agapeo_user_id: input.userId, agapeo_plan: input.plan }
+    });
+    if (!session.checkoutUrl) return { message: "Le paiement n'a pas pu être initié." };
+    checkoutUrl = session.checkoutUrl;
+
+    const admin = createAdminClient();
+    const { error: txError } = await admin.from("transactions").upsert(
+      {
+        user_id: input.userId,
+        amount_cents: Math.round(planConfig.priceFcfa * 100),
+        currency: "XOF",
+        status: "PENDING",
+        plan: planConfig.dbValue,
+        provider: "saspay",
+        provider_reference: session.id
+      },
+      { onConflict: "provider,provider_reference" }
+    );
+    if (txError) return { message: "Le paiement n'a pas pu être initié." };
+  } catch (err) {
+    return { message: err instanceof Error ? err.message : "Le paiement n'a pas pu être initié." };
+  }
+
+  // `redirect()` lève une exception spéciale — jamais à l'intérieur du try/catch ci-dessus.
   redirect(checkoutUrl);
 }

@@ -21,6 +21,7 @@ const TABS = [
   { href: "/admin/posts", label: "Fil officiel", minRole: "ADMIN" },
   { href: "/admin/emails", label: "Emails", minRole: "ADMIN" },
   { href: "/admin/transactions", label: "Transactions", minRole: "ADMIN" },
+  { href: "/admin/payments", label: "Paiements", minRole: "SUPER_ADMIN" },
   { href: "/admin/audit", label: "Journal d'audit", minRole: "SUPER_ADMIN" }
 ] as const;
 

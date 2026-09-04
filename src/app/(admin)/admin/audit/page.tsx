@@ -13,7 +13,8 @@ const ACTION_LABELS: Record<string, string> = {
   UPDATE_REPORT_STATUS: "Signalement traité",
   SEND_EMAIL_CAMPAIGN: "Campagne email envoyée",
   SCHEDULE_EMAIL_CAMPAIGN: "Campagne email programmée",
-  CANCEL_EMAIL_CAMPAIGN: "Campagne email annulée"
+  CANCEL_EMAIL_CAMPAIGN: "Campagne email annulée",
+  SWITCH_PAYMENT_PROVIDER: "Changement de processeur de paiement"
 };
 
 export default async function AdminAuditPage() {

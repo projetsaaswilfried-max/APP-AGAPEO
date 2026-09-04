@@ -19,6 +19,13 @@ export interface PremiumPlanConfig {
    * `priceFcfaLabel` pour tout affichage (landing, page Premium, emails).
    */
   priceUsd: number;
+  /**
+   * Montant réel en FCFA (XOF) — sert au checkout SasPay (qui facture
+   * nativement en XOF, cf. src/lib/saspay.ts) et à la vérification du
+   * montant reçu lors de la réconciliation. Doit rester synchronisé avec
+   * `priceFcfaLabel` (même valeur, juste non formatée).
+   */
+  priceFcfa: number;
   /** Prix affiché aux membres — déjà formaté (espace comme séparateur de milliers). */
   priceFcfaLabel: string;
   /**
@@ -38,13 +45,29 @@ export const PREMIUM_PLANS: Record<PremiumPlanKey, PremiumPlanConfig> = {
   // débloqué même en cas de paiement réussi. priceFcfaLabel = conversion
   // réelle prélevée par Chariow pour chaque montant (confirmée par le
   // fondateur le 2026-09-02), pas une estimation à taux fixe.
-  WEEKLY: { dbValue: "premium_weekly", label: "1 semaine", periodDays: 7, priceUsd: 4, priceFcfaLabel: "2 335 FCFA", purchasable: true },
-  HALF_MONTH: { dbValue: "premium_half_month", label: "Mi-mois (15 jours)", periodDays: 15, priceUsd: 7, priceFcfaLabel: "4 086 FCFA", purchasable: true },
-  MONTHLY: { dbValue: "premium_monthly", label: "Mensuel", periodDays: 30, priceUsd: 12, priceFcfaLabel: "7 003 FCFA", purchasable: true },
-  QUARTERLY: { dbValue: "premium_quarterly", label: "Trimestriel", periodDays: 90, priceUsd: 30, priceFcfaLabel: "17 507 FCFA", purchasable: true },
+  WEEKLY: { dbValue: "premium_weekly", label: "1 semaine", periodDays: 7, priceUsd: 4, priceFcfa: 2335, priceFcfaLabel: "2 335 FCFA", purchasable: true },
+  HALF_MONTH: {
+    dbValue: "premium_half_month",
+    label: "Mi-mois (15 jours)",
+    periodDays: 15,
+    priceUsd: 7,
+    priceFcfa: 4086,
+    priceFcfaLabel: "4 086 FCFA",
+    purchasable: true
+  },
+  MONTHLY: { dbValue: "premium_monthly", label: "Mensuel", periodDays: 30, priceUsd: 12, priceFcfa: 7003, priceFcfaLabel: "7 003 FCFA", purchasable: true },
+  QUARTERLY: {
+    dbValue: "premium_quarterly",
+    label: "Trimestriel",
+    periodDays: 90,
+    priceUsd: 30,
+    priceFcfa: 17507,
+    priceFcfaLabel: "17 507 FCFA",
+    purchasable: true
+  },
   // Retiré de la vente le 2026-09-02 (retour à une offre multi-durées) — reste
   // défini pour les abonnés déjà actifs sur ce plan. Ne jamais supprimer.
-  ACCESS: { dbValue: "premium_access", label: "Accès complet", periodDays: 30, priceUsd: 7, priceFcfaLabel: "4 086 FCFA", purchasable: false }
+  ACCESS: { dbValue: "premium_access", label: "Accès complet", periodDays: 30, priceUsd: 7, priceFcfa: 4086, priceFcfaLabel: "4 086 FCFA", purchasable: false }
 };
 
 /** Plans proposés à l'achat aujourd'hui, dans l'ordre d'affichage (le plus court au plus long). */

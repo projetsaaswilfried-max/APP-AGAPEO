@@ -41,6 +41,16 @@ export function getChariowApiKey(): string {
   return requireEnv("CHARIOW_API_KEY", process.env.CHARIOW_API_KEY);
 }
 
+/** Clé API secrète SasPay (sk_live_... ou sk_test_...) — jamais exposée côté client, appels server-only. */
+export function getSasPayApiKey(): string {
+  return requireEnv("SASPAY_API_KEY", process.env.SASPAY_API_KEY);
+}
+
+/** Secret de signature du webhook SasPay (HMAC-SHA256 sur `${timestamp}.${corps brut}`) — cf. src/lib/saspay-webhook-handler.ts. */
+export function getSasPayWebhookSecret(): string {
+  return requireEnv("SASPAY_WEBHOOK_SECRET", process.env.SASPAY_WEBHOOK_SECRET);
+}
+
 export type ChariowPlanKey = "WEEKLY" | "HALF_MONTH" | "MONTHLY" | "QUARTERLY" | "ACCESS";
 
 // MONTHLY garde les noms de variables historiques (sans suffixe) pour ne pas
