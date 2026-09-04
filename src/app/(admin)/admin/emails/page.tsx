@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, listAllAuthUsers, fetchAllRows } from "@/lib/supabase/admin";
 import { requireAdminSession } from "@/lib/supabase/session";
 import { AdminEmailComposer, type DirectRecipientOption } from "@/components/features/admin/admin-email-composer";
 import type { EmailCampaignRow, ProfileRow, ProfileRestrictedRow } from "@/lib/supabase/database.types";
@@ -9,16 +9,15 @@ export default async function AdminEmailsPage() {
   await requireAdminSession();
   const admin = createAdminClient();
 
-  const [{ data: profiles }, { data: restricted }, { data: campaigns }] = await Promise.all([
-    admin.from("profiles").select("*").eq("is_test_account", false),
-    admin.from("profile_restricted").select("id, subscription_status"),
+  const [rows, restricted, { data: campaigns }] = await Promise.all([
+    fetchAllRows<ProfileRow>((from, to) => admin.from("profiles").select("*").eq("is_test_account", false).range(from, to)),
+    fetchAllRows<Pick<ProfileRestrictedRow, "id" | "subscription_status">>((from, to) =>
+      admin.from("profile_restricted").select("id, subscription_status").range(from, to)
+    ),
     admin.from("email_campaigns").select("*").order("sent_at", { ascending: false }).limit(30)
   ]);
 
-  const rows = (profiles ?? []) as ProfileRow[];
-  const subscriptionById = new Map(
-    ((restricted ?? []) as Pick<ProfileRestrictedRow, "id" | "subscription_status">[]).map((r) => [r.id, r.subscription_status])
-  );
+  const subscriptionById = new Map(restricted.map((r) => [r.id, r.subscription_status]));
   const counts: Record<Exclude<EmailAudience, "DIRECT">, number> = {
     ALL: rows.length,
     PREMIUM: rows.filter((p) => subscriptionById.get(p.id) === "ACTIVE").length,
@@ -27,8 +26,8 @@ export default async function AdminEmailsPage() {
     INCOMPLETE_PROFILE: rows.filter((p) => !isProfileComplete(p)).length
   };
 
-  const { data: usersPage } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const emailById = new Map(usersPage?.users.map((u) => [u.id, u.email ?? ""]) ?? []);
+  const authUsers = await listAllAuthUsers(admin);
+  const emailById = new Map(authUsers.map((u) => [u.id, u.email ?? ""]));
   const directRecipients: DirectRecipientOption[] = rows
     .map((p) => ({ id: p.id, name: `${p.first_name} ${p.last_name ?? ""}`.trim(), email: emailById.get(p.id) ?? "" }))
     .filter((r) => Boolean(r.email));

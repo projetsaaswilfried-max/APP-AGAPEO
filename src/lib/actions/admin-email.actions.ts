@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, listAllAuthUsers, fetchAllRows } from "@/lib/supabase/admin";
 import { requireAdminSession } from "@/lib/supabase/session";
 import { logAdminAction } from "@/lib/audit-log";
 import { getResendApiKey } from "@/config/env";
@@ -21,13 +21,16 @@ async function resolveAudienceProfiles(audience: EmailAudience, directRecipientI
     return data ? [data as ProfileRow] : [];
   }
 
-  const { data: profiles } = await admin.from("profiles").select("*").eq("is_test_account", false);
-  let rows = (profiles ?? []) as ProfileRow[];
+  let rows = await fetchAllRows<ProfileRow>((from, to) =>
+    admin.from("profiles").select("*").eq("is_test_account", false).range(from, to)
+  );
 
   if (audience === "PREMIUM" || audience === "NO_SUBSCRIPTION") {
     const status = audience === "PREMIUM" ? "ACTIVE" : "FREE";
-    const { data: restricted } = await admin.from("profile_restricted").select("id").eq("subscription_status", status);
-    const allowedIds = new Set((restricted ?? []).map((r) => r.id));
+    const restricted = await fetchAllRows<{ id: string }>((from, to) =>
+      admin.from("profile_restricted").select("id").eq("subscription_status", status).range(from, to)
+    );
+    const allowedIds = new Set(restricted.map((r) => r.id));
     rows = rows.filter((p) => allowedIds.has(p.id));
   }
   if (audience === "VERIFIED") rows = rows.filter((p) => p.photo_verification_status === "VERIFIED");
@@ -151,8 +154,8 @@ export async function sendEmailCampaignAction(input: {
     return { error: `Aucun destinataire dans "${AUDIENCE_LABELS[input.audience]}" pour le moment.` };
   }
 
-  const { data: usersPage } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const emailById = new Map(usersPage?.users.map((u) => [u.id, u.email ?? ""]) ?? []);
+  const authUsers = await listAllAuthUsers(admin);
+  const emailById = new Map(authUsers.map((u) => [u.id, u.email ?? ""]));
 
   const recipients: Recipient[] = profiles
     .map((p) => ({ email: emailById.get(p.id) ?? "", firstName: p.first_name }))

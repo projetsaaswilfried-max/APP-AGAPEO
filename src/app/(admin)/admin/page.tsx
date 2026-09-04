@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, fetchAllRows } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
 import { AdminOverviewActivity } from "@/components/features/admin/admin-overview-activity";
 import { Users, ShieldCheck, Flag, FlaskConical, Crown } from "lucide-react";
@@ -13,15 +13,15 @@ export default async function AdminOverviewPage() {
     { count: pendingReports },
     { count: pendingVerifications },
     { count: premiumUsers },
-    { data: newUsers },
+    newUsers,
     { data: messages },
     { data: conversations },
     { data: personalPosts },
     { data: officialPosts },
     { data: favorites },
     { data: transactions },
-    { data: onboardingEventsRaw },
-    { data: testAccountRows }
+    onboardingEventsRaw,
+    testAccountRows
   ] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("is_test_account", false),
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("is_test_account", true),
@@ -31,21 +31,30 @@ export default async function AdminOverviewPage() {
     admin.from("profile_restricted").select("id", { count: "exact", head: true }).eq("subscription_status", "ACTIVE"),
     // Horodatages bruts (pas de count:head) : nécessaires au filtrage par
     // date choisie côté client, cf. AdminOverviewActivity — même pattern que
-    // AdminTransactionsList, volumes actuels compatibles avec un filtrage
-    // en mémoire (quelques dizaines de lignes par table).
-    admin.from("profiles").select("created_at, gender").eq("is_test_account", false),
+    // AdminTransactionsList. `profiles` et `onboarding_events` dépassent
+    // désormais 1000 lignes (respectivement ~1670 et ~11000) : paginés via
+    // fetchAllRows pour ne pas silencieusement tronquer les stats aux plus
+    // récentes (bug réel trouvé le 2026-09-03, cf. memory correspondante).
+    fetchAllRows<{ created_at: string; gender: "MALE" | "FEMALE" }>((from, to) =>
+      admin.from("profiles").select("created_at, gender").eq("is_test_account", false).range(from, to)
+    ),
     admin.from("messages").select("created_at"),
     admin.from("conversations").select("created_at"),
     admin.from("posts").select("created_at").eq("post_type", "PERSONAL"),
     admin.from("posts").select("created_at").eq("post_type", "OFFICIAL"),
     admin.from("favorites").select("created_at"),
     admin.from("transactions").select("created_at"),
-    admin.from("onboarding_events").select("user_id, event_type, step_key, created_at"),
-    admin.from("profiles").select("id").eq("is_test_account", true)
+    fetchAllRows<{
+      user_id: string;
+      event_type: "STEP_VIEWED" | "SELFIE_CAMERA_DENIED" | "SELFIE_CAPTURED" | "VERIFICATION_SUBMITTED";
+      step_key: string | null;
+      created_at: string;
+    }>((from, to) => admin.from("onboarding_events").select("user_id, event_type, step_key, created_at").range(from, to)),
+    fetchAllRows<{ id: string }>((from, to) => admin.from("profiles").select("id").eq("is_test_account", true).range(from, to))
   ]);
 
-  const testAccountIds = new Set((testAccountRows ?? []).map((p) => p.id));
-  const onboardingEvents = (onboardingEventsRaw ?? []).filter((e) => !testAccountIds.has(e.user_id));
+  const testAccountIds = new Set(testAccountRows.map((p) => p.id));
+  const onboardingEvents = onboardingEventsRaw.filter((e) => !testAccountIds.has(e.user_id));
 
   const currentStats = [
     { label: "Membres réels", value: totalUsers ?? 0, icon: Users, accent: false },

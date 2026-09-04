@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, listAllAuthUsers, fetchAllRows } from "@/lib/supabase/admin";
 import { requireAdminSession } from "@/lib/supabase/session";
 import { AdminUsersTable, type AdminUserRow } from "@/components/features/admin/admin-users-table";
 import type { ProfileRow, ProfileRestrictedRow } from "@/lib/supabase/database.types";
@@ -7,16 +7,16 @@ export default async function AdminUsersPage() {
   await requireAdminSession();
   const admin = createAdminClient();
 
-  const [{ data: profiles }, { data: restricted }, { data: usersPage }] = await Promise.all([
-    admin.from("profiles").select("*").order("created_at", { ascending: false }),
-    admin.from("profile_restricted").select("*"),
-    admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  const [profiles, restricted, authUsers] = await Promise.all([
+    fetchAllRows<ProfileRow>((from, to) => admin.from("profiles").select("*").order("created_at", { ascending: false }).range(from, to)),
+    fetchAllRows<ProfileRestrictedRow>((from, to) => admin.from("profile_restricted").select("*").range(from, to)),
+    listAllAuthUsers(admin)
   ]);
 
-  const emailById = new Map(usersPage?.users.map((u) => [u.id, u.email ?? ""]) ?? []);
-  const restrictedById = new Map(((restricted ?? []) as ProfileRestrictedRow[]).map((r) => [r.id, r]));
+  const emailById = new Map(authUsers.map((u) => [u.id, u.email ?? ""]));
+  const restrictedById = new Map(restricted.map((r) => [r.id, r]));
 
-  const rows: AdminUserRow[] = ((profiles ?? []) as ProfileRow[]).map((p) => {
+  const rows: AdminUserRow[] = profiles.map((p) => {
     const r = restrictedById.get(p.id);
     return {
       id: p.id,
