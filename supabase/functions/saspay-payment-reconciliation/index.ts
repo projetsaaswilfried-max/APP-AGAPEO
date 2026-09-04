@@ -41,7 +41,10 @@ async function getCheckoutSession(sessionId: string): Promise<SasPaySession | nu
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Lecture session ${sessionId} échouée (${res.status})`);
-  return await res.json();
+  // Réponse réelle enveloppée dans { success, data, code } — vérifié en
+  // direct le 2026-09-04, contrairement aux exemples "à plat" de leur doc.
+  const json = await res.json();
+  return json?.data ?? null;
 }
 
 async function sha256Hex(value: string): Promise<string> {

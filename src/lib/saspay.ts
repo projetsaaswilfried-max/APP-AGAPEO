@@ -82,12 +82,16 @@ export async function initiateSasPayCheckout(input: InitiateSasPayCheckoutInput)
     })
   });
 
+  // Malgré les exemples "à plat" de leur documentation OpenAPI, l'API réelle
+  // enveloppe systématiquement la réponse dans { success, data, code }
+  // (vérifié en direct le 2026-09-04) — jamais les champs au premier niveau.
   const json = await res.json().catch(() => null);
-  if (!res.ok || !json?.id) {
+  const data = json?.data as SasPayCheckoutSessionRaw | undefined;
+  if (!res.ok || !data?.id) {
     throw new Error(json?.message || `Le paiement n'a pas pu être initié (code ${res.status}).`);
   }
 
-  return mapSession(json as SasPayCheckoutSessionRaw);
+  return mapSession(data);
 }
 
 /** Lecture d'une session existante — utilisée par la réconciliation pour savoir si elle a fini par être payée. */
@@ -97,8 +101,9 @@ export async function getSasPayCheckoutSession(sessionId: string): Promise<SasPa
   });
   if (res.status === 404) return null;
   const json = await res.json().catch(() => null);
-  if (!res.ok || !json?.id) {
+  const data = json?.data as SasPayCheckoutSessionRaw | undefined;
+  if (!res.ok || !data?.id) {
     throw new Error(json?.message || `Lecture de la session SasPay ${sessionId} échouée (code ${res.status}).`);
   }
-  return mapSession(json as SasPayCheckoutSessionRaw);
+  return mapSession(data);
 }
