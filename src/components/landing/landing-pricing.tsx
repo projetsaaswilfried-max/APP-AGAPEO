@@ -5,13 +5,13 @@ import { PREMIUM_PLANS, PURCHASABLE_PLAN_KEYS, type PremiumPlanKey } from "@/dom
 const FREE_INCLUDED = [
   "Créer et compléter son profil",
   "Être visible dans Découvrir",
-  "Consulter 10 profils par mois",
   "Recevoir des messages",
   "Vérification de profil sous 48h"
 ];
 
 const FREE_EXCLUDED = [
   "Rechercher / filtrer les profils",
+  "Consulter les profils",
   "Répondre aux messages / initier une conversation",
   "Mettre des profils en favori",
   "Voir qui s'intéresse à toi",

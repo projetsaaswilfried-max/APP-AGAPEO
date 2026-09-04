@@ -11,8 +11,6 @@ import { Button } from "@/components/ui/button";
 import { UserX, Crown, ShieldAlert } from "lucide-react";
 import type { ProfileRow, PostRow, PostMediaRow } from "@/lib/supabase/database.types";
 
-const MONTHLY_VIEW_LIMIT = 10;
-
 export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { user, profile: viewerRow } = await requireSession();
@@ -46,39 +44,27 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     );
   }
 
+  // Consulter une fiche complète est désormais réservé Premium — aucune
+  // grâce mensuelle, même via l'URL directe (cf. le même garde côté client
+  // pour la modale de Découvrir, discover/page.tsx).
   const isPremiumViewer = viewerRow.subscription_status === "ACTIVE" || viewerRow.role !== "USER";
   if (!isPremiumViewer) {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const { data: viewedRows } = await supabase
-      .from("profile_views")
-      .select("viewed_profile_id")
-      .eq("viewer_id", user.id)
-      .gte("created_at", startOfMonth.toISOString());
-
-    const distinctViewedIds = new Set((viewedRows ?? []).map((r) => r.viewed_profile_id));
-    const alreadyViewedThisProfile = distinctViewedIds.has(id);
-
-    if (!alreadyViewedThisProfile && distinctViewedIds.size >= MONTHLY_VIEW_LIMIT) {
-      return (
-        <div className="max-w-md mx-auto py-16">
-          <EmptyState
-            icon={<Crown size={24} />}
-            title={`Tu as consulté ${MONTHLY_VIEW_LIMIT} profils ce mois-ci`}
-            description="Passe Premium pour consulter des profils sans limite."
-            action={
-              <Link href="/premium">
-                <Button variant="primary" size="sm" leftIcon={<Crown size={15} />}>
-                  Découvrir Premium
-                </Button>
-              </Link>
-            }
-          />
-        </div>
-      );
-    }
+    return (
+      <div className="max-w-md mx-auto py-16">
+        <EmptyState
+          icon={<Crown size={24} />}
+          title="Passe Premium pour consulter les profils"
+          description="La consultation des fiches profil est réservée aux membres Premium — abonne-toi pour en consulter autant que tu veux."
+          action={
+            <Link href="/premium">
+              <Button variant="primary" size="sm" leftIcon={<Crown size={15} />}>
+                Découvrir Premium
+              </Button>
+            </Link>
+          }
+        />
+      </div>
+    );
   }
 
   const { data: targetRow } = await supabase.from("profiles").select("*").eq("id", id).single();

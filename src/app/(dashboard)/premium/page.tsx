@@ -21,11 +21,11 @@ const initialState: PremiumCheckoutState = undefined;
 const FREE_FEATURES = [
   { label: "Créer et compléter son profil", included: true },
   { label: "Être visible dans Découvrir", included: true },
-  { label: "Consulter 10 profils par mois", included: true },
   { label: "Recevoir des messages", included: true },
   { label: "Vérification de profil sous 48h", included: true },
   { label: "2 photos de profil", included: true },
   { label: "Rechercher / filtrer les profils", included: false },
+  { label: "Consulter les profils", included: false },
   { label: "Envoyer des invitations", included: false },
   { label: "Envoyer des messages", included: false },
   { label: "Mettre des profils en favori", included: false },

@@ -59,6 +59,10 @@ function DiscoverPageContent() {
   // Recherche et filtres (y compris la recherche de base âge/pays/statut)
   // réservés Premium — cf. le même garde côté serveur dans discover.service.ts.
   const canUseAdvancedFilters = profile.subscription_status === "ACTIVE" || profile.is_staff;
+  // Consulter une fiche complète (ouvrir la fiche détaillée) est également
+  // réservé Premium, sans grâce — même garde côté serveur pour l'URL directe
+  // (/profile/[id]/page.tsx) et côté RPC (record_profile_view).
+  const canViewProfiles = profile.subscription_status === "ACTIVE" || profile.is_staff;
   const [profiles, setProfiles] = useState<RecommendedProfileItem[]>([]);
   const [filters, setFilters] = useState<DiscoverFilterCriteria>(() => {
     const search = searchParams.get("search");
@@ -334,6 +338,11 @@ function DiscoverPageContent() {
                 item={item}
                 canInteract={canInteract}
                 onInspectProfile={(prof) => {
+                  if (!canViewProfiles) {
+                    setPremiumReason("consulter les profils");
+                    setIsPremiumRequiredOpen(true);
+                    return;
+                  }
                   setSelectedProfile(prof);
                   setIsInspectorOpen(true);
                 }}
@@ -360,6 +369,11 @@ function DiscoverPageContent() {
                 item={item}
                 canInteract={canInteract}
                 onInspectProfile={(prof) => {
+                  if (!canViewProfiles) {
+                    setPremiumReason("consulter les profils");
+                    setIsPremiumRequiredOpen(true);
+                    return;
+                  }
                   setSelectedProfile(prof);
                   setIsInspectorOpen(true);
                 }}
@@ -381,7 +395,7 @@ function DiscoverPageContent() {
         onToggleLike={handleToggleLike}
         onSendMessage={handleSendMessage}
         onViewLimitReached={() => {
-          setPremiumReason("consulter plus de 10 profils ce mois-ci");
+          setPremiumReason("consulter les profils");
           setIsPremiumRequiredOpen(true);
         }}
       />
