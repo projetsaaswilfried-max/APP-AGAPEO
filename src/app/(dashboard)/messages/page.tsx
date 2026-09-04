@@ -15,7 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, AlertCircle, MoreVertical, Flag, Ban, Bookmark, Trash2, Heart } from "lucide-react";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { ArrowLeft, MessageSquare, AlertCircle, MoreVertical, Flag, Ban, Bookmark, Trash2, Heart, ImageIcon, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
@@ -54,6 +55,8 @@ function MessagesPageContent() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [otherIsTyping, setOtherIsTyping] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const [isProfileOptionsOpen, setIsProfileOptionsOpen] = useState(false);
+  const [isAvatarLightboxOpen, setIsAvatarLightboxOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isBlockOpen, setIsBlockOpen] = useState(false);
   const [isDeleteConvOpen, setIsDeleteConvOpen] = useState(false);
@@ -418,24 +421,30 @@ function MessagesPageContent() {
                     <ArrowLeft size={18} />
                   </button>
 
-                  <Avatar
-                    size="md"
-                    src={activeConv.participant.avatarUrl}
-                    fallback={activeConv.participant.firstName.charAt(0)}
-                    isVerified={activeConv.participant.badges.some((b) => b.code === "VERIFIED_FAITH")}
-                    isOnline={activeConv.isOnline}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileOptionsOpen(true)}
+                    className="flex items-center gap-3 min-w-0 rounded-2xl -mx-1.5 -my-1 px-1.5 py-1 hover:bg-secondary/70 active:scale-[0.98] transition-all"
+                  >
+                    <Avatar
+                      size="md"
+                      src={activeConv.participant.avatarUrl}
+                      fallback={activeConv.participant.firstName.charAt(0)}
+                      isVerified={activeConv.participant.badges.some((b) => b.code === "VERIFIED_FAITH")}
+                      isOnline={activeConv.isOnline}
+                    />
 
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground tracking-tight">
-                        {activeConv.participant.firstName} {activeConv.participant.lastName}
+                    <div className="flex flex-col items-start min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-semibold text-foreground tracking-tight truncate">
+                          {activeConv.participant.firstName} {activeConv.participant.lastName}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">
+                        {otherIsTyping ? "est en train d'écrire..." : activeConv.isOnline ? "En ligne" : activeConv.lastSeen ? `Vu le ${activeConv.lastSeen}` : "Hors ligne"}
                       </span>
                     </div>
-                    <span className="text-[11px] text-muted-foreground">
-                      {otherIsTyping ? "est en train d'écrire..." : activeConv.isOnline ? "En ligne" : activeConv.lastSeen ? `Vu le ${activeConv.lastSeen}` : "Hors ligne"}
-                    </span>
-                  </div>
+                  </button>
                 </div>
 
                 <div className="relative">
@@ -669,6 +678,45 @@ function MessagesPageContent() {
       {activeConv && (
         <>
           <ReportModal isOpen={isReportOpen} onClose={() => setIsReportOpen(false)} targetType="PROFILE" targetId={activeConv.participant.id} />
+
+          <Modal
+            isOpen={isProfileOptionsOpen}
+            onClose={() => setIsProfileOptionsOpen(false)}
+            title={`${activeConv.participant.firstName} ${activeConv.participant.lastName}`}
+            maxWidth="sm"
+          >
+            <div className="space-y-2">
+              {activeConv.participant.avatarUrl && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start"
+                  leftIcon={<ImageIcon size={16} />}
+                  onClick={() => {
+                    setIsProfileOptionsOpen(false);
+                    setIsAvatarLightboxOpen(true);
+                  }}
+                >
+                  Voir la photo de profil
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="primary"
+                className="w-full justify-start"
+                leftIcon={<UserRound size={16} />}
+                onClick={() => router.push(`/profile/${activeConv.participant.id}`)}
+              >
+                Voir le profil complet
+              </Button>
+            </div>
+          </Modal>
+
+          <ImageLightbox
+            src={isAvatarLightboxOpen ? activeConv.participant.avatarUrl || null : null}
+            alt={`${activeConv.participant.firstName} ${activeConv.participant.lastName}`}
+            onClose={() => setIsAvatarLightboxOpen(false)}
+          />
           <BlockConfirmModal
             isOpen={isBlockOpen}
             onClose={() => setIsBlockOpen(false)}
