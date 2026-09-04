@@ -81,7 +81,7 @@ async function sendMetaPurchaseEvent(eventId: string, email: string, userId: str
   }
 }
 
-async function sendActivationEmail(to: string, firstName: string, amountFcfa: number, periodEnd: Date, periodDays: number) {
+async function sendActivationEmail(to: string, firstName: string, amount: number, currency: string, periodEnd: Date, periodDays: number) {
   if (!RESEND_API_KEY) return;
   try {
     const html = buildAgapeoEmailHtml({
@@ -100,7 +100,7 @@ async function sendActivationEmail(to: string, firstName: string, amountFcfa: nu
         </p>
       `,
       infoRows: [
-        { label: "Montant", value: `${amountFcfa} FCFA` },
+        { label: "Montant", value: `${amount} ${currency}` },
         { label: "Valable jusqu'au", value: periodEnd.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) }
       ],
       ctaText: "Découvrir Premium",
@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
 
   const { data: pending } = await admin
     .from("transactions")
-    .select("id, user_id, plan, provider_reference")
+    .select("id, user_id, plan, provider_reference, amount_cents, currency")
     .eq("provider", "saspay")
     .eq("status", "PENDING");
 
@@ -158,10 +158,15 @@ Deno.serve(async (req) => {
 
     if (payment.status !== "SUCCESS") continue;
 
-    if (Math.round(Number(payment.requested_amount)) !== plan.priceFcfa) {
+    // Comparé au montant réellement demandé à la création de CETTE
+    // transaction (déjà converti dans sa devise locale, cf.
+    // src/lib/fx-rates.ts côté app Next.js) — jamais plan.priceFcfa, qui n'est
+    // valable que pour les pays en Franc CFA (XOF/XAF).
+    const expectedAmount = tx.amount_cents / 100;
+    if (Math.round(Number(payment.requested_amount)) !== expectedAmount) {
       results.push({
         transactionId: tx.id,
-        outcome: `IGNORÉE — montant ${payment.requested_amount} XOF ne correspond pas au plan attendu (${plan.priceFcfa} XOF)`
+        outcome: `IGNORÉE — montant ${payment.requested_amount} ${tx.currency} ne correspond pas au montant attendu (${expectedAmount} ${tx.currency})`
       });
       continue;
     }
@@ -203,7 +208,7 @@ Deno.serve(async (req) => {
       admin.auth.admin.getUserById(tx.user_id)
     ]);
     if (memberProfile && authUser?.user?.email) {
-      await sendActivationEmail(authUser.user.email, memberProfile.first_name, plan.priceFcfa, newPeriodEnd, plan.periodDays);
+      await sendActivationEmail(authUser.user.email, memberProfile.first_name, expectedAmount, tx.currency, newPeriodEnd, plan.periodDays);
       await sendMetaPurchaseEvent(
         `${tx.user_id}:${Math.floor(newPeriodEnd.getTime() / 1000)}`,
         authUser.user.email,

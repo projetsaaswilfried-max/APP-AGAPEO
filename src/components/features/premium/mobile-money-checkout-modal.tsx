@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import {
   initiateMobileMoneyPaymentAction,
   checkMobileMoneyPaymentStatusAction,
-  confirmMobileMoneyOtpAction
+  confirmMobileMoneyOtpAction,
+  getMobileMoneyPriceQuoteAction
 } from "@/lib/actions/mobile-money.actions";
 import { SASPAY_COUNTRIES, findSasPayCountry } from "@/config/saspay-networks";
 import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
@@ -32,6 +33,8 @@ export function MobileMoneyCheckoutModal({ plan, onClose }: MobileMoneyCheckoutM
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [priceQuote, setPriceQuote] = useState<{ amount: number; currency: string } | null>(null);
+  const [isQuoteLoading, setIsQuoteLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const country = findSasPayCountry(countryCode);
@@ -48,6 +51,24 @@ export function MobileMoneyCheckoutModal({ plan, onClose }: MobileMoneyCheckoutM
       setTransactionId(null);
     }
   }, [plan]);
+
+  // Le montant réellement facturé dépend du pays choisi — SasPay facture dans
+  // sa devise locale, pas systématiquement en FCFA (cf. src/lib/fx-rates.ts).
+  // Sans cet aperçu, "2 335 FCFA" resterait affiché même pour un pays dont la
+  // charge réelle est en Cedi, Naira, Shilling... ce qui induirait en erreur.
+  useEffect(() => {
+    if (!plan) return;
+    let cancelled = false;
+    setIsQuoteLoading(true);
+    getMobileMoneyPriceQuoteAction(plan, countryCode).then((result) => {
+      if (cancelled) return;
+      setIsQuoteLoading(false);
+      setPriceQuote(result.amount !== undefined && result.currency ? { amount: result.amount, currency: result.currency } : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [plan, countryCode]);
 
   useEffect(
     () => () => {
@@ -131,7 +152,12 @@ export function MobileMoneyCheckoutModal({ plan, onClose }: MobileMoneyCheckoutM
         <div className="space-y-3">
           {plan && (
             <p className="text-xs text-muted-foreground">
-              {PREMIUM_PLANS[plan].label} — {PREMIUM_PLANS[plan].priceFcfaLabel}
+              {PREMIUM_PLANS[plan].label} —{" "}
+              {isQuoteLoading
+                ? "calcul du montant..."
+                : priceQuote
+                  ? `${priceQuote.amount.toLocaleString("fr-FR")} ${priceQuote.currency === "XOF" || priceQuote.currency === "XAF" ? "FCFA" : priceQuote.currency}`
+                  : PREMIUM_PLANS[plan].priceFcfaLabel}
             </p>
           )}
 

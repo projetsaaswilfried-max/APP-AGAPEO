@@ -4,7 +4,8 @@ import { getSasPayApiKey } from "@/config/env";
 const SASPAY_API_BASE = "https://api.saspay.me/api/v1";
 
 export interface InitiateSasPaySoftpayInput {
-  amountFcfa: number;
+  /** Dans `currency` ci-dessous — déjà converti depuis le prix FCFA de référence, cf. src/lib/fx-rates.ts. */
+  amount: number;
   currency: string;
   countryCode: string;
   network: string;
@@ -89,7 +90,7 @@ export async function initiateSasPaySoftpay(input: InitiateSasPaySoftpayInput): 
       "Idempotency-Key": input.idempotencyKey
     },
     body: JSON.stringify({
-      amount: input.amountFcfa.toFixed(2),
+      amount: input.amount.toFixed(2),
       currency: input.currency,
       country: input.countryCode,
       network: input.network,

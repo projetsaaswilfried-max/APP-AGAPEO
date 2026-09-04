@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { initiateSasPaySoftpay, confirmSasPayOtp, getSasPayPaymentStatus } from "@/lib/saspay";
 import { activateSasPayTransaction } from "@/lib/saspay-webhook-handler";
 import { getActivePaymentProviderAction } from "@/lib/actions/payment-settings.actions";
+import { convertFcfaToLocalAmount } from "@/lib/fx-rates";
 import { findSasPayCountry } from "@/config/saspay-networks";
 import { PREMIUM_PLANS, PURCHASABLE_PLAN_KEYS, type PremiumPlanKey } from "@/domain/premium-plans";
 
@@ -57,8 +58,10 @@ export async function initiateMobileMoneyPaymentAction(input: {
   const admin = createAdminClient();
 
   try {
+    const localAmount = await convertFcfaToLocalAmount(planConfig.priceFcfa, country.currency);
+
     const payment = await initiateSasPaySoftpay({
-      amountFcfa: planConfig.priceFcfa,
+      amount: localAmount,
       currency: country.currency,
       countryCode: country.code,
       network: network.code,
@@ -74,7 +77,7 @@ export async function initiateMobileMoneyPaymentAction(input: {
     const { error: txError } = await admin.from("transactions").upsert(
       {
         user_id: user.id,
-        amount_cents: Math.round(planConfig.priceFcfa * 100),
+        amount_cents: Math.round(localAmount * 100),
         currency: country.currency,
         status: "PENDING",
         plan: planConfig.dbValue,
@@ -91,6 +94,31 @@ export async function initiateMobileMoneyPaymentAction(input: {
   }
 }
 
+export interface MobileMoneyPriceQuote {
+  amount?: number;
+  currency?: string;
+  error?: string;
+}
+
+/**
+ * Aperçu du montant réellement facturé dans la devise locale, affiché dans la
+ * modale dès que le client choisit son pays — sans ça, le prix FCFA de
+ * référence resterait affiché tel quel alors que la charge réelle (une fois
+ * convertie, cf. src/lib/fx-rates.ts) est dans une autre devise.
+ */
+export async function getMobileMoneyPriceQuoteAction(plan: string, countryCode: string): Promise<MobileMoneyPriceQuote> {
+  const planKey: PremiumPlanKey = PURCHASABLE_PLAN_KEYS.includes(plan as PremiumPlanKey) ? (plan as PremiumPlanKey) : "MONTHLY";
+  const country = findSasPayCountry(countryCode);
+  if (!country) return { error: "Pays non pris en charge pour le Mobile Money." };
+
+  try {
+    const amount = await convertFcfaToLocalAmount(PREMIUM_PLANS[planKey].priceFcfa, country.currency);
+    return { amount, currency: country.currency };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Taux de change indisponible pour le moment." };
+  }
+}
+
 async function loadOwnTransaction(transactionId: string) {
   const supabase = await createClient();
   const {
@@ -101,7 +129,7 @@ async function loadOwnTransaction(transactionId: string) {
   const admin = createAdminClient();
   const { data: tx } = await admin
     .from("transactions")
-    .select("id, user_id, plan, status, provider_reference")
+    .select("id, user_id, plan, status, provider_reference, amount_cents, currency")
     .eq("provider", "saspay")
     .eq("provider_reference", transactionId)
     .maybeSingle();
@@ -143,7 +171,10 @@ export async function checkMobileMoneyPaymentStatusAction(transactionId: string)
   }
 
   if (payment.status === "SUCCESS") {
-    await activateSasPayTransaction({ id: tx.id, user_id: tx.user_id, plan: tx.plan }, payment.requestedAmount);
+    await activateSasPayTransaction(
+      { id: tx.id, user_id: tx.user_id, plan: tx.plan, amount_cents: tx.amount_cents, currency: tx.currency },
+      payment.requestedAmount
+    );
     return { status: "SUCCEEDED" };
   }
 
@@ -160,7 +191,12 @@ export async function confirmMobileMoneyOtpAction(transactionId: string, otp: st
     const result = await confirmSasPayOtp(transactionId, otp);
     if (result.status === "SUCCESS") {
       const payment = await getSasPayPaymentStatus(transactionId);
-      if (payment) await activateSasPayTransaction({ id: tx.id, user_id: tx.user_id, plan: tx.plan }, payment.requestedAmount);
+      if (payment) {
+        await activateSasPayTransaction(
+          { id: tx.id, user_id: tx.user_id, plan: tx.plan, amount_cents: tx.amount_cents, currency: tx.currency },
+          payment.requestedAmount
+        );
+      }
       return { status: "SUCCEEDED" };
     }
     return { status: "PENDING" };

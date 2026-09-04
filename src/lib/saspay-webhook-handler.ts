@@ -73,6 +73,9 @@ interface PendingSasPayTransaction {
   id: string;
   user_id: string;
   plan: string | null;
+  /** Montant réellement demandé à la création (déjà converti dans sa devise locale, cf. src/lib/fx-rates.ts) — jamais recalculé ici depuis le prix FCFA du plan, qui ne correspond qu'aux pays en Franc CFA. */
+  amount_cents: number;
+  currency: string;
 }
 
 /**
@@ -92,11 +95,14 @@ export async function activateSasPayTransaction(tx: PendingSasPayTransaction, re
   const plan = PREMIUM_PLANS[planKey];
 
   // Garde-fou de configuration, même principe que côté Chariow : si le
-  // montant réellement payé ne correspond pas au plan attendu, on n'accorde
-  // pas l'accès sur la seule foi que le statut est "SUCCESS".
-  if (Math.round(Number(requestedAmount)) !== plan.priceFcfa) {
+  // montant réellement payé ne correspond pas à celui demandé à la création
+  // de CETTE transaction (déjà converti dans sa devise locale, jamais
+  // `plan.priceFcfa` qui n'est valable que pour les pays en Franc CFA), on
+  // n'accorde pas l'accès sur la seule foi que le statut est "SUCCESS".
+  const expectedAmount = tx.amount_cents / 100;
+  if (Math.round(Number(requestedAmount)) !== expectedAmount) {
     console.error(
-      `Paiement SasPay ${tx.id} : montant ${requestedAmount} XOF ne correspond pas au plan ${planKey} (${plan.priceFcfa} XOF attendu) — accès NON accordé.`
+      `Paiement SasPay ${tx.id} : montant ${requestedAmount} ${tx.currency} ne correspond pas au montant attendu (${expectedAmount} ${tx.currency}) — accès NON accordé.`
     );
     return false;
   }
@@ -139,7 +145,7 @@ export async function activateSasPayTransaction(tx: PendingSasPayTransaction, re
     await sendPremiumActivatedEmail(
       authUser.user.email,
       memberProfile.first_name,
-      { value: plan.priceFcfa, currency: "XOF" },
+      { value: tx.amount_cents / 100, currency: tx.currency },
       newPeriodEnd,
       plan.periodDays
     );
@@ -166,7 +172,7 @@ export async function reconcilePendingSasPayTransactions(): Promise<{ checked: n
   const admin = createAdminClient();
   const { data: pending } = await admin
     .from("transactions")
-    .select("id, user_id, plan, provider_reference")
+    .select("id, user_id, plan, provider_reference, amount_cents, currency")
     .eq("provider", "saspay")
     .eq("status", "PENDING");
 
@@ -192,7 +198,7 @@ export async function reconcilePendingSasPayTransactions(): Promise<{ checked: n
     if (payment.status !== "SUCCESS") continue;
 
     const didActivate = await activateSasPayTransaction(
-      { id: tx.id, user_id: tx.user_id, plan: tx.plan },
+      { id: tx.id, user_id: tx.user_id, plan: tx.plan, amount_cents: tx.amount_cents, currency: tx.currency },
       payment.requestedAmount
     );
     if (didActivate) activated.push(tx.id);
