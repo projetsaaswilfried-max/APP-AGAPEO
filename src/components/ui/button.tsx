@@ -28,8 +28,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    // leading-snug : garde les libellés qui passent sur 2 lignes lisibles et
+    // compacts entre eux, pendant que le py des tailles ci-dessous gère
+    // l'espace vers les bords arrondis du bouton.
     const baseStyles =
-      "inline-flex items-center justify-center font-medium tracking-tight rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.97] select-none";
+      "inline-flex items-center justify-center font-medium tracking-tight leading-snug rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-40 disabled:pointer-events-none active:scale-[0.97] select-none";
 
     const variants = {
       primary:
@@ -44,10 +47,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         "bg-destructive text-destructive-foreground hover:opacity-90 shadow-2xs"
     };
 
+    // min-h (pas h fixe) + padding vertical : un libellé qui passe sur 2 lignes
+    // (bouton pleine largeur avec texte long, cf. choix Mobile Money/Carte de
+    // la page Premium) grandit proprement au lieu d'écraser le texte contre
+    // les bords arrondis de la pilule. Sur une seule ligne, le résultat est
+    // identique à avant (le padding vertical + la hauteur de ligne restent
+    // sous le min-h, qui fixe donc la hauteur réelle).
     const sizes = {
-      sm: "h-8 px-3.5 text-xs gap-1.5",
-      md: "h-10 px-5 text-sm gap-2",
-      lg: "h-12 px-7 text-base gap-2.5",
+      sm: "min-h-8 px-3.5 py-1.5 text-xs gap-1.5",
+      md: "min-h-10 px-5 py-2 text-sm gap-2",
+      lg: "min-h-12 px-7 py-2.5 text-base gap-2.5",
       icon: "h-10 w-10 p-0 shrink-0 rounded-full"
     };
 
