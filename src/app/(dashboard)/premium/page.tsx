@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { Check, X, Crown, AlertCircle } from "lucide-react";
+import { Check, X, Crown, AlertCircle, Smartphone, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const initialState: PremiumCheckoutState = undefined;
@@ -81,11 +81,10 @@ interface PremiumPlanCardProps {
   isExpiringSoon: boolean;
   daysUntilExpiry: number | null;
   pending: boolean;
-  action: (formData: FormData) => void;
-  onSelectPlan: (plan: PremiumPlanKey) => void;
+  onOpenPaymentMethod: (plan: PremiumPlanKey) => void;
 }
 
-function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, daysUntilExpiry, pending, action, onSelectPlan }: PremiumPlanCardProps) {
+function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, daysUntilExpiry, pending, onOpenPaymentMethod }: PremiumPlanCardProps) {
   return (
     <Card
       variant="base"
@@ -141,12 +140,16 @@ function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
                 ? "Ton abonnement expire aujourd'hui"
                 : `Expire dans ${daysUntilExpiry} jour${daysUntilExpiry! > 1 ? "s" : ""}`}
             </p>
-            <form action={action} onSubmit={() => onSelectPlan(planKey)}>
-              <input type="hidden" name="plan" value={planKey} />
-              <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
-                Renouveler ce plan
-              </Button>
-            </form>
+            <Button
+              type="button"
+              variant="primary"
+              className="w-full"
+              isLoading={pending}
+              leftIcon={<Crown size={15} />}
+              onClick={() => onOpenPaymentMethod(planKey)}
+            >
+              Renouveler ce plan
+            </Button>
           </div>
         ) : (
           <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
@@ -154,12 +157,18 @@ function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
           </p>
         )
       ) : (
-        <form action={action} onSubmit={() => onSelectPlan(planKey)} className="pt-2 border-t border-border/40">
-          <input type="hidden" name="plan" value={planKey} />
-          <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
+        <div className="pt-2 border-t border-border/40">
+          <Button
+            type="button"
+            variant="primary"
+            className="w-full"
+            isLoading={pending}
+            leftIcon={<Crown size={15} />}
+            onClick={() => onOpenPaymentMethod(planKey)}
+          >
             {BUY_LABELS[planKey]}
           </Button>
-        </form>
+        </div>
       )}
     </Card>
   );
@@ -178,10 +187,21 @@ export default function PremiumPage() {
   const [state, action, pending] = useActionState(startPremiumCheckoutAction, initialState);
   const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PremiumPlanKey>("MONTHLY");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"CARD" | "MOBILE_MONEY">("MOBILE_MONEY");
+  const [paymentMethodModalPlan, setPaymentMethodModalPlan] = useState<PremiumPlanKey | null>(null);
 
   useEffect(() => {
     if (state?.errors?.phone) setIsPhoneModalOpen(true);
+    // Une réponse du serveur (succès ou erreur) referme toujours la modale de
+    // choix du moyen de paiement — sur succès la page navigue de toute façon
+    // (redirect), sur erreur il ne faut pas qu'elle masque le message affiché.
+    if (state) setPaymentMethodModalPlan(null);
   }, [state]);
+
+  const handleOpenPaymentMethod = (plan: PremiumPlanKey) => {
+    setSelectedPlan(plan);
+    setPaymentMethodModalPlan(plan);
+  };
 
   const periodEndLabel = profile.subscription_current_period_end
     ? new Date(profile.subscription_current_period_end).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
@@ -302,15 +322,46 @@ export default function PremiumPage() {
             isExpiringSoon={isExpiringSoon}
             daysUntilExpiry={daysUntilExpiry}
             pending={pending}
-            action={action}
-            onSelectPlan={setSelectedPlan}
+            onOpenPaymentMethod={handleOpenPaymentMethod}
           />
         ))}
       </div>
 
+      <Modal
+        isOpen={paymentMethodModalPlan !== null}
+        onClose={() => setPaymentMethodModalPlan(null)}
+        title="Comment veux-tu payer ?"
+        description={paymentMethodModalPlan ? `${PREMIUM_PLANS[paymentMethodModalPlan].label} — ${PREMIUM_PLANS[paymentMethodModalPlan].priceFcfaLabel}` : undefined}
+        maxWidth="sm"
+      >
+        <div className="space-y-3">
+          <form action={action} onSubmit={() => setSelectedPaymentMethod("MOBILE_MONEY")}>
+            <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
+            <input type="hidden" name="paymentMethod" value="MOBILE_MONEY" />
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full justify-start"
+              isLoading={pending}
+              leftIcon={<Smartphone size={16} />}
+            >
+              Mobile Money — Moov, Wave, MTN, Celtiis...
+            </Button>
+          </form>
+          <form action={action} onSubmit={() => setSelectedPaymentMethod("CARD")}>
+            <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
+            <input type="hidden" name="paymentMethod" value="CARD" />
+            <Button type="submit" variant="outline" className="w-full justify-start" isLoading={pending} leftIcon={<CreditCard size={16} />}>
+              Carte bancaire
+            </Button>
+          </form>
+        </div>
+      </Modal>
+
       <Modal isOpen={isPhoneModalOpen} onClose={() => setIsPhoneModalOpen(false)} title="Un dernier détail" maxWidth="sm">
         <form action={action} className="space-y-3">
           <input type="hidden" name="plan" value={selectedPlan} />
+          <input type="hidden" name="paymentMethod" value={selectedPaymentMethod} />
           <p className="text-xs text-muted-foreground">
             Un numéro de téléphone est requis par notre prestataire de paiement pour finaliser ton abonnement.
           </p>

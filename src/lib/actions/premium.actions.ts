@@ -16,11 +16,14 @@ export type PremiumCheckoutState = { errors?: Record<string, string[]>; message?
  * Ouvre un paiement unique d'accès Premium (un des plans proposés à l'achat,
  * cf. le champ caché "plan" porté par chaque formulaire de la page Premium —
  * y compris celui de la modale de récupération du téléphone, qui doit
- * reporter le plan en cours de sélection). Chariow n'a pas de numéro de
- * téléphone enregistré pour un membre qui n'en a jamais renseigné (champ
- * requis par leur API) — le formulaire le demande dans ce cas et
- * l'enregistre sur `profile_private` en même temps, comme le ferait
- * `updatePhoneAction`.
+ * reporter le plan en cours de sélection). Le champ cachée "paymentMethod"
+ * ("CARD" ou "MOBILE_MONEY", posé par la modale de choix du moyen de
+ * paiement) détermine le processeur : carte -> toujours Chariow (SasPay ne
+ * le propose pas), mobile money -> réglage admin (/admin/payments, SasPay
+ * par défaut). Chariow n'a pas de numéro de téléphone enregistré pour un
+ * membre qui n'en a jamais renseigné (champ requis par leur API) — le
+ * formulaire le demande dans ce cas et l'enregistre sur `profile_private` en
+ * même temps, comme le ferait `updatePhoneAction`.
  */
 export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutState, formData: FormData): Promise<PremiumCheckoutState> {
   const submittedPlan = formData.get("plan");
@@ -43,17 +46,26 @@ export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutStat
   ]);
   if (!profile) return { message: "Profil introuvable." };
 
-  const activeProvider = await getActivePaymentProviderAction();
-  if (activeProvider === "saspay") {
-    return startSasPayCheckout({
-      userId: user.id,
-      email: user.email,
-      firstName: profile.first_name,
-      lastName: profile.last_name,
-      phone: privateData?.phone ?? null,
-      phoneCountryCode: privateData?.phone_country_code ?? null,
-      plan
-    });
+  // Carte bancaire : toujours Chariow, quel que soit le réglage admin — SasPay
+  // ne propose pas encore le paiement par carte (confirmé par le fondateur).
+  // Mobile Money : réglage admin (/admin/payments), SasPay par défaut — Chariow
+  // reste un repli possible si jamais SasPay a un incident.
+  const submittedPaymentMethod = formData.get("paymentMethod");
+  const paymentMethod: "CARD" | "MOBILE_MONEY" = submittedPaymentMethod === "CARD" ? "CARD" : "MOBILE_MONEY";
+
+  if (paymentMethod === "MOBILE_MONEY") {
+    const activeProvider = await getActivePaymentProviderAction();
+    if (activeProvider === "saspay") {
+      return startSasPayCheckout({
+        userId: user.id,
+        email: user.email,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        phone: privateData?.phone ?? null,
+        phoneCountryCode: privateData?.phone_country_code ?? null,
+        plan
+      });
+    }
   }
 
   let phone = privateData?.phone ?? null;

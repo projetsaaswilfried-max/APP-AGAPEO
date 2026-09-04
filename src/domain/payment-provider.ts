@@ -1,8 +1,14 @@
 /**
- * Agrégateur de paiement actuellement actif — module isomorphe (aucun import
- * serveur), utilisable côté client (page admin) et serveur (résolution du
- * checkout). La valeur réelle vit en base (`payment_settings`, ligne unique),
- * cf. src/domain/services/payment-settings.service.ts pour la lecture/écriture.
+ * Agrégateur de paiement — module isomorphe (aucun import serveur), utilisable
+ * côté client (page admin, choix du moyen de paiement) et serveur (résolution
+ * du checkout, cf. startPremiumCheckoutAction). La valeur réelle vit en base
+ * (`payment_settings`, ligne unique), cf. src/lib/actions/payment-settings.actions.ts.
+ *
+ * Le paiement par carte passe TOUJOURS par Chariow, sans réglage possible —
+ * SasPay ne propose pas encore la carte (confirmé par le fondateur le
+ * 2026-09-05). Ce réglage ne détermine donc que le processeur du Mobile
+ * Money (Moov, Wave, MTN, Celtiis...) ; Chariow y reste disponible comme
+ * repli en cas d'incident côté SasPay.
  */
 export type PaymentProvider = "chariow" | "saspay";
 
@@ -12,6 +18,6 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = {
 };
 
 export const PAYMENT_PROVIDER_DESCRIPTIONS: Record<PaymentProvider, string> = {
-  chariow: "Encaisse en dollars (USD) — paiement par carte et mobile money via Chariow.",
-  saspay: "Encaisse en francs CFA (XOF) — paiement mobile money et carte, spécialisé Afrique de l'Ouest/Centre."
+  chariow: "Mobile Money via Chariow — à utiliser en repli si SasPay a un incident.",
+  saspay: "Mobile Money via SasPay (Moov, Wave, MTN, Celtiis...) — processeur recommandé, spécialisé Afrique de l'Ouest/Centre."
 };
