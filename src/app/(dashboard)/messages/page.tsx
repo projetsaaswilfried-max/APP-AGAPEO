@@ -77,7 +77,6 @@ function MessagesPageContent() {
     try {
       const data = await messageService.getConversations();
       setConversations(data);
-      if (!activeConvId && data.length > 0) setActiveConvId(data[0].id);
     } catch (err) {
       console.error(err);
     } finally {
@@ -112,11 +111,26 @@ function MessagesPageContent() {
   }, [activeConvId, loadMessages]);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, []);
 
+  // Atterrir directement sur le dernier message à l'ouverture d'une
+  // conversation (ou à l'arrivée d'un nouveau message) — jamais en haut de
+  // l'historique, obligeant à défiler manuellement. `behavior: "auto"`
+  // (positionnement immédiat, pas d'animation) plutôt que "smooth" : les
+  // images jointes et avatars du fil se chargent après coup et décalent la
+  // hauteur du contenu une fois le premier positionnement fait, ce qui
+  // ramenait visuellement la vue vers le haut avant même la fin de
+  // l'animation "smooth". Deux rattrapages courts après le montage couvrent
+  // ce chargement tardif sans avoir à observer chaque image individuellement.
   useEffect(() => {
     scrollToBottom();
+    const catchUp1 = setTimeout(scrollToBottom, 150);
+    const catchUp2 = setTimeout(scrollToBottom, 500);
+    return () => {
+      clearTimeout(catchUp1);
+      clearTimeout(catchUp2);
+    };
   }, [messages, scrollToBottom]);
 
   useEffect(() => {
