@@ -1,4 +1,8 @@
-import type { RecommendedProfileItem } from "@/domain/types/discover";
+/** Le strict minimum utilisé ici — permet d'appliquer cette même sélection à un item déjà entièrement hydraté (RecommendedProfileItem) comme à un item "léger" issu d'une passe de classement (cf. discover.service.ts, getDiscoverPage). */
+interface ScoredItem {
+  compatibilityPercentage: number;
+  profile: { id: string };
+}
 
 /**
  * Taille du vivier dans lequel la sélection quotidienne est tirée au sort —
@@ -43,11 +47,11 @@ function seededShuffle<T>(items: T[], seed: number): T[] {
  * matrimoniale, foi, valeurs, localisation...), stable pour un même membre
  * pendant toute la journée, renouvelé automatiquement le lendemain.
  */
-export function pickDailyRecommendations(
-  profiles: RecommendedProfileItem[],
+export function pickDailyRecommendations<T extends ScoredItem>(
+  profiles: T[],
   viewerId: string,
   count = 3
-): { recommended: RecommendedProfileItem[]; others: RecommendedProfileItem[] } {
+): { recommended: T[]; others: T[] } {
   if (profiles.length <= count) {
     return { recommended: profiles, others: [] };
   }

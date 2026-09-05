@@ -8,7 +8,6 @@ import { discoverService } from "@/domain/services/discover.service";
 import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
 import { FilterPanel } from "@/components/features/discover/filter-panel";
-import { pickDailyRecommendations } from "@/domain/daily-recommendations";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
 import { AccessExpiredState } from "@/components/features/premium/access-expired-state";
@@ -69,7 +68,14 @@ function DiscoverPageContent() {
   // réservé Premium, sans grâce — même garde côté serveur pour l'URL directe
   // (/profile/[id]/page.tsx) et côté RPC (record_profile_view).
   const canViewProfiles = profile.subscription_status === "ACTIVE" || profile.is_staff;
-  const [profiles, setProfiles] = useState<RecommendedProfileItem[]>([]);
+  // "Recommandée pour vous" (toujours 3) et la page courante d'"Autres
+  // profils" sont désormais récupérées et hydratées séparément côté serveur
+  // (getDiscoverPage) — Découvrir ne télécharge plus les 300-400+ profils
+  // complets de tout le vivier à chaque chargement, seulement ce qui
+  // s'affiche réellement.
+  const [recommendedProfiles, setRecommendedProfiles] = useState<RecommendedProfileItem[]>([]);
+  const [otherProfilesPageItems, setOtherProfilesPageItems] = useState<RecommendedProfileItem[]>([]);
+  const [otherProfilesTotalCount, setOtherProfilesTotalCount] = useState(0);
   const [filters, setFilters] = useState<DiscoverFilterCriteria>(() => {
     const search = searchParams.get("search");
     return search && canUseAdvancedFilters ? { ...DEFAULT_FILTERS, searchQuery: search } : DEFAULT_FILTERS;
@@ -96,8 +102,10 @@ function DiscoverPageContent() {
     setIsLoading(true);
     setIsError(false);
     try {
-      const data = await discoverService.getProfiles(filters);
-      setProfiles(data);
+      const data = await discoverService.getDiscoverPage(filters, otherProfilesPage, OTHER_PROFILES_PAGE_SIZE);
+      setRecommendedProfiles(data.recommended);
+      setOtherProfilesPageItems(data.otherPage);
+      setOtherProfilesTotalCount(data.otherTotalCount);
     } catch (err) {
       console.error(err);
       setIsError(true);
@@ -106,18 +114,31 @@ function DiscoverPageContent() {
     }
   };
 
+  // Changer de filtre revient toujours à la page 1 — l'effet ci-dessous
+  // (déclenché par le changement de `otherProfilesPage` qui en résulte, en
+  // plus de `filters` lui-même) se charge de relancer le chargement.
   useEffect(() => {
-    fetchProfiles();
     setOtherProfilesPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
+  useEffect(() => {
+    fetchProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, otherProfilesPage]);
+
+  /** Un profil "recommandé" ou de la page courante peut être basculé favori/liké — jamais les deux listes à la fois pour un même id, mais on ne sait pas laquelle sans chercher. */
+  const updateProfileInLists = (profileId: string, updater: (item: RecommendedProfileItem) => RecommendedProfileItem) => {
+    setRecommendedProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? updater(item) : item)));
+    setOtherProfilesPageItems((prev) => prev.map((item) => (item.profile.id === profileId ? updater(item) : item)));
+  };
+
   const handleToggleFavorite = async (profileId: string) => {
-    setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isFavorite: !item.isFavorite } : item)));
+    const toggle = (item: RecommendedProfileItem) => ({ ...item, isFavorite: !item.isFavorite });
+    updateProfileInLists(profileId, toggle);
     try {
       await discoverService.toggleFavorite(profileId);
     } catch (err) {
-      setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isFavorite: !item.isFavorite } : item)));
+      updateProfileInLists(profileId, toggle);
       if (err instanceof PremiumRequiredError) {
         setPremiumReason("mettre des profils en favori");
         setIsPremiumRequiredOpen(true);
@@ -132,11 +153,12 @@ function DiscoverPageContent() {
   };
 
   const handleToggleLike = async (profileId: string) => {
-    setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isLiked: !item.isLiked } : item)));
+    const toggle = (item: RecommendedProfileItem) => ({ ...item, isLiked: !item.isLiked });
+    updateProfileInLists(profileId, toggle);
     try {
       await discoverService.toggleLike(profileId);
     } catch (err) {
-      setProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? { ...item, isLiked: !item.isLiked } : item)));
+      updateProfileInLists(profileId, toggle);
       if (err instanceof VerificationRequiredError) {
         handleRequireVerification("liker ce profil");
         return;
@@ -159,33 +181,11 @@ function DiscoverPageContent() {
   });
 
   const handleSendMessage = (profileId: string) => {
-    const target = profiles.find((p) => p.profile.id === profileId);
+    const target = recommendedProfiles.find((p) => p.profile.id === profileId) ?? otherProfilesPageItems.find((p) => p.profile.id === profileId);
     requestInvitation(profileId, target?.profile.firstName ?? "ce membre");
   };
 
-  // Exactement 3 profils "recommandés", tirés au sort pour la journée parmi
-  // les meilleurs scores de compatibilité — stable pour ce membre toute la
-  // journée, renouvelé automatiquement le lendemain. Le reste s'affiche en
-  // second, jamais masqué : "Découvrir" dans son ensemble reste volontairement
-  // large (seuls les filtres de recherche explicites, choisis par le membre
-  // lui-même, restreignent cette liste) — mais "Recommandée pour vous"
-  // affirme respecter le profil du membre, donc son intervalle d'âge
-  // recherché est une condition stricte pour y figurer, pas seulement un
-  // critère de score parmi d'autres (sinon un profil très bien assorti sur
-  // la foi/les valeurs peut sortir 15 ans hors de l'âge demandé).
-  const ageEligibleForRecommendation = profiles.filter(
-    (p) => p.profile.age >= profile.desired_age_min && p.profile.age <= profile.desired_age_max
-  );
-  const recommendationPool = ageEligibleForRecommendation.length > 0 ? ageEligibleForRecommendation : profiles;
-  const { recommended: recommendedProfiles } = pickDailyRecommendations(recommendationPool, profile.id, 3);
-  const recommendedIds = new Set(recommendedProfiles.map((item) => item.profile.id));
-  const otherProfiles = profiles.filter((item) => !recommendedIds.has(item.profile.id));
-  const otherProfilesTotalPages = Math.max(1, Math.ceil(otherProfiles.length / OTHER_PROFILES_PAGE_SIZE));
-  const safeOtherProfilesPage = Math.min(otherProfilesPage, otherProfilesTotalPages);
-  const pagedOtherProfiles = otherProfiles.slice(
-    (safeOtherProfilesPage - 1) * OTHER_PROFILES_PAGE_SIZE,
-    safeOtherProfilesPage * OTHER_PROFILES_PAGE_SIZE
-  );
+  const otherProfilesTotalPages = Math.max(1, Math.ceil(otherProfilesTotalCount / OTHER_PROFILES_PAGE_SIZE));
   const handleOtherProfilesPageChange = (page: number) => {
     setOtherProfilesPage(page);
     otherProfilesSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -296,7 +296,7 @@ function DiscoverPageContent() {
         />
       )}
 
-      {!isLoading && !isError && scoringGaps.length > 0 && profiles.length > 0 && (
+      {!isLoading && !isError && scoringGaps.length > 0 && (recommendedProfiles.length > 0 || otherProfilesTotalCount > 0) && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
           <Heart size={14} className="text-accent shrink-0" />
           <span>
@@ -326,7 +326,7 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {!isLoading && !isError && profiles.length === 0 && (
+      {!isLoading && !isError && recommendedProfiles.length === 0 && otherProfilesTotalCount === 0 && (
         <EmptyState
           icon={<Users size={28} />}
           title="Aucun profil ne correspond à vos critères"
@@ -375,14 +375,14 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      {!isLoading && !isError && otherProfiles.length > 0 && (
+      {!isLoading && !isError && otherProfilesTotalCount > 0 && (
         <div ref={otherProfilesSectionRef} className="space-y-3 scroll-mt-20">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Autres profils ({otherProfiles.length})
+            Autres profils ({otherProfilesTotalCount})
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pagedOtherProfiles.map((item) => (
+            {otherProfilesPageItems.map((item) => (
               <DiscoverProfileCard
                 key={item.profile.id}
                 item={item}
@@ -404,7 +404,7 @@ function DiscoverPageContent() {
             ))}
           </div>
 
-          <Pagination currentPage={safeOtherProfilesPage} totalPages={otherProfilesTotalPages} onPageChange={handleOtherProfilesPageChange} />
+          <Pagination currentPage={otherProfilesPage} totalPages={otherProfilesTotalPages} onPageChange={handleOtherProfilesPageChange} />
         </div>
       )}
 

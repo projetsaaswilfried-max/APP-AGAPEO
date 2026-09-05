@@ -29,3 +29,10 @@ export interface RecommendedProfileItem {
   isLiked: boolean;
   isPremium: boolean;
 }
+
+/** Résultat de getDiscoverPage — déjà découpé entre "Recommandée pour vous" (toujours 3, jamais paginée) et la page courante d'"Autres profils", avec le total pour construire la pagination. */
+export interface DiscoverPageResult {
+  recommended: RecommendedProfileItem[];
+  otherPage: RecommendedProfileItem[];
+  otherTotalCount: number;
+}
