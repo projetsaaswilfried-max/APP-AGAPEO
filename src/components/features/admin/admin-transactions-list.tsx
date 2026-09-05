@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ScrollableRow } from "@/components/ui/scrollable-row";
 import type { TransactionStatus } from "@/lib/supabase/database.types";
+import { PREMIUM_PLANS, planKeyFromDbValue } from "@/domain/premium-plans";
 import { Receipt, TrendingUp } from "lucide-react";
 
 export interface AdminTransactionRow {
@@ -42,6 +43,22 @@ const RANGE_PRESETS = [
 
 function formatAmount(cents: number, currency: string) {
   return `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${currency}`;
+}
+
+/**
+ * Valeur en $ d'UNE transaction pour le résumé admin — dérivée du plan
+ * acheté (`PREMIUM_PLANS[...].priceUsd`, déjà la référence utilisée pour le
+ * suivi Meta Pixel), jamais de `amountCents`/`currency` bruts. Nécessaire
+ * car les transactions sont enregistrées dans la devise réellement facturée
+ * au client (FCFA, Cedi, Naira, Shilling...) — les additionner telles
+ * quelles produirait un total sans aucun sens (mélange de devises), ce qui
+ * était exactement le bug : la carte "Revenu" additionnait ces montants
+ * bruts puis affichait l'étiquette de la première transaction de la liste,
+ * quelle que soit sa devise réelle.
+ */
+function planUsdValue(planDbValue: string | null): number {
+  const key = planKeyFromDbValue(planDbValue);
+  return key ? PREMIUM_PLANS[key].priceUsd : 0;
 }
 
 function toDateInputValue(date: Date) {
@@ -90,8 +107,7 @@ export function AdminTransactionsList({ transactions }: { transactions: AdminTra
     });
   }, [transactions, dateFrom, dateTo]);
 
-  const totalRevenue = filtered.filter((t) => t.status === "SUCCEEDED").reduce((sum, t) => sum + t.amountCents, 0);
-  const currency = filtered[0]?.currency ?? "XOF";
+  const totalRevenueUsd = filtered.filter((t) => t.status === "SUCCEEDED").reduce((sum, t) => sum + planUsdValue(t.plan), 0);
   const succeededCount = filtered.filter((t) => t.status === "SUCCEEDED").length;
   const pendingCount = filtered.filter((t) => t.status === "PENDING").length;
   const failedCount = filtered.filter((t) => t.status === "FAILED").length;
@@ -138,10 +154,12 @@ export function AdminTransactionsList({ transactions }: { transactions: AdminTra
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card variant="base" className="p-4 border-border/60 shadow-2xs space-y-1">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <TrendingUp size={12} /> Revenu (réussies)
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1" title="Valeur en $ du plan de chaque transaction réussie — le montant réellement encaissé peut être dans une autre devise, cf. colonne Montant.">
+            <TrendingUp size={12} /> Revenu (réussies, $)
           </p>
-          <p className="text-xl font-display font-semibold text-foreground">{formatAmount(totalRevenue, currency)}</p>
+          <p className="text-xl font-display font-semibold text-foreground">
+            ${totalRevenueUsd.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}
+          </p>
         </Card>
         <Card variant="base" className="p-4 border-border/60 shadow-2xs space-y-1">
           <p className="text-[11px] text-muted-foreground">Transactions réussies</p>
