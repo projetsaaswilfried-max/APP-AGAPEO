@@ -69,7 +69,13 @@ function MessagesPageContent() {
   const [isMatchRequestConfirmOpen, setIsMatchRequestConfirmOpen] = useState(false);
   const [isMatchAcceptConfirmOpen, setIsMatchAcceptConfirmOpen] = useState(false);
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesContentRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Ref (pas un state) : lue/écrite en dehors du cycle de rendu React, par le
+  // ResizeObserver et le gestionnaire de scroll ci-dessous — aucun des deux
+  // ne doit déclencher de re-render à chaque appel.
+  const isPinnedToBottomRef = useRef(true);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadConversations = useCallback(async () => {
@@ -114,24 +120,53 @@ function MessagesPageContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, []);
 
-  // Atterrir directement sur le dernier message à l'ouverture d'une
-  // conversation (ou à l'arrivée d'un nouveau message) — jamais en haut de
-  // l'historique, obligeant à défiler manuellement. `behavior: "auto"`
-  // (positionnement immédiat, pas d'animation) plutôt que "smooth" : les
-  // images jointes et avatars du fil se chargent après coup et décalent la
-  // hauteur du contenu une fois le premier positionnement fait, ce qui
-  // ramenait visuellement la vue vers le haut avant même la fin de
-  // l'animation "smooth". Deux rattrapages courts après le montage couvrent
-  // ce chargement tardif sans avoir à observer chaque image individuellement.
+  /** Met à jour l'ancrage en fonction de la position réelle de lecture — jamais ramenée de force en bas tant qu'elle relit l'historique plus haut. */
+  const handleMessagesScroll = useCallback(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    isPinnedToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }, []);
+
+  // Ouvrir une conversation (même une autre, en cours de session) doit
+  // TOUJOURS retomber en bas, quelle qu'ait été la position de lecture
+  // précédente — l'ancrage se recoupe ensuite au premier scroll manuel vers
+  // le haut (cf. handleMessagesScroll).
   useEffect(() => {
-    scrollToBottom();
-    const catchUp1 = setTimeout(scrollToBottom, 150);
-    const catchUp2 = setTimeout(scrollToBottom, 500);
-    return () => {
-      clearTimeout(catchUp1);
-      clearTimeout(catchUp2);
-    };
-  }, [messages, scrollToBottom]);
+    isPinnedToBottomRef.current = true;
+  }, [activeConvId]);
+
+  // Tant que l'ancrage est actif (conversation qui vient de s'ouvrir, ou
+  // lecture déjà à jour), tout changement de hauteur du contenu — nouveau
+  // message ENVOYÉ/REÇU, mais aussi une image jointe ou un avatar qui finit
+  // de charger et décale la mise en page après coup — recolle immédiatement
+  // la vue en bas via le ResizeObserver ci-dessous. C'est ce dernier point
+  // (chargement tardif d'images) qui posait problème sur les longues
+  // conversations : un simple délai fixe après le montage ne suffisait pas
+  // dès que le chargement des images prenait plus de temps que prévu (plus
+  // de messages = plus d'images = plus de temps de chargement, en particulier
+  // sur une connexion lente) — un ResizeObserver réagit à la vraie hauteur du
+  // contenu, quel que soit le temps que ça prend.
+  //
+  // `isLoadingMessages` fait partie des dépendances en plus de `messages` :
+  // loadMessages() appelle setMessages(data) AVANT un `await` (markAsRead),
+  // puis setIsLoadingMessages(false) APRÈS — React peut donc les répartir sur
+  // deux rendus distincts. Le rendu où le contenu (et donc `messagesEndRef`)
+  // apparaît enfin dans le DOM est celui où `isLoadingMessages` bascule à
+  // `false`, pas forcément celui où `messages` change — sans cette
+  // dépendance, cet effet peut s'exécuter uniquement pendant que le squelette
+  // de chargement est encore affiché, alors que la vraie liste (et sa
+  // référence) n'existe pas encore, et jamais retenter une fois montée.
+  useEffect(() => {
+    if (isPinnedToBottomRef.current) scrollToBottom();
+
+    const content = messagesContentRef.current;
+    if (!content) return;
+    const observer = new ResizeObserver(() => {
+      if (isPinnedToBottomRef.current) scrollToBottom();
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [messages, isLoadingMessages, scrollToBottom]);
 
   useEffect(() => {
     if (!activeConvId) return;
@@ -602,7 +637,7 @@ function MessagesPageContent() {
                     </div>
                   ) : null}
 
-                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto p-4">
                     {isLoadingMessages ? (
                       <div className="space-y-3 p-4">
                         <Skeleton className="h-10 w-2/3 rounded-2xl" />
@@ -612,7 +647,7 @@ function MessagesPageContent() {
                     ) : messages.length === 0 ? (
                       <EmptyState icon={<MessageSquare size={24} />} title="Aucun message" description="Envoie le premier message de cette conversation." />
                     ) : (
-                      <>
+                      <div ref={messagesContentRef} className="space-y-2">
                         {messages.map((msg) => (
                           <MessageBubble
                             key={msg.id}
@@ -624,7 +659,7 @@ function MessagesPageContent() {
                           />
                         ))}
                         <div ref={messagesEndRef} />
-                      </>
+                      </div>
                     )}
                   </div>
 
