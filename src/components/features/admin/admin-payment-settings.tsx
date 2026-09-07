@@ -35,12 +35,13 @@ export function AdminPaymentSettings({ initialProvider, updatedAt }: { initialPr
     <div className="space-y-6 max-w-3xl">
       <div>
         <h2 className="text-base font-display font-semibold text-foreground tracking-tight flex items-center gap-2">
-          <Smartphone size={18} className="text-primary" /> Processeur de paiement
+          <Smartphone size={18} className="text-primary" /> Processeur Mobile Money
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Détermine quel agrégateur encaisse TOUS les nouveaux paiements à partir de maintenant — carte bancaire
-          comme Mobile Money (Moov, Wave, MTN, Celtiis...). Les abonnements déjà actifs ne sont jamais affectés, quel
-          que soit le processeur qui les a encaissés à l'origine.
+          Détermine quel agrégateur encaisse les paiements Mobile Money (Moov, Wave, MTN, Celtiis...) à partir de
+          maintenant. Le paiement par carte reste toujours géré par Chariow — SasPay ne le propose pas encore, aucun
+          réglage possible sur ce point. Les abonnements déjà actifs ne sont jamais affectés, quel que soit le
+          processeur qui les a encaissés à l'origine.
         </p>
       </div>
 
@@ -94,7 +95,7 @@ export function AdminPaymentSettings({ initialProvider, updatedAt }: { initialPr
       <Modal
         isOpen={pendingProvider !== null}
         onClose={() => setPendingProvider(null)}
-        title="Changer le processeur de paiement"
+        title="Changer le processeur Mobile Money"
         description={pendingProvider ? `Basculer vers ${PAYMENT_PROVIDER_LABELS[pendingProvider]} ?` : undefined}
         footer={
           <>
@@ -108,9 +109,10 @@ export function AdminPaymentSettings({ initialProvider, updatedAt }: { initialPr
         }
       >
         <p className="text-xs text-muted-foreground leading-relaxed">
-          À partir de la confirmation, tout nouveau paiement — carte bancaire comme Mobile Money — passera par{" "}
-          {pendingProvider ? PAYMENT_PROVIDER_LABELS[pendingProvider] : ""}. Les paiements déjà en cours sur l'ancien
-          processeur ne sont pas affectés — laisse-les se terminer normalement avant de rebasculer si besoin.
+          À partir de la confirmation, tout nouveau paiement Mobile Money passera par{" "}
+          {pendingProvider ? PAYMENT_PROVIDER_LABELS[pendingProvider] : ""}. Le paiement par carte continue de passer
+          par Chariow sans changement. Les paiements déjà en cours sur l'ancien processeur ne sont pas affectés —
+          laisse-les se terminer normalement avant de rebasculer si besoin.
         </p>
       </Modal>
     </div>
