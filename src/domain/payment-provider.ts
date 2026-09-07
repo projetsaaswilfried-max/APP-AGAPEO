@@ -4,11 +4,14 @@
  * du checkout, cf. startPremiumCheckoutAction). La valeur réelle vit en base
  * (`payment_settings`, ligne unique), cf. src/lib/actions/payment-settings.actions.ts.
  *
- * Le paiement par carte passe TOUJOURS par Chariow, sans réglage possible —
- * SasPay ne propose pas encore la carte (confirmé par le fondateur le
- * 2026-09-05). Ce réglage ne détermine donc que le processeur du Mobile
- * Money (Moov, Wave, MTN, Celtiis...) ; Chariow y reste disponible comme
- * repli en cas d'incident côté SasPay.
+ * Détermine l'agrégateur pour TOUS les paiements — carte comme Mobile Money —
+ * depuis que SasPay encaisse aussi par carte (réseau `card`, ajouté à leur
+ * catalogue le 2026-09-06, confirmé par le fondateur ; auparavant réservé au
+ * Mobile Money, la carte passait alors toujours par Chariow). Le Mobile Money
+ * SasPay reste un paiement direct (push, sans redirection, cf.
+ * mobile-money.actions.ts) ; la carte, chez les deux agrégateurs, nécessite
+ * toujours une redirection vers leur page hébergée (cf.
+ * startPremiumCheckoutAction/startSasPayCardCheckout).
  */
 export type PaymentProvider = "chariow" | "saspay";
 
@@ -18,6 +21,6 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = {
 };
 
 export const PAYMENT_PROVIDER_DESCRIPTIONS: Record<PaymentProvider, string> = {
-  chariow: "Mobile Money via Chariow — à utiliser en repli si SasPay a un incident.",
-  saspay: "Mobile Money via SasPay (Moov, Wave, MTN, Celtiis...) — processeur recommandé, spécialisé Afrique de l'Ouest/Centre."
+  chariow: "Carte bancaire et Mobile Money via Chariow — à utiliser en repli si SasPay a un incident.",
+  saspay: "Carte bancaire et Mobile Money (Moov, Wave, MTN, Celtiis...) via SasPay — processeur recommandé, spécialisé Afrique de l'Ouest/Centre."
 };
