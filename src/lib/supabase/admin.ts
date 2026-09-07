@@ -46,16 +46,46 @@ export async function listAllAuthUsers(admin: SupabaseClient): Promise<User[]> {
  * pagination. Passer un query-builder qui applique `.range(from, to)` à la
  * requête (ex: `(from, to) => admin.from("profiles").select("*").range(from, to)`).
  */
+/**
+ * Au-delà de la première page, le nombre total de pages restantes est
+ * inconnu à l'avance — trouvé en audit performance (2026-09-07) :
+ * `onboarding_events` (~29 000 lignes et en forte croissance, cf. tableau de
+ * bord admin) déclenchait 29 allers-retours SÉQUENTIELS l'un après l'autre à
+ * chaque chargement de `/admin`, ajoutant plusieurs secondes rien que pour
+ * cette requête. Remplacé par des vagues parallèles de taille croissante
+ * (1, 2, 4, 8...) : le nombre de VAGUES (donc d'allers-retours réseau
+ * successifs) reste logarithmique quel que soit le nombre réel de pages,
+ * chaque vague se faisant en un seul aller-retour. Signature externe
+ * inchangée — aucun appelant n'a besoin d'être modifié.
+ */
 export async function fetchAllRows<T>(
   buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 ): Promise<T[]> {
   const PAGE_SIZE = 1000;
   const all: T[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
-    if (error) throw new Error(error.message);
-    all.push(...(data ?? []));
-    if (!data || data.length < PAGE_SIZE) break;
+
+  const first = await buildQuery(0, PAGE_SIZE - 1);
+  if (first.error) throw new Error(first.error.message);
+  all.push(...(first.data ?? []));
+  if (!first.data || first.data.length < PAGE_SIZE) return all;
+
+  let nextPage = 1;
+  let batchSize = 1;
+  for (;;) {
+    const pages = Array.from({ length: batchSize }, (_, i) => nextPage + i);
+    const results = await Promise.all(pages.map((p) => buildQuery(p * PAGE_SIZE, (p + 1) * PAGE_SIZE - 1)));
+
+    let reachedEnd = false;
+    for (const { data, error } of results) {
+      if (error) throw new Error(error.message);
+      all.push(...(data ?? []));
+      if (!data || data.length < PAGE_SIZE) reachedEnd = true;
+    }
+    if (reachedEnd) break;
+
+    nextPage += batchSize;
+    batchSize *= 2;
   }
+
   return all;
 }

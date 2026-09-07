@@ -541,6 +541,7 @@ export interface Database {
     Functions: {
       record_profile_view: { Args: { viewed_profile_id: string }; Returns: void };
       record_post_view: { Args: { post_id: string }; Returns: void };
+      get_unread_message_count: { Args: Record<string, never>; Returns: number };
       is_admin_or_moderator: { Args: { uid: string }; Returns: boolean };
       create_conversation_with_participant: { Args: { other_user_id: string }; Returns: string };
       get_my_blocked_profiles: { Args: Record<string, never>; Returns: { id: string; first_name: string; avatar_url: string | null }[] };
