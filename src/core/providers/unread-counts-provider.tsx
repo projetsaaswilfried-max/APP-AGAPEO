@@ -1,17 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { notificationService } from "@/domain/services/notification.service";
 
 const POLL_INTERVAL_MS = 30000;
 
-/** Compteurs réels (messages non lus + notifications non lues) — jamais de valeur fictive. */
-export function useUnreadCounts() {
+interface UnreadCountsContextValue {
+  unreadMessages: number;
+  unreadNotifications: number;
+  /** Rafraîchissement immédiat (ex : après avoir marqué une notification comme lue dans le panneau) sans attendre le prochain sondage. */
+  refresh: () => void;
+}
+
+const UnreadCountsContext = createContext<UnreadCountsContextValue | null>(null);
+
+/**
+ * Source UNIQUE des compteurs non-lus (messages + notifications) — remplace
+ * l'ancien hook `useUnreadCounts` qui était appelé indépendamment 4 fois
+ * (AppShell, Header, Sidebar, BottomNav) : chaque instance faisait tourner
+ * son propre sondage 30s, son propre canal Realtime, et sa propre requête —
+ * soit x4 la charge sur CHAQUE page du site, en continu, pour chaque membre
+ * connecté (trouvé en audit performance, 2026-09-07). Un seul Provider ici,
+ * monté une fois dans AppShell, que les 4 endroits consomment désormais via
+ * `useUnreadCounts()`.
+ *
+ * Le calcul des messages non lus passe aussi par `get_unread_message_count`
+ * (RPC, une seule requête indexée côté base) au lieu de télécharger tous les
+ * messages non envoyés par le membre pour les compter en JavaScript — sur
+ * une conversation de 177 messages, ça ne coûtait qu'un compte, mais
+ * rapatriait quand même chaque ligne.
+ */
+export function UnreadCountsProvider({ children }: { children: ReactNode }) {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
-  /** Permet un rafraîchissement immédiat (ex : après avoir marqué une notification comme lue dans le panneau) sans attendre le prochain poll. */
   const refresh = () => setRefreshToken((t) => t + 1);
 
   useEffect(() => {
@@ -24,33 +47,14 @@ export function useUnreadCounts() {
       } = await supabase.auth.getUser();
       if (!user || cancelled) return;
 
-      const [{ data: participations }, notifCount] = await Promise.all([
-        supabase.from("conversation_participants").select("conversation_id, last_read_at").eq("user_id", user.id),
+      const [{ data: messageCount }, notifCount] = await Promise.all([
+        supabase.rpc("get_unread_message_count"),
         notificationService.getUnreadCount()
       ]);
 
       if (cancelled) return;
-
-      if (!participations || participations.length === 0) {
-        setUnreadMessages(0);
-      } else {
-        const conversationIds = participations.map((p) => p.conversation_id);
-        const { data: unreadRows } = await supabase
-          .from("messages")
-          .select("conversation_id, created_at")
-          .in("conversation_id", conversationIds)
-          .neq("sender_id", user.id);
-
-        const byConversation = new Map(participations.map((p) => [p.conversation_id, p.last_read_at]));
-        const count = (unreadRows ?? []).filter((row) => {
-          const lastRead = byConversation.get(row.conversation_id);
-          return lastRead && new Date(row.created_at) > new Date(lastRead);
-        }).length;
-
-        if (!cancelled) setUnreadMessages(count);
-      }
-
-      if (!cancelled) setUnreadNotifications(notifCount);
+      setUnreadMessages(messageCount ?? 0);
+      setUnreadNotifications(notifCount);
     };
 
     doRefresh();
@@ -85,5 +89,14 @@ export function useUnreadCounts() {
     };
   }, [refreshToken]);
 
-  return { unreadMessages, unreadNotifications, refresh };
+  return <UnreadCountsContext.Provider value={{ unreadMessages, unreadNotifications, refresh }}>{children}</UnreadCountsContext.Provider>;
+}
+
+/** Doit être utilisé dans un descendant de `<UnreadCountsProvider>` (monté dans AppShell). */
+export function useUnreadCounts() {
+  const ctx = useContext(UnreadCountsContext);
+  if (!ctx) {
+    throw new Error("useUnreadCounts() doit être appelé à l'intérieur de <UnreadCountsProvider>.");
+  }
+  return ctx;
 }

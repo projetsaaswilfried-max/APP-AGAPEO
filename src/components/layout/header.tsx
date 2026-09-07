@@ -21,7 +21,7 @@ import { MAIN_NAVIGATION } from "@/config/navigation";
 import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
 import { signOutAction } from "@/lib/actions/auth.actions";
-import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
+import { useUnreadCounts } from "@/core/providers/unread-counts-provider";
 import { saveScrollForCurrentPage } from "@/core/hooks/use-scroll-memory";
 
 interface HeaderProps {

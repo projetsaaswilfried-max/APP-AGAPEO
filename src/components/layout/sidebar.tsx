@@ -19,7 +19,7 @@ import { withUnreadBadges, NavigationItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
-import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
+import { useUnreadCounts } from "@/core/providers/unread-counts-provider";
 import { Avatar } from "@/components/ui/avatar";
 import { AgapeoLogo } from "@/components/ui/logo";
 

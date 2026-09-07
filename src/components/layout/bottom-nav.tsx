@@ -13,7 +13,7 @@ import {
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { withUnreadBadges, NavigationItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
-import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
+import { useUnreadCounts } from "@/core/providers/unread-counts-provider";
 import { saveScrollForCurrentPage } from "@/core/hooks/use-scroll-memory";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

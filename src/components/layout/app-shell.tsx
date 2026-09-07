@@ -13,7 +13,7 @@ import { withUnreadBadges, NavigationItem } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
-import { useUnreadCounts } from "@/core/hooks/use-unread-counts";
+import { UnreadCountsProvider, useUnreadCounts } from "@/core/providers/unread-counts-provider";
 import { useRestoreScrollMemory } from "@/core/hooks/use-scroll-memory";
 import { IncompleteProfileBanner } from "./incomplete-profile-banner";
 import { PremiumUpsellBanner } from "./premium-upsell-banner";
@@ -33,7 +33,16 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-export function AppShell({ children }: AppShellProps) {
+/** Un seul `<UnreadCountsProvider>` pour tout l'arbre (Sidebar/Header/BottomNav/lui-même en dessous) — cf. commentaire du provider pour le pourquoi. */
+export function AppShell(props: AppShellProps) {
+  return (
+    <UnreadCountsProvider>
+      <AppShellContent {...props} />
+    </UnreadCountsProvider>
+  );
+}
+
+function AppShellContent({ children }: AppShellProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
