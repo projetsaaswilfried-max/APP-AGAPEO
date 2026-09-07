@@ -44,6 +44,11 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/";
   const passwordUpdated = searchParams.get("passwordUpdated") === "1";
+  // Jusqu'ici cette erreur ne s'affichait jamais (le paramètre n'était même
+  // pas lu) — la personne atterrissait sur un login muet, sans savoir que
+  // son lien (confirmation, mot de passe, connexion Google) était invalide
+  // ou expiré, ni quoi faire ensuite. Cf. /auth/confirm et /auth/callback.
+  const authCallbackFailed = searchParams.get("error") === "auth_callback_failed";
   
   const [email, setEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -94,6 +99,18 @@ function LoginForm() {
           <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 size={16} className="shrink-0 text-emerald-500" />
             Mot de passe mis à jour. Connecte-toi avec ton nouveau mot de passe.
+          </div>
+        )}
+
+        {authCallbackFailed && (
+          <div className="flex flex-col gap-1.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-400">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="shrink-0 text-amber-500" />
+              Ce lien a expiré ou a déjà été utilisé.
+            </div>
+            <Link href="/forgot-password" className="font-semibold underline underline-offset-2 w-fit">
+              Redemander un lien
+            </Link>
           </div>
         )}
 
