@@ -413,6 +413,18 @@ export async function rejectVerificationRequestAction(requestId: string, userId:
     .eq("id", requestId);
   if (requestError) return { error: requestError.message };
 
+  // Symétrique du bulk-approve ci-dessus : les photos soumises avec cette
+  // vérification étaient promues PENDING dès la soumission (cf.
+  // submitVerificationRequestAction) et restaient telles quelles après un
+  // refus — elles continuaient donc de traîner dans la file /admin/photos,
+  // décorrélées du refus, où un·e admin pouvait les approuver individuellement
+  // sans lien avec la vérification refusée. Un refus doit tout renvoyer en
+  // DRAFT (retiré de la file de modération, privé au propriétaire) : la
+  // personne corrige et resoumet l'ensemble depuis zéro, qui repromouvra
+  // alors les photos actuelles — jamais un mélange d'anciennes photos déjà
+  // en file et de nouvelles.
+  await admin.from("profile_photos").update({ moderation_status: "DRAFT" }).eq("profile_id", userId).eq("moderation_status", "PENDING");
+
   const { data: target } = await admin.from("profiles").select("first_name").eq("id", userId).single();
   const { data: authUser } = await admin.auth.admin.getUserById(userId);
   if (target && authUser?.user?.email) {
