@@ -267,13 +267,16 @@ export interface PostRow {
   likes_count: number;
   comments_count: number;
   shares_count: number;
+  views_count: number;
   is_pinned: boolean;
   pinned_position: number | null;
   created_at: string;
   updated_at: string;
 }
 export type PostInsert = Pick<PostRow, "author_id" | "post_type" | "content"> &
-  Partial<Omit<PostRow, "id" | "author_id" | "post_type" | "content" | "likes_count" | "comments_count" | "shares_count" | "created_at" | "updated_at">>;
+  Partial<
+    Omit<PostRow, "id" | "author_id" | "post_type" | "content" | "likes_count" | "comments_count" | "shares_count" | "views_count" | "created_at" | "updated_at">
+  >;
 
 export interface PostMediaRow {
   id: string;
@@ -537,6 +540,7 @@ export interface Database {
     };
     Functions: {
       record_profile_view: { Args: { viewed_profile_id: string }; Returns: void };
+      record_post_view: { Args: { post_id: string }; Returns: void };
       is_admin_or_moderator: { Args: { uid: string }; Returns: boolean };
       create_conversation_with_participant: { Args: { other_user_id: string }; Returns: string };
       get_my_blocked_profiles: { Args: Record<string, never>; Returns: { id: string; first_name: string; avatar_url: string | null }[] };

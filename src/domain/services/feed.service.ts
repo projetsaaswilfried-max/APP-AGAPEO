@@ -22,6 +22,7 @@ export interface IFeedService {
   toggleBookmark(id: string): Promise<FeedPublication>;
   addComment(publicationId: string, content: string, parentCommentId?: string): Promise<FeedComment>;
   recordShare(id: string): Promise<void>;
+  recordView(id: string): Promise<void>;
 }
 
 class FeedServiceSupabase implements IFeedService {
@@ -293,6 +294,12 @@ class FeedServiceSupabase implements IFeedService {
     } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from("post_shares").insert({ post_id: id, user_id: user.id });
+  }
+
+  /** Dédupliqué côté serveur (12h, jamais l'auteur lui-même) — cf. record_post_view. Sans effet si non connecté. */
+  async recordView(id: string): Promise<void> {
+    const supabase = createClient();
+    await supabase.rpc("record_post_view", { post_id: id });
   }
 }
 

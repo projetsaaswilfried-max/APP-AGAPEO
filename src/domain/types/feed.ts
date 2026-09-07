@@ -56,6 +56,7 @@ export interface FeedPublication {
   reactionsCount: number;
   commentsCount: number;
   sharesCount: number;
+  viewsCount: number;
   hasLiked: boolean;
   isBookmarked: boolean;
   createdAt: string;

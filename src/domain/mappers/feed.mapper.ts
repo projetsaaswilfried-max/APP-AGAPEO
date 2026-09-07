@@ -115,6 +115,7 @@ export function mapPostRowToFeedPublication(row: PostRow, opts: MapPostOptions =
     reactionsCount: row.likes_count,
     commentsCount: row.comments_count,
     sharesCount: row.shares_count,
+    viewsCount: row.views_count,
     hasLiked: opts.hasLiked ?? false,
     isBookmarked: opts.isBookmarked ?? false,
     createdAt: formatRelativeDate(row.created_at),

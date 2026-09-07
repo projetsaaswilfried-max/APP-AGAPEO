@@ -24,7 +24,8 @@ import {
   Copy,
   Flag,
   Pin,
-  Play
+  Play,
+  Eye
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -179,6 +180,28 @@ export function PublicationCard({
   const [isTextExpanded, setIsTextExpanded] = useState(false);
   const [isTextTruncated, setIsTextTruncated] = useState(false);
   const contentRef = useRef<HTMLParagraphElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Vue comptabilisée seulement quand la publication défile réellement dans
+  // l'écran (pas juste chargée dans la liste, ce qui gonflerait le compteur
+  // de tous les posts en dessous du pli) — une seule fois par montage, le
+  // dédoublonnage sur 12h et l'exclusion de l'auteur restent gérés côté
+  // serveur (record_post_view).
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          void feedService.recordView(publication.id);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [publication.id]);
 
   // Détecte si le texte dépasse 2 lignes pour n'afficher "Voir plus" que
   // lorsque c'est réellement nécessaire (comme sur Facebook). Remesuré une
@@ -230,7 +253,7 @@ export function PublicationCard({
   };
 
   return (
-    <Card id={anchorId} variant="base" className="select-none transition-all scroll-mt-20">
+    <Card ref={cardRef} id={anchorId} variant="base" className="select-none transition-all scroll-mt-20">
       {/* En-tête de publication : Auteur officiel, Badge, Date, Menu */}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 p-5 pb-4">
         <div className="flex items-center gap-3">
@@ -255,6 +278,10 @@ export function PublicationCard({
               <span>{publication.createdAt}</span>
               <span>•</span>
               <span className="font-medium text-foreground/80">{publication.categoryLabel}</span>
+              <span>•</span>
+              <span className="flex items-center gap-1" title="Nombre de vues">
+                <Eye size={12} /> {publication.viewsCount}
+              </span>
             </div>
           </div>
         </div>
