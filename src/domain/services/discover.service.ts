@@ -46,7 +46,13 @@ class DiscoverServiceSupabase implements IDiscoverService {
    * uniquement) — mêmes critères d'éligibilité et mêmes filtres de
    * recherche dans les deux cas, seule la projection de colonnes change.
    */
-  private buildCandidateQuery<T>(supabase: ReturnType<typeof createClient>, viewer: ProfileRow, filters: DiscoverFilterCriteria, selectColumns: string) {
+  private buildCandidateQuery<T>(
+    supabase: ReturnType<typeof createClient>,
+    viewer: ProfileRow,
+    filters: DiscoverFilterCriteria,
+    selectColumns: string,
+    range: readonly [number, number]
+  ) {
     const targetGender = viewer.gender === "MALE" ? "FEMALE" : "MALE";
 
     // Un profil n'est proposé aux autres que lorsqu'il est "actif" (cf.
@@ -67,18 +73,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .not("why_marriage", "is", null)
       .eq("photo_verification_status", "VERIFIED")
       .eq("is_matched", false)
-      .order("last_active_at", { ascending: false })
-      // Un plafond de 500 coupait silencieusement la liste dès que la
-      // communauté dépassait ce nombre de profils vérifiés (signalé : 80+
-      // hommes vérifiés réels, seuls 60 visibles depuis un compte femme, avec
-      // un plafond alors fixé à 60) — Découvrir doit montrer TOUS les profils
-      // vérifiés correspondant au genre recherché, du plus proche au plus
-      // éloigné (le tri par compatibilité s'applique de toute façon après
-      // coup, sur l'ensemble récupéré ici — cf. getDiscoverPage, qui ne
-      // télécharge que la version légère de cet ensemble). Ce plafond n'est
-      // qu'un garde-fou contre une requête réellement illimitée, pas une
-      // limite voulue à ce stade de la communauté.
-      .limit(500);
+      .order("last_active_at", { ascending: false });
 
     // Recherche et filtres (y compris la "recherche de base" âge/pays/statut,
     // désormais réservée Premium elle aussi) — appliqués ici côté serveur
@@ -118,7 +113,47 @@ class DiscoverServiceSupabase implements IDiscoverService {
       if (filters.coreValue) query = query.contains("core_values", [filters.coreValue]);
     }
 
-    return query.overrideTypes<T[]>();
+    return query.range(range[0], range[1]).overrideTypes<T[]>();
+  }
+
+  /**
+   * buildCandidateQuery n'impose plus aucun plafond — un plafond fixe (500,
+   * déjà relevé une fois depuis 60 pour la même raison) finit toujours par
+   * retronquer silencieusement Découvrir dès que la communauté grandit
+   * (signalé : "Autres profils" bloqué à 497 alors que plus de 500 femmes
+   * étaient déjà vérifiées). On récupère donc l'ensemble du vivier par pages
+   * de PAGE_SIZE (le plafond réel par requête côté PostgREST, cf. fetchAllRows
+   * dans lib/supabase/admin.ts pour le même constat côté admin), en lots
+   * parallèles de taille croissante — sans limite sur le nombre total de
+   * candidats, que la communauté en compte 500 ou 100 000.
+   */
+  private async fetchAllCandidates<T>(
+    supabase: ReturnType<typeof createClient>,
+    viewer: ProfileRow,
+    filters: DiscoverFilterCriteria,
+    selectColumns: string
+  ): Promise<T[]> {
+    const PAGE_SIZE = 1000;
+    const fetchPage = async (page: number): Promise<T[]> => {
+      const from = page * PAGE_SIZE;
+      const { data } = await this.buildCandidateQuery<T>(supabase, viewer, filters, selectColumns, [from, from + PAGE_SIZE - 1]);
+      return (data ?? []) as T[];
+    };
+
+    const firstPage = await fetchPage(0);
+    if (firstPage.length < PAGE_SIZE) return firstPage;
+
+    const all = [...firstPage];
+    let nextPage = 1;
+    let batchSize = 1;
+    while (true) {
+      const pages = await Promise.all(Array.from({ length: batchSize }, (_, i) => fetchPage(nextPage + i)));
+      pages.forEach((p) => all.push(...p));
+      if (pages.some((p) => p.length < PAGE_SIZE)) break;
+      nextPage += batchSize;
+      batchSize *= 2;
+    }
+    return all;
   }
 
   async getProfiles(filters: DiscoverFilterCriteria = {}): Promise<RecommendedProfileItem[]> {
@@ -132,8 +167,8 @@ class DiscoverServiceSupabase implements IDiscoverService {
     if (!viewerRow) return [];
     const viewer = viewerRow as ProfileRow;
 
-    const { data: candidates, error } = await this.buildCandidateQuery<ProfileRow>(supabase, viewer, filters, "*");
-    if (error || !candidates || candidates.length === 0) return [];
+    const candidates = await this.fetchAllCandidates<ProfileRow>(supabase, viewer, filters, "*");
+    if (candidates.length === 0) return [];
 
     const candidateIds = candidates.map((c) => c.id);
 
@@ -202,8 +237,8 @@ class DiscoverServiceSupabase implements IDiscoverService {
     if (!viewerRow) return empty;
     const viewer = viewerRow as ProfileRow;
 
-    const { data: lightRows, error } = await this.buildCandidateQuery<ProfileRow>(supabase, viewer, filters, RANKING_COLUMNS);
-    if (error || !lightRows || lightRows.length === 0) return empty;
+    const lightRows = await this.fetchAllCandidates<ProfileRow>(supabase, viewer, filters, RANKING_COLUMNS);
+    if (lightRows.length === 0) return empty;
 
     interface RankedCandidate {
       profile: { id: string };
