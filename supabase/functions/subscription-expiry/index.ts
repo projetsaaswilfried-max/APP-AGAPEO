@@ -13,15 +13,30 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@agapeo.love>";
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 
-// Du plus proche au plus loin de l'échéance — .find() doit renvoyer le palier
-// le PLUS URGENT applicable (le plus petit nombre de jours restants qui
-// borne encore daysLeft), donc l'ordre croissant est indispensable ici.
-const REMINDER_MILESTONES = [1, 3, 5];
+// Paliers par plan (valeur stockée dans subscription_plan) — un cycle court
+// (semaine, 15 jours) laisserait le palier "5 jours avant" tomber presque au
+// lendemain de l'achat, donc chaque plan démarre sa propre relance à une
+// distance de l'échéance cohérente avec sa durée totale. Mensuel/trimestriel
+// gardent le calendrier historique (déjà en place, satisfaisant). Du plus
+// proche au plus loin de l'échéance dans chaque liste — .find() doit renvoyer
+// le palier le PLUS URGENT applicable (le plus petit nombre de jours
+// restants qui borne encore daysLeft), donc l'ordre croissant est
+// indispensable ici.
+const REMINDER_MILESTONES_BY_PLAN: Record<string, number[]> = {
+  premium_weekly: [2],
+  premium_half_month: [3],
+  premium_monthly: [1, 3, 5],
+  premium_quarterly: [1, 3, 5],
+  premium_access: [1, 3, 5]
+};
+const DEFAULT_REMINDER_MILESTONES = [1, 3, 5];
+const FURTHEST_MILESTONE = Math.max(...Object.values(REMINDER_MILESTONES_BY_PLAN).flat());
 
 interface ProfileRestrictedRow {
   id: string;
   subscription_current_period_end: string | null;
   subscription_reminder_stage: number | null;
+  subscription_plan: string | null;
 }
 
 interface ExpiredProfileRestrictedRow {
@@ -115,7 +130,7 @@ Deno.serve(async (req) => {
 
   const now = new Date();
   const nowIso = now.toISOString();
-  const furthestMilestoneIso = new Date(now.getTime() + Math.max(...REMINDER_MILESTONES) * 24 * 60 * 60 * 1000).toISOString();
+  const furthestMilestoneIso = new Date(now.getTime() + FURTHEST_MILESTONE * 24 * 60 * 60 * 1000).toISOString();
 
   // 1) Downgrade des abonnements réellement expirés + email de retrait.
   const { data: expired, error: expiredErr } = await admin
@@ -157,7 +172,7 @@ Deno.serve(async (req) => {
   // 2) Relances à 5, 3 puis 1 jour de l'échéance — un seul envoi par palier.
   const { data: dueForReminder, error: reminderErr } = await admin
     .from("profile_restricted")
-    .select("id, subscription_current_period_end, subscription_reminder_stage")
+    .select("id, subscription_current_period_end, subscription_reminder_stage, subscription_plan")
     .eq("subscription_status", "ACTIVE")
     .lte("subscription_current_period_end", furthestMilestoneIso)
     .gt("subscription_current_period_end", nowIso);
@@ -172,7 +187,8 @@ Deno.serve(async (req) => {
     if (!row.subscription_current_period_end) continue;
 
     const daysLeft = Math.ceil((new Date(row.subscription_current_period_end).getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-    const applicableMilestone = REMINDER_MILESTONES.find((m) => daysLeft <= m);
+    const milestones = (row.subscription_plan && REMINDER_MILESTONES_BY_PLAN[row.subscription_plan]) || DEFAULT_REMINDER_MILESTONES;
+    const applicableMilestone = milestones.find((m) => daysLeft <= m);
     if (applicableMilestone === undefined) continue;
 
     const alreadySent = row.subscription_reminder_stage !== null && row.subscription_reminder_stage <= applicableMilestone;
