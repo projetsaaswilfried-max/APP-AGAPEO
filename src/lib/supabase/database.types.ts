@@ -447,9 +447,11 @@ export interface SupportTicketRow {
   created_at: string;
   closed_at: string | null;
   closed_by: string | null;
+  /** Signalement à l'origine du dossier, quand il a été ouvert par l'équipe pour demander une explication (cf. openReportConversationAction). Null pour un dossier ouvert normalement par un membre. */
+  report_id: string | null;
 }
-export type SupportTicketInsert = Pick<SupportTicketRow, "user_id" | "subject">;
-export type SupportTicketUpdate = Partial<Pick<SupportTicketRow, "status" | "closed_at" | "closed_by">>;
+export type SupportTicketInsert = Pick<SupportTicketRow, "user_id" | "subject"> & Partial<Pick<SupportTicketRow, "report_id">>;
+export type SupportTicketUpdate = Partial<Pick<SupportTicketRow, "status" | "closed_at" | "closed_by" | "report_id">>;
 
 export interface SupportMessageRow {
   id: string;

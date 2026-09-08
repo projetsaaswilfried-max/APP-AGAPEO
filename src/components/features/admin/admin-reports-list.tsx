@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ScrollableRow } from "@/components/ui/scrollable-row";
-import { updateReportStatusAction } from "@/lib/actions/admin.actions";
+import { updateReportStatusAction, openReportConversationAction } from "@/lib/actions/admin.actions";
 import type { ReportStatus, ReportTargetType } from "@/lib/supabase/database.types";
-import { Flag } from "lucide-react";
+import { Flag, MessageCircle } from "lucide-react";
 
 export interface AdminReportRow {
   id: string;
@@ -36,9 +37,12 @@ const TARGET_LABELS: Record<ReportTargetType, string> = {
 };
 
 export function AdminReportsList({ initialReports }: { initialReports: AdminReportRow[] }) {
+  const router = useRouter();
   const [reports, setReports] = useState(initialReports);
   const [filter, setFilter] = useState<ReportStatus | "ALL">("PENDING");
   const [isPending, startTransition] = useTransition();
+  const [contactingId, setContactingId] = useState<string | null>(null);
+  const [contactError, setContactError] = useState<string | null>(null);
 
   const filtered = filter === "ALL" ? reports : reports.filter((r) => r.status === filter);
 
@@ -49,8 +53,26 @@ export function AdminReportsList({ initialReports }: { initialReports: AdminRepo
     });
   };
 
+  const handleContact = (id: string) => {
+    setContactError(null);
+    setContactingId(id);
+    startTransition(async () => {
+      const result = await openReportConversationAction(id);
+      setContactingId(null);
+      if ("error" in result && result.error) {
+        setContactError(result.error);
+        return;
+      }
+      setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: "REVIEWED" } : r)));
+      if ("ticketId" in result) router.push(`/admin/support?ticket=${result.ticketId}`);
+    });
+  };
+
   return (
     <div className="space-y-4">
+      {contactError && (
+        <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">{contactError}</div>
+      )}
       <ScrollableRow className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 w-full sm:w-fit">
         {(["PENDING", "REVIEWED", "ACTION_TAKEN", "DISMISSED", "ALL"] as const).map((s) => (
           <button
@@ -96,18 +118,27 @@ export function AdminReportsList({ initialReports }: { initialReports: AdminRepo
                     </>
                   )}
                 </div>
-                <Select
-                  value={r.status}
-                  disabled={isPending}
-                  onChange={(e) => handleStatusChange(r.id, e.target.value as ReportStatus)}
-                  className="h-auto bg-secondary/60 rounded-lg py-1"
-                >
-                  {(Object.keys(STATUS_LABELS) as ReportStatus[]).map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABELS[s]}
-                    </option>
-                  ))}
-                </Select>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleContact(r.id)}
+                    disabled={isPending}
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors disabled:opacity-50 whitespace-nowrap"
+                  >
+                    <MessageCircle size={12} /> {contactingId === r.id ? "Ouverture..." : "Discuter"}
+                  </button>
+                  <Select
+                    value={r.status}
+                    disabled={isPending}
+                    onChange={(e) => handleStatusChange(r.id, e.target.value as ReportStatus)}
+                    className="h-auto bg-secondary/60 rounded-lg py-1"
+                  >
+                    {(Object.keys(STATUS_LABELS) as ReportStatus[]).map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABELS[s]}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
               </div>
             </div>
           ))}

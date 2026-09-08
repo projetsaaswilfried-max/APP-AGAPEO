@@ -574,3 +574,72 @@ export async function updateReportStatusAction(reportId: string, status: (typeof
   revalidatePath("/admin/reports");
   return { success: true };
 }
+
+/**
+ * Ouvre un dossier support avec la personne visée par un signalement pour
+ * lui demander de s'expliquer — jusqu'ici un signalement PENDING n'offrait
+ * aucun moyen de dialoguer avec elle avant de trancher. Réutilise son dossier
+ * déjà ouvert s'il en existe un (un membre ne peut en avoir qu'un seul à la
+ * fois, cf. support_tickets_one_open_per_user) plutôt que d'en créer un
+ * second qui violerait cette contrainte. Passe par le client service-role
+ * car support_tickets_insert_own exige user_id = auth.uid() — un admin ne
+ * peut pas ouvrir un dossier "au nom" d'un autre membre via le client normal.
+ */
+export async function openReportConversationAction(reportId: string) {
+  const { user } = await requireStaffSession();
+  const admin = createAdminClient();
+
+  const { data: report, error: reportError } = await admin.from("reports").select("*").eq("id", reportId).single();
+  if (reportError || !report) return { error: "Signalement introuvable." };
+
+  let targetUserId: string | null = null;
+  if (report.target_type === "PROFILE") {
+    targetUserId = report.target_id;
+  } else if (report.target_type === "MESSAGE") {
+    const { data: message } = await admin.from("messages").select("sender_id").eq("id", report.target_id).single();
+    targetUserId = message?.sender_id ?? null;
+  } else if (report.target_type === "POST") {
+    const { data: post } = await admin.from("posts").select("author_id").eq("id", report.target_id).single();
+    targetUserId = post?.author_id ?? null;
+  }
+  if (!targetUserId) return { error: "Impossible d'identifier la personne concernée (contenu peut-être supprimé)." };
+
+  const { data: existingTicket } = await admin
+    .from("support_tickets")
+    .select("id")
+    .eq("user_id", targetUserId)
+    .eq("status", "OPEN")
+    .maybeSingle();
+
+  let ticketId: string;
+  if (existingTicket) {
+    ticketId = existingTicket.id;
+    await admin.from("support_tickets").update({ report_id: reportId }).eq("id", ticketId);
+  } else {
+    const { data: newTicket, error: ticketError } = await admin
+      .from("support_tickets")
+      .insert({ user_id: targetUserId, subject: `Signalement — ${report.reason}`, report_id: reportId })
+      .select("id")
+      .single();
+    if (ticketError || !newTicket) return { error: ticketError?.message ?? "Impossible d'ouvrir le dossier." };
+    ticketId = newTicket.id;
+  }
+
+  const { error: messageError } = await admin.from("support_messages").insert({
+    ticket_id: ticketId,
+    user_id: targetUserId,
+    author_id: user.id,
+    is_staff: true,
+    content: `Bonjour,\n\nNous avons reçu un signalement te concernant (motif : "${report.reason}"). Peux-tu nous expliquer ce qui s'est passé ?\n\nMerci de nous répondre directement ici.`
+  });
+  if (messageError) return { error: messageError.message };
+
+  if (report.status === "PENDING") {
+    await admin.from("reports").update({ status: "REVIEWED" }).eq("id", reportId);
+  }
+
+  await logAdminAction(user.id, "OPEN_REPORT_CONVERSATION", { targetType: "report", targetId: reportId, details: { ticketId, targetUserId } });
+  revalidatePath("/admin/reports");
+  revalidatePath("/admin/support");
+  return { success: true, ticketId };
+}
