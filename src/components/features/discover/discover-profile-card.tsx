@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { VerifiedMemberBadge } from "@/components/ui/verified-member-badge";
 import { MARITAL_STATUS_LABELS } from "@/domain/marital-status";
-import { Bookmark, Heart, MapPin, MessageSquare, Lock, Users, Ruler } from "lucide-react";
+import { Bookmark, Heart, MapPin, MessageSquare, Users, Ruler } from "lucide-react";
 import { cn, maskForPreview } from "@/lib/utils";
 
 interface DiscoverProfileCardProps {
@@ -30,10 +30,9 @@ export function DiscoverProfileCard({
   onRequireVerification
 }: DiscoverProfileCardProps) {
   const { profile, isFavorite, isLiked } = item;
-  // La photo reste nette pour tout le monde (seul le choix de flou du membre
-  // lui-même s'applique) — c'est le nom/l'âge/la localisation qui sont
-  // masqués tant que le visiteur n'a pas fait valider son propre profil.
-  const isBlurred = profile.privacySettings?.isPhotoBlurred;
+  // La photo est toujours nette dans Découvrir, pour tout le monde — c'est le
+  // nom/l'âge/la localisation qui restent masqués tant que le visiteur n'a
+  // pas fait valider son propre profil.
   const displayName = canInteract ? profile.firstName : maskForPreview(profile.firstName, 2);
   const displayAge = canInteract ? String(profile.age) : maskForPreview(String(profile.age));
   const displayCity = canInteract ? profile.city : maskForPreview(profile.city);
@@ -49,21 +48,7 @@ export function DiscoverProfileCard({
       <div className="space-y-4" onClick={handleInspect}>
         <div className="flex items-start justify-between gap-3">
           <div className="relative shrink-0">
-            <div className="relative">
-              <Avatar
-                size="xl"
-                src={profile.avatarUrl}
-                fallback={profile.firstName.charAt(0)}
-                className={cn("ring-2 ring-primary/20 shadow-md transition-all", isBlurred && "blur-md scale-105")}
-              />
-              {isBlurred && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
-                  <span title="Photo floutée par le membre" className="inline-flex">
-                    <Lock size={16} className="text-white" />
-                  </span>
-                </div>
-              )}
-            </div>
+            <Avatar size="xl" src={profile.avatarUrl} fallback={profile.firstName.charAt(0)} className="ring-2 ring-primary/20 shadow-md" />
           </div>
 
           <div className="flex items-start gap-2">

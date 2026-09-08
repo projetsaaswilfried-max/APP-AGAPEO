@@ -23,7 +23,6 @@ export function AccountPrivacySettings({
   const [showReadReceipts, setShowReadReceipts] = useState(privacy?.showReadReceipts ?? true);
   const [allowProfileVisits, setAllowProfileVisits] = useState(privacy?.allowProfileVisits ?? true);
   const [isInvisibleProfile, setIsInvisibleProfile] = useState(privacy?.isInvisibleProfile ?? false);
-  const [isPhotoBlurred, setIsPhotoBlurred] = useState(privacy?.isPhotoBlurred ?? false);
 
   const [notifyMessages, setNotifyMessages] = useState(notifications?.notifyMessages ?? true);
   const [notifyFavorites, setNotifyFavorites] = useState(notifications?.notifyFavorites ?? true);
@@ -42,7 +41,6 @@ export function AccountPrivacySettings({
         showReadReceipts,
         allowProfileVisits,
         isInvisibleProfile,
-        isPhotoBlurred,
         allowEmailNotifications: notifyEmailDigest
       },
       {
@@ -68,7 +66,7 @@ export function AccountPrivacySettings({
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
             <h2 className="text-base font-display font-semibold text-foreground tracking-tight">
-              Paramètres de Confidentialité & Floutage Éthique
+              Paramètres de Confidentialité
             </h2>
           </div>
           {isSaved && (
@@ -79,16 +77,6 @@ export function AccountPrivacySettings({
         </div>
 
         <div className="space-y-4">
-          {/* OPTION ÉTIQUE DEMANDÉE PAR L'UTILISATEUR */}
-          <div className="p-4 rounded-2xl bg-secondary/40 border border-border/60 space-y-2">
-            <Switch
-              checked={isPhotoBlurred}
-              onCheckedChange={setIsPhotoBlurred}
-              label="Flouter mes photos pour le grand public"
-              description="Vos photos de profil seront floutées dans l'espace Découvrir et ne seront débloquées que sur votre accord exprès."
-            />
-          </div>
-
           <Switch
             checked={showOnlineStatus}
             onCheckedChange={setShowOnlineStatus}

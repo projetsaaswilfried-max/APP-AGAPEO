@@ -18,8 +18,7 @@ export default async function ProfilePage() {
     phone: privateData?.phone ?? undefined,
     phoneCountryCode: privateData?.phone_country_code ?? undefined,
     subscriptionStatus: restrictedData?.subscription_status,
-    subscriptionCurrentPeriodEnd: restrictedData?.subscription_current_period_end ?? undefined,
-    isOwnProfile: true
+    subscriptionCurrentPeriodEnd: restrictedData?.subscription_current_period_end ?? undefined
   });
 
   return <ProfilePageClient initialProfile={profile} initialPhotos={photos ?? []} />;

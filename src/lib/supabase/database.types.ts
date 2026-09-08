@@ -111,7 +111,6 @@ export interface ProfileRow {
   show_read_receipts: boolean;
   allow_profile_visits: boolean;
   is_invisible_profile: boolean;
-  is_photo_blurred: boolean;
 
   notify_messages: boolean;
   notify_favorites: boolean;

@@ -49,7 +49,6 @@ export interface UserPrivacySettings {
   showReadReceipts: boolean;
   allowProfileVisits: boolean;
   isInvisibleProfile: boolean;
-  isPhotoBlurred: boolean; // Option de floutage des photos pour le grand public
   allowEmailNotifications: boolean;
 }
 

@@ -105,7 +105,6 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
       show_read_receipts: privacy.showReadReceipts,
       allow_profile_visits: privacy.allowProfileVisits,
       is_invisible_profile: privacy.isInvisibleProfile,
-      is_photo_blurred: privacy.isPhotoBlurred,
       notify_messages: notifications.notifyMessages,
       notify_favorites: notifications.notifyFavorites,
       notify_recommendations: notifications.notifyRecommendations,

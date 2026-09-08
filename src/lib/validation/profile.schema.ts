@@ -65,7 +65,6 @@ export const ProfileEditableSchema = z.object({
   show_read_receipts: z.boolean(),
   allow_profile_visits: z.boolean(),
   is_invisible_profile: z.boolean(),
-  is_photo_blurred: z.boolean(),
 
   notify_messages: z.boolean(),
   notify_favorites: z.boolean(),
