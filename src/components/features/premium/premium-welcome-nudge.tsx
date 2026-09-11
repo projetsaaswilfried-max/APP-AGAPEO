@@ -26,8 +26,12 @@ export function PremiumWelcomeNudge() {
 
   const eligible = !profile.is_staff && profile.subscription_status !== "ACTIVE";
 
+  // "/" en plus de "/feed" : selon comment la personne arrive (connexion
+  // sans redirectTo précis, ouverture directe de l'app...), l'accueil peut
+  // se retrouver servi sous l'une ou l'autre URL — les deux comptent comme
+  // "Accueil" pour ce popup.
   useEffect(() => {
-    if (!eligible || pathname !== "/feed") return;
+    if (!eligible || (pathname !== "/feed" && pathname !== "/")) return;
 
     let alreadyShown = true;
     try {
