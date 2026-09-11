@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
 import { useSession } from "@/core/providers/session-provider";
+import { usePremiumNudge } from "@/core/providers/premium-nudge-provider";
 import { getScoringGaps } from "@/domain/profile-completeness";
 import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, ArrowRight, Clock, ShieldAlert } from "lucide-react";
 
@@ -92,6 +93,7 @@ function DiscoverPageContent() {
   const [verificationReason, setVerificationReason] = useState("contacter ce membre");
   const [otherProfilesPage, setOtherProfilesPage] = useState(1);
   const otherProfilesSectionRef = useRef<HTMLDivElement>(null);
+  const { requestNudge } = usePremiumNudge();
 
   const handleRequireVerification = (reason: string) => {
     setVerificationReason(reason);
@@ -125,6 +127,16 @@ function DiscoverPageContent() {
     fetchProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, otherProfilesPage]);
+
+  // Demande de relance Premium à chaque entrée/action dans Découvrir
+  // (chargement initial, pagination "Autres profils", changement de filtre)
+  // — ces actions ne changent jamais d'URL, donc le déclencheur générique
+  // sur navigation (PremiumNudgeProvider) ne les verrait pas tout seul.
+  // requestNudge applique de toute façon le même plafond/espacement
+  // quotidien : appeler souvent ne spamme jamais plus que prévu.
+  useEffect(() => {
+    requestNudge();
+  }, [filters, otherProfilesPage, requestNudge]);
 
   /** Un profil "recommandé" ou de la page courante peut être basculé favori/liké — jamais les deux listes à la fois pour un même id, mais on ne sait pas laquelle sans chercher. */
   const updateProfileInLists = (profileId: string, updater: (item: RecommendedProfileItem) => RecommendedProfileItem) => {
