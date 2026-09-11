@@ -581,14 +581,14 @@ function MessagesPageContent() {
                 </div>
               ) : (
                 <>
-                  {matchError && (
+                  {!activeConv.isSystemBroadcast && matchError && (
                     <div className="mx-4 mt-3 flex items-center gap-2 p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">
                       <AlertCircle size={14} className="shrink-0" />
                       {matchError}
                     </div>
                   )}
 
-                  {activeMatch?.status === "ACCEPTED" ? (
+                  {activeConv.isSystemBroadcast ? null : activeMatch?.status === "ACCEPTED" ? (
                     <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
                       <span className="flex items-center gap-1.5 font-medium">
                         <Heart size={14} className="fill-current text-accent shrink-0" /> Vous êtes en couple sur Agapeo !
@@ -670,25 +670,40 @@ function MessagesPageContent() {
                     </div>
                   )}
 
-                  {!canSendMessages && (
-                    <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
-                      <span>Passe Premium pour répondre à tes messages.</span>
-                      <button
-                        type="button"
-                        onClick={() => setIsPremiumRequiredOpen(true)}
-                        className="shrink-0 text-xs font-semibold text-primary hover:underline"
-                      >
-                        Découvrir
-                      </button>
+                  {activeConv.isSystemBroadcast ? (
+                    <div className="mx-4 mb-4 flex flex-col items-center gap-2 p-4 rounded-2xl bg-secondary/50 border border-border/40 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        Message automatique de l&apos;équipe Agapeo — tu ne peux pas répondre directement ici.
+                      </p>
+                      {!canSendMessages && (
+                        <Link href="/premium" className="text-xs font-semibold text-primary hover:underline">
+                          Voir les offres Premium
+                        </Link>
+                      )}
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {!canSendMessages && (
+                        <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                          <span>Passe Premium pour répondre à tes messages.</span>
+                          <button
+                            type="button"
+                            onClick={() => setIsPremiumRequiredOpen(true)}
+                            className="shrink-0 text-xs font-semibold text-primary hover:underline"
+                          >
+                            Découvrir
+                          </button>
+                        </div>
+                      )}
 
-                  <ChatInputBar
-                    onSendMessage={handleSendMessage}
-                    onSendFileAttachment={handleSendFileAttachment}
-                    onSendVoiceMessage={handleSendVoiceMessage}
-                    onTyping={handleTyping}
-                  />
+                      <ChatInputBar
+                        onSendMessage={handleSendMessage}
+                        onSendFileAttachment={handleSendFileAttachment}
+                        onSendVoiceMessage={handleSendVoiceMessage}
+                        onTyping={handleTyping}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </>

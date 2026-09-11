@@ -186,6 +186,8 @@ export interface ProfileRestrictedRow {
   almost_done_nudge_sent: boolean;
   /** Palier déjà envoyé de la relance "paiement d'accès non effectué" (0=10min, 1=J+1 ... 5=J+5) — null tant qu'aucune relance n'a encore été envoyée. Cf. supabase/functions/new-signup-payment-reminder. */
   access_payment_reminder_stage: number | null;
+  /** Palier déjà envoyé (2/4/.../30 jours) de la relance Premium côté messagerie (message Agapeo) — indépendant de premium_sequence_stage qui suit le même palier côté email. */
+  in_app_premium_nudge_stage: number | null;
   latitude: number | null;
   longitude: number | null;
 }
@@ -310,6 +312,8 @@ export interface ConversationRow {
   id: string;
   status: ConversationStatus;
   initiated_by: string | null;
+  /** Vrai pour la conversation à sens unique avec le compte système Agapeo (message de bienvenue, relances Premium) — une par membre, jamais créée par un membre lui-même. */
+  is_system_broadcast: boolean;
   created_at: string;
   last_message_at: string;
 }

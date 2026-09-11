@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSession } from "@/core/providers/session-provider";
 import { startPremiumCheckoutAction, type PremiumCheckoutState } from "@/lib/actions/premium.actions";
 import { getActivePaymentProviderAction } from "@/lib/actions/payment-settings.actions";
@@ -216,6 +217,20 @@ export default function PremiumPage() {
     setSelectedPlan(plan);
     setPaymentMethodModalPlan(plan);
   };
+
+  // Permet au popup de relance (premium-nudge-popup.tsx) de déclencher
+  // directement l'achat depuis un lien `/premium?plan=WEEKLY` — reproduit
+  // exactement l'effet d'un clic sur la carte du plan, sans dupliquer le
+  // reste de la mécanique de paiement (modale de moyen de paiement, Mobile
+  // Money, capture téléphone) qui reste gérée par cette page.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const requestedPlan = searchParams.get("plan");
+    if (requestedPlan && PURCHASABLE_PLAN_KEYS.includes(requestedPlan as PremiumPlanKey)) {
+      handleOpenPaymentMethod(requestedPlan as PremiumPlanKey);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChooseMobileMoney = () => {
     if (mobileMoneyProvider === "saspay") {

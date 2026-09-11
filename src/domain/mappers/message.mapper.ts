@@ -50,7 +50,8 @@ export function mapConversationSummary(
   isFavorite: boolean,
   updatedAt: string,
   status: ConversationStatus,
-  initiatedByMe: boolean
+  initiatedByMe: boolean,
+  isSystemBroadcast: boolean
 ): ConversationSummary {
   // "Afficher mon statut en ligne" (show_online_status) : si désactivé par le
   // participant, ni la présence ni le "vu le..." ne doivent être révélés —
@@ -73,6 +74,7 @@ export function mapConversationSummary(
     // active remontait donc rarement en tête de liste.
     updatedAt,
     status,
-    initiatedByMe
+    initiatedByMe,
+    isSystemBroadcast
   };
 }

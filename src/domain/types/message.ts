@@ -43,4 +43,6 @@ export interface ConversationSummary {
   status: "PENDING" | "ACCEPTED" | "DECLINED";
   /** `true` si c'est moi qui ai envoyé l'invitation — détermine "en attente" vs bannière à répondre quand status = PENDING. */
   initiatedByMe: boolean;
+  /** `true` pour la conversation à sens unique avec le compte système Agapeo — la saisie de message est masquée quel que soit le statut d'abonnement. */
+  isSystemBroadcast: boolean;
 }

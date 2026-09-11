@@ -174,7 +174,8 @@ class MessageServiceSupabase implements IMessageService {
           participation.is_favorite,
           lastMsgRow?.created_at ?? participation.joined_at,
           conversation.status,
-          conversation.initiated_by === myId
+          conversation.initiated_by === myId,
+          conversation.is_system_broadcast
         )
       );
     }

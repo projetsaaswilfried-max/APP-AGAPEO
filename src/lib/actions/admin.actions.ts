@@ -10,6 +10,7 @@ import { sendPremiumRemovedEmail } from "@/lib/premium-emails";
 import { sendRoleChangedEmail } from "@/lib/role-emails";
 import { sendPhotoEmail } from "@/lib/photo-emails";
 import { sendAccountSuspendedEmail } from "@/lib/account-suspension-email";
+import { sendAgapeoSystemMessage } from "@/lib/agapeo-system-message";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
 import { z } from "zod";
@@ -379,17 +380,24 @@ export async function approveVerificationRequestAction(requestId: string, userId
     .eq("profile_id", userId)
     .eq("moderation_status", "PENDING");
 
-  // Repart de zéro pour la séquence email "passe Premium" (cf. migration
-  // activation_email_sequences) — utile si ce membre avait déjà été vérifié
-  // puis avait perdu son statut (photo supprimée) : une nouvelle validation
-  // doit relancer le cycle de J1 à J7, pas reprendre un ancien palier.
-  await admin.from("profile_restricted").update({ premium_sequence_stage: null }).eq("id", userId);
+  // Repart de zéro pour les séquences "passe Premium" (email + messagerie,
+  // cf. migrations activation_email_sequences et agapeo_system_messages) —
+  // utile si ce membre avait déjà été vérifié puis avait perdu son statut
+  // (photo supprimée) : une nouvelle validation doit relancer le cycle
+  // complet, pas reprendre un ancien palier.
+  await admin.from("profile_restricted").update({ premium_sequence_stage: null, in_app_premium_nudge_stage: null }).eq("id", userId);
 
   const { data: target } = await admin.from("profiles").select("first_name").eq("id", userId).single();
   const { data: authUser } = await admin.auth.admin.getUserById(userId);
   if (target && authUser?.user?.email) {
     await sendVerificationEmail({ to: authUser.user.email, firstName: target.first_name, kind: "APPROVED" });
   }
+
+  await sendAgapeoSystemMessage(
+    admin,
+    userId,
+    "Bienvenue sur Agapeo ! Ton profil est maintenant vérifié et visible dans Découvrir. Aujourd'hui, une seule chose bloque encore ton exploration : sans abonnement, tu ne peux ni consulter un profil en entier, ni démarrer une conversation avec quelqu'un qui t'intéresse. Passe Premium pour débloquer tout ça — Découvrir en illimité, contact prioritaire, favoris, et savoir qui s'intéresse déjà à toi."
+  );
 
   await logAdminAction(user.id, "APPROVE_VERIFICATION", { targetType: "profile", targetId: userId, details: { requestId } });
   revalidatePath("/admin/verifications");
