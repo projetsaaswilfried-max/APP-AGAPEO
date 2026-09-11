@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
 import { useSession } from "@/core/providers/session-provider";
-import { getScoringGaps, isProfileComplete, needsVerificationSubmission } from "@/domain/profile-completeness";
+import { getScoringGaps } from "@/domain/profile-completeness";
 import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, ArrowRight, Clock, ShieldAlert } from "lucide-react";
 
 const DEFAULT_FILTERS: DiscoverFilterCriteria = { ageMin: 20, ageMax: 50, status: "ALL" };
@@ -94,10 +94,11 @@ function DiscoverPageContent() {
   const [otherProfilesPage, setOtherProfilesPage] = useState(1);
   const otherProfilesSectionRef = useRef<HTMLDivElement>(null);
   const [isPremiumOfferOpen, setIsPremiumOfferOpen] = useState(false);
-  // Même suppression que PremiumUpsellBanner : inutile tant que le profil
-  // n'est pas complet/vérifié, ce n'est pas encore le bon moment.
-  const isPremiumOfferEligible =
-    !profile.is_staff && profile.subscription_status !== "ACTIVE" && isProfileComplete(profile) && !needsVerificationSubmission(profile);
+  // Seule condition : ne pas avoir d'abonnement actif (ni être staff) — pas
+  // de condition de profil complet/vérifié, contrairement à PremiumUpsellBanner :
+  // un compte gratuit fraîchement créé (donc pas encore vérifié) doit voir ce
+  // popup autant que les autres, c'est justement lui la cible.
+  const isPremiumOfferEligible = !profile.is_staff && profile.subscription_status !== "ACTIVE";
 
   const handleRequireVerification = (reason: string) => {
     setVerificationReason(reason);
