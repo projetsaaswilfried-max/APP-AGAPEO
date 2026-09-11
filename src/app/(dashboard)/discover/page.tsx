@@ -10,6 +10,7 @@ import { DiscoverProfileCard } from "@/components/features/discover/discover-pro
 import { FilterPanel } from "@/components/features/discover/filter-panel";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { PremiumOfferModal } from "@/components/features/premium/premium-offer-modal";
 import { AccessExpiredState } from "@/components/features/premium/access-expired-state";
 import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
 import { SendInvitationModal } from "@/components/features/messages/send-invitation-modal";
@@ -20,8 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
 import { useSession } from "@/core/providers/session-provider";
-import { usePremiumNudge } from "@/core/providers/premium-nudge-provider";
-import { getScoringGaps } from "@/domain/profile-completeness";
+import { getScoringGaps, isProfileComplete, needsVerificationSubmission } from "@/domain/profile-completeness";
 import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, ArrowRight, Clock, ShieldAlert } from "lucide-react";
 
 const DEFAULT_FILTERS: DiscoverFilterCriteria = { ageMin: 20, ageMax: 50, status: "ALL" };
@@ -93,7 +93,11 @@ function DiscoverPageContent() {
   const [verificationReason, setVerificationReason] = useState("contacter ce membre");
   const [otherProfilesPage, setOtherProfilesPage] = useState(1);
   const otherProfilesSectionRef = useRef<HTMLDivElement>(null);
-  const { requestNudge } = usePremiumNudge();
+  const [isPremiumOfferOpen, setIsPremiumOfferOpen] = useState(false);
+  // Même suppression que PremiumUpsellBanner : inutile tant que le profil
+  // n'est pas complet/vérifié, ce n'est pas encore le bon moment.
+  const isPremiumOfferEligible =
+    !profile.is_staff && profile.subscription_status !== "ACTIVE" && isProfileComplete(profile) && !needsVerificationSubmission(profile);
 
   const handleRequireVerification = (reason: string) => {
     setVerificationReason(reason);
@@ -128,15 +132,16 @@ function DiscoverPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, otherProfilesPage]);
 
-  // Demande de relance Premium à chaque entrée/action dans Découvrir
-  // (chargement initial, pagination "Autres profils", changement de filtre)
-  // — ces actions ne changent jamais d'URL, donc le déclencheur générique
-  // sur navigation (PremiumNudgeProvider) ne les verrait pas tout seul.
-  // requestNudge applique de toute façon le même plafond/espacement
-  // quotidien : appeler souvent ne spamme jamais plus que prévu.
+  // Popup Premium à CHAQUE chargement de Découvrir (premier affichage,
+  // pagination "Autres profils", changement de filtre) — décision du
+  // fondateur : aucun plafond ici, contrairement au popup de bienvenue
+  // d'Accueil (une seule fois, cf. PremiumWelcomeNudge). C'est la page où
+  // un membre gratuit ressent le plus la limite (aperçu flouté, contact
+  // bloqué), donc la relance y est volontairement systématique.
   useEffect(() => {
-    requestNudge();
-  }, [filters, otherProfilesPage, requestNudge]);
+    if (isPremiumOfferEligible) setIsPremiumOfferOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, otherProfilesPage]);
 
   /** Un profil "recommandé" ou de la page courante peut être basculé favori/liké — jamais les deux listes à la fois pour un même id, mais on ne sait pas laquelle sans chercher. */
   const updateProfileInLists = (profileId: string, updater: (item: RecommendedProfileItem) => RecommendedProfileItem) => {
@@ -435,6 +440,14 @@ function DiscoverPageContent() {
 
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
       <VerificationRequiredModal isOpen={isVerificationRequiredOpen} onClose={() => setIsVerificationRequiredOpen(false)} reason={verificationReason} />
+      <PremiumOfferModal
+        isOpen={isPremiumOfferOpen}
+        onClose={() => setIsPremiumOfferOpen(false)}
+        onSelectPlan={(key) => {
+          setIsPremiumOfferOpen(false);
+          router.push(`/premium?plan=${key}`);
+        }}
+      />
       <SendInvitationModal
         isOpen={!!pendingInvitation}
         onClose={cancelInvitation}

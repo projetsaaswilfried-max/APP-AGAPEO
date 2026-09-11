@@ -17,7 +17,7 @@ import { UnreadCountsProvider, useUnreadCounts } from "@/core/providers/unread-c
 import { useRestoreScrollMemory } from "@/core/hooks/use-scroll-memory";
 import { IncompleteProfileBanner } from "./incomplete-profile-banner";
 import { PremiumUpsellBanner } from "./premium-upsell-banner";
-import { PremiumNudgeProvider } from "@/core/providers/premium-nudge-provider";
+import { PremiumWelcomeNudge } from "@/components/features/premium/premium-welcome-nudge";
 import { AgapeoLogo } from "@/components/ui/logo";
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -38,9 +38,7 @@ interface AppShellProps {
 export function AppShell(props: AppShellProps) {
   return (
     <UnreadCountsProvider>
-      <PremiumNudgeProvider>
-        <AppShellContent {...props} />
-      </PremiumNudgeProvider>
+      <AppShellContent {...props} />
     </UnreadCountsProvider>
   );
 }
@@ -165,6 +163,7 @@ function AppShellContent({ children }: AppShellProps) {
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
         <IncompleteProfileBanner />
         <PremiumUpsellBanner />
+        <PremiumWelcomeNudge />
 
         <main className="flex-1 w-full px-5 py-4 md:py-6 lg:py-8">
           <AnimatePresence mode="wait">
