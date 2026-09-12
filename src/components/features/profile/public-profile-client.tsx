@@ -6,7 +6,7 @@ import type { UserProfile } from "@/domain/types/user";
 import type { FeedPublication } from "@/domain/types/feed";
 import { createClient } from "@/lib/supabase/client";
 import { discoverService } from "@/domain/services/discover.service";
-import { PremiumRequiredError } from "@/domain/errors";
+import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { ProfileHero } from "@/components/features/profile/profile-hero";
 import { CompatibilityExplainedSection } from "@/components/features/profile/compatibility-explained-section";
 import { FaithSection } from "@/components/features/profile/faith-section";
@@ -15,6 +15,7 @@ import { UserPublicationsSection } from "@/components/features/profile/user-publ
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
 import { SendInvitationModal } from "@/components/features/messages/send-invitation-modal";
 import { useSendInvitation } from "@/core/hooks/use-send-invitation";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,12 @@ export function PublicProfileClient({
   const [isBlocked, setIsBlocked] = useState(false);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
   const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
+  // Cette page est désormais atteignable par un membre Premium non vérifié
+  // (la vérification n'est plus requise que pour les vraies interactions,
+  // pas la consultation) — favori/like/message peuvent donc réellement
+  // renvoyer VerificationRequiredError ici, contrairement à avant.
+  const [isVerificationRequiredOpen, setIsVerificationRequiredOpen] = useState(false);
+  const [verificationReason, setVerificationReason] = useState("contacter ce membre");
 
   useEffect(() => {
     const supabase = createClient();
@@ -58,19 +65,25 @@ export function PublicProfileClient({
       if (err instanceof PremiumRequiredError) {
         setPremiumReason("mettre des profils en favori");
         setIsPremiumRequiredOpen(true);
+      } else if (err instanceof VerificationRequiredError) {
+        setVerificationReason("mettre ce membre en favori");
+        setIsVerificationRequiredOpen(true);
       }
     }
   };
 
-  // Cette page n'est jamais atteignable sans être VERIFIED (cf. garde côté
-  // page.tsx) — VerificationRequiredError ne peut donc jamais survenir ici en pratique.
   const handleToggleLike = async () => {
     setIsLiked((prev) => !prev);
     try {
       await discoverService.toggleLike(profile.id);
     } catch (err) {
       setIsLiked((prev) => !prev);
-      console.error(err);
+      if (err instanceof VerificationRequiredError) {
+        setVerificationReason("liker ce profil");
+        setIsVerificationRequiredOpen(true);
+      } else {
+        console.error(err);
+      }
     }
   };
 
@@ -79,6 +92,10 @@ export function PublicProfileClient({
     onPremiumRequired: () => {
       setPremiumReason("contacter ce membre en premier");
       setIsPremiumRequiredOpen(true);
+    },
+    onVerificationRequired: () => {
+      setVerificationReason("contacter ce membre");
+      setIsVerificationRequiredOpen(true);
     },
     onError: (message) => console.error(message)
   });
@@ -146,6 +163,7 @@ export function PublicProfileClient({
         }}
       />
       <PremiumRequiredModal isOpen={isPremiumRequiredOpen} onClose={() => setIsPremiumRequiredOpen(false)} reason={premiumReason} />
+      <VerificationRequiredModal isOpen={isVerificationRequiredOpen} onClose={() => setIsVerificationRequiredOpen(false)} reason={verificationReason} />
       <SendInvitationModal
         isOpen={!!pendingInvitation}
         onClose={cancelInvitation}

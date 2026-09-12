@@ -29,6 +29,10 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
   const { profile: sessionProfile } = useSession();
   const canInteract = sessionProfile.photo_verification_status === "VERIFIED" || sessionProfile.is_staff;
   const isPremium = profile.subscriptionStatus === "ACTIVE";
+  // Cette section n'est de toute façon rendue que si isPremium (cf. plus
+  // bas) — mais on nomme explicitement le flag pour cohérence avec
+  // discover/page.tsx et account-favorites.tsx.
+  const canView = isPremium || sessionProfile.is_staff;
   const [items, setItems] = useState<RecommendedProfileItem[]>([]);
   // Le nombre reste visible pour tous — seul `items` (l'identité de chacun)
   // est réservé Premium/équipe côté service (getWhoLikesMe renvoie [] sinon).
@@ -155,6 +159,7 @@ export function AccountWhoLikesMe({ profile }: AccountWhoLikesMeProps) {
             <DiscoverProfileCard
               key={item.profile.id}
               item={item}
+              canView={canView}
               canInteract={canInteract}
               onInspectProfile={(prof) => {
                 setSelectedProfile(prof);

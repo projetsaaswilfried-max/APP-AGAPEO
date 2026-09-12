@@ -22,6 +22,9 @@ export function AccountFavorites() {
   const router = useRouter();
   const { profile } = useSession();
   const canInteract = profile.photo_verification_status === "VERIFIED" || profile.is_staff;
+  // Un membre Premium voit les infos réelles même si son propre profil n'est
+  // pas encore vérifié — cf. discover/page.tsx pour le même principe.
+  const canView = profile.subscription_status === "ACTIVE" || profile.is_staff;
   const [favorites, setFavorites] = useState<RecommendedProfileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -130,6 +133,7 @@ export function AccountFavorites() {
             <DiscoverProfileCard
               key={item.profile.id}
               item={item}
+              canView={canView}
               canInteract={canInteract}
               onInspectProfile={(prof) => {
                 setSelectedProfile(prof);

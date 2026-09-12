@@ -11,7 +11,9 @@ import { cn, maskForPreview } from "@/lib/utils";
 
 interface DiscoverProfileCardProps {
   item: RecommendedProfileItem;
-  /** Faux pour un membre qui n'a pas encore fait valider son profil : aperçu seul, aucune interaction réelle. */
+  /** Vrai si l'abonnement est actif (ou staff) — un membre Premium voit les infos réelles et peut consulter la fiche complète même si son propre profil n'est pas encore vérifié : la vérification n'est plus requise que pour les vraies interactions (favori, like, message). */
+  canView: boolean;
+  /** Vrai si le profil du VISITEUR est vérifié (ou staff) — conditionne les vraies interactions, jamais la consultation. */
   canInteract: boolean;
   onInspectProfile: (item: RecommendedProfileItem) => void;
   onToggleFavorite: (id: string) => void;
@@ -22,6 +24,7 @@ interface DiscoverProfileCardProps {
 
 export function DiscoverProfileCard({
   item,
+  canView,
   canInteract,
   onInspectProfile,
   onToggleFavorite,
@@ -32,13 +35,18 @@ export function DiscoverProfileCard({
   const { profile, isFavorite, isLiked } = item;
   // La photo est toujours nette dans Découvrir, pour tout le monde — c'est le
   // nom/l'âge/la localisation qui restent masqués tant que le visiteur n'a
-  // pas fait valider son propre profil.
-  const displayName = canInteract ? profile.firstName : maskForPreview(profile.firstName, 2);
-  const displayAge = canInteract ? String(profile.age) : maskForPreview(String(profile.age));
-  const displayCity = canInteract ? profile.city : maskForPreview(profile.city);
-  const displayCountry = canInteract ? profile.country : maskForPreview(profile.country);
+  // ni fait valider son profil, ni d'abonnement actif (l'un ou l'autre suffit).
+  const canSeeDetails = canInteract || canView;
+  const displayName = canSeeDetails ? profile.firstName : maskForPreview(profile.firstName, 2);
+  const displayAge = canSeeDetails ? String(profile.age) : maskForPreview(String(profile.age));
+  const displayCity = canSeeDetails ? profile.city : maskForPreview(profile.city);
+  const displayCountry = canSeeDetails ? profile.country : maskForPreview(profile.country);
 
-  const handleInspect = () => (canInteract ? onInspectProfile(item) : onRequireVerification("consulter ce profil"));
+  // La consultation de la fiche complète est réservée Premium, indépendamment
+  // de la vérification (cf. canView côté parent, qui gère déjà l'ouverture
+  // effective vs. la modale "Passe Premium") — toujours transmettre au parent,
+  // jamais bloquer ici sur la vérification.
+  const handleInspect = () => onInspectProfile(item);
   const handleFavorite = () => (canInteract ? onToggleFavorite(profile.id) : onRequireVerification("mettre ce membre en favori"));
   const handleLike = () => (canInteract ? onToggleLike(profile.id) : onRequireVerification("liker ce profil"));
   const handleMessage = () => (canInteract ? onSendMessage(profile.id) : onRequireVerification("contacter ce membre"));

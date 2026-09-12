@@ -31,27 +31,44 @@ const DEFAULT_FILTERS: DiscoverFilterCriteria = { ageMin: 20, ageMax: 50, status
 // bénéficie de la pagination (évite un défilement sans fin, cf. demande).
 const OTHER_PROFILES_PAGE_SIZE = 12;
 
-// Tant que la photo n'est pas VERIFIED (jamais soumise, en attente, ou
-// refusée), Découvrir reste consultable en aperçu (photos floutées, aucune
-// interaction réelle) mais pas exploitable — un bandeau rappelle pourquoi et
-// incite à finaliser la vérification, avec un message adapté à chaque cas.
-const VERIFICATION_BANNER_CONTENT: Record<"UNVERIFIED" | "PENDING" | "REJECTED", { icon: ReactNode; description: string; cta: string }> = {
-  UNVERIFIED: {
-    icon: <ShieldAlert size={14} className="text-accent shrink-0" />,
-    description: "Ceci est un aperçu : valide ton profil pour voir les noms, âges, villes complets et contacter les membres.",
-    cta: "Vérifier mon profil"
-  },
-  PENDING: {
-    icon: <Clock size={14} className="text-accent shrink-0" />,
-    description: "Ton profil est en cours de vérification — en attendant, voici un aperçu des membres de la communauté.",
-    cta: "Voir ma demande"
-  },
-  REJECTED: {
-    icon: <ShieldAlert size={14} className="text-accent shrink-0" />,
-    description: "Ta photo de profil n'a pas été validée : soumets-en une nouvelle pour contacter les membres que tu découvres ici.",
-    cta: "Soumettre une nouvelle photo"
+// Tant que le profil n'est pas VERIFIED (jamais soumis, en attente, ou
+// refusé), les vraies interactions (favori, like, message) restent
+// bloquées — un bandeau rappelle pourquoi et incite à finaliser la
+// vérification. La consultation (noms/âges/villes complets, fiche entière)
+// ne dépend plus de la vérification mais de l'abonnement (canView,
+// cf. discover-profile-card.tsx) : un membre Premium non vérifié n'a donc
+// plus besoin qu'on lui parle de "voir les noms complets", seulement de
+// contacter — d'où un texte différent selon canView.
+function getVerificationBannerContent(
+  status: "UNVERIFIED" | "PENDING" | "REJECTED",
+  canView: boolean
+): { icon: ReactNode; description: string; cta: string } {
+  if (status === "PENDING") {
+    return {
+      icon: <Clock size={14} className="text-accent shrink-0" />,
+      description: canView
+        ? "Ton profil est en cours de vérification — en attendant, tu peux consulter les membres, mais pas encore les contacter."
+        : "Ton profil est en cours de vérification — en attendant, voici un aperçu des membres de la communauté.",
+      cta: "Voir ma demande"
+    };
   }
-};
+  if (status === "REJECTED") {
+    return {
+      icon: <ShieldAlert size={14} className="text-accent shrink-0" />,
+      description: canView
+        ? "Ta photo de profil n'a pas été validée : soumets-en une nouvelle pour pouvoir contacter les membres que tu découvres ici."
+        : "Ta photo de profil n'a pas été validée : soumets-en une nouvelle pour contacter les membres que tu découvres ici.",
+      cta: "Soumettre une nouvelle photo"
+    };
+  }
+  return {
+    icon: <ShieldAlert size={14} className="text-accent shrink-0" />,
+    description: canView
+      ? "Valide ton profil pour pouvoir contacter les membres que tu découvres ici."
+      : "Ceci est un aperçu : valide ton profil pour voir les noms, âges, villes complets et contacter les membres.",
+    cta: "Vérifier mon profil"
+  };
+}
 
 function DiscoverPageContent() {
   const router = useRouter();
@@ -209,7 +226,7 @@ function DiscoverPageContent() {
     otherProfilesSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const bannerContent = !canInteract
-    ? VERIFICATION_BANNER_CONTENT[profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED"]
+    ? getVerificationBannerContent(profile.photo_verification_status as "UNVERIFIED" | "PENDING" | "REJECTED", canViewProfiles)
     : null;
 
   // Restriction paywall (compte EXPIRED, jamais FREE) : plus stricte que le
@@ -373,6 +390,7 @@ function DiscoverPageContent() {
               <DiscoverProfileCard
                 key={item.profile.id}
                 item={item}
+                canView={canViewProfiles}
                 canInteract={canInteract}
                 onInspectProfile={(prof) => {
                   if (!canViewProfiles) {
@@ -404,6 +422,7 @@ function DiscoverPageContent() {
               <DiscoverProfileCard
                 key={item.profile.id}
                 item={item}
+                canView={canViewProfiles}
                 canInteract={canInteract}
                 onInspectProfile={(prof) => {
                   if (!canViewProfiles) {
