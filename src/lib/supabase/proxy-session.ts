@@ -43,6 +43,14 @@ function isPublicRoute(pathname: string) {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
+// Porte d'entrée de l'espace équipe — délibérément PAS dans PUBLIC_ROUTES
+// (dont le matching par préfixe rendrait aussi "/ayekoutche/overview" etc.
+// public, contournant toute vérification de session). Seule la page de
+// connexion elle-même (`/ayekoutche` exact) doit rester joignable sans
+// session ; ses sous-pages restent protégées comme l'était `/admin/*` avant
+// elle, avec un renvoi vers CETTE connexion plutôt que vers `/login`.
+const ADMIN_LOGIN_ROUTE = "/ayekoutche";
+
 /**
  * Rafraîchit la session Supabase sur chaque requête et applique les
  * redirections "optimistes" (lecture du cookie de session uniquement — pas
@@ -71,6 +79,14 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const publicRoute = isPublicRoute(pathname);
+
+  if (pathname === ADMIN_LOGIN_ROUTE) {
+    return response;
+  }
+
+  if (pathname.startsWith(`${ADMIN_LOGIN_ROUTE}/`) && !user) {
+    return NextResponse.redirect(new URL(ADMIN_LOGIN_ROUTE, request.url));
+  }
 
   if (!user && !publicRoute) {
     const redirectUrl = new URL("/login", request.url);

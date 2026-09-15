@@ -11,18 +11,28 @@ import type { AppRole } from "@/lib/supabase/database.types";
 // (MODERATOR+), requireAdminSession (ADMIN+) et requireSuperAdminSession
 // (SUPER_ADMIN) dans src/lib/supabase/session.ts, qui appliquent la même
 // restriction côté page/action.
+//
+// "Accueil" et "Découvrir" ne sont pas des pages d'administration : ce sont
+// des raccourcis vers les vraies pages membre (/feed, /discover), pour que
+// l'équipe puisse voir la plateforme telle que les membres la voient, sans
+// sortir de ce menu pour la retrouver. Le staff (is_staff) y a déjà un accès
+// complet, aucune logique supplémentaire n'est nécessaire côté page.
 const TABS = [
-  { href: "/admin", label: "Vue d'ensemble", minRole: "MODERATOR" },
-  { href: "/admin/reports", label: "Signalements", badgeKey: "reports", minRole: "MODERATOR" },
-  { href: "/admin/verifications", label: "Vérifications", badgeKey: "verifications", minRole: "MODERATOR" },
-  { href: "/admin/photos", label: "Photos", badgeKey: "photos", minRole: "MODERATOR" },
-  { href: "/admin/support", label: "Support", badgeKey: "support", minRole: "MODERATOR" },
-  { href: "/admin/users", label: "Utilisateurs", minRole: "ADMIN" },
-  { href: "/admin/posts", label: "Fil officiel", minRole: "ADMIN" },
-  { href: "/admin/emails", label: "Emails", minRole: "ADMIN" },
-  { href: "/admin/transactions", label: "Transactions", minRole: "ADMIN" },
-  { href: "/admin/payments", label: "Paiements", minRole: "SUPER_ADMIN" },
-  { href: "/admin/audit", label: "Journal d'audit", minRole: "SUPER_ADMIN" }
+  { href: "/feed", label: "Accueil", minRole: "MODERATOR" },
+  { href: "/discover", label: "Découvrir", minRole: "MODERATOR" },
+  { href: "/ayekoutche/overview", label: "Vue d'ensemble", minRole: "MODERATOR" },
+  { href: "/ayekoutche/reports", label: "Signalements", badgeKey: "reports", minRole: "MODERATOR" },
+  { href: "/ayekoutche/verifications", label: "Vérifications", badgeKey: "verifications", minRole: "MODERATOR" },
+  { href: "/ayekoutche/photos", label: "Photos", badgeKey: "photos", minRole: "MODERATOR" },
+  { href: "/ayekoutche/support", label: "Support", badgeKey: "support", minRole: "MODERATOR" },
+  { href: "/ayekoutche/team", label: "Équipe", minRole: "MODERATOR" },
+  { href: "/ayekoutche/users", label: "Utilisateurs", minRole: "ADMIN" },
+  { href: "/ayekoutche/posts", label: "Fil officiel", minRole: "ADMIN" },
+  { href: "/ayekoutche/emails", label: "Emails", minRole: "ADMIN" },
+  { href: "/ayekoutche/transactions", label: "Transactions", minRole: "ADMIN" },
+  { href: "/ayekoutche/finances", label: "Finances", minRole: "SUPER_ADMIN" },
+  { href: "/ayekoutche/payments", label: "Paiements", minRole: "SUPER_ADMIN" },
+  { href: "/ayekoutche/audit", label: "Journal d'audit", minRole: "SUPER_ADMIN" }
 ] as const;
 
 const ROLE_RANK: Record<AppRole, number> = { USER: 0, MODERATOR: 1, ADMIN: 2, SUPER_ADMIN: 3 };
@@ -41,7 +51,7 @@ export function AdminTabsNav({ role, badgeCounts = {} }: { role: AppRole; badgeC
   return (
     <ScrollableRow className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 select-none">
       {visibleTabs.map((tab) => {
-        const isActive = tab.href === "/admin" ? pathname === "/admin" : pathname.startsWith(tab.href);
+        const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
         const count = "badgeKey" in tab ? badgeCounts[tab.badgeKey] : undefined;
         return (
           <Link

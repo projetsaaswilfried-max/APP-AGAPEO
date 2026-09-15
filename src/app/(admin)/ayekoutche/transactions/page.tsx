@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, fetchAllRows } from "@/lib/supabase/admin";
 import { requireAdminSession } from "@/lib/supabase/session";
 import { AdminTransactionsList, type AdminTransactionRow } from "@/components/features/admin/admin-transactions-list";
 import type { TransactionRow } from "@/lib/supabase/database.types";
@@ -7,8 +7,13 @@ export default async function AdminTransactionsPage() {
   await requireAdminSession();
   const admin = createAdminClient();
 
-  const { data: transactions } = await admin.from("transactions").select("*").order("created_at", { ascending: false }).limit(1000);
-  const rows = (transactions ?? []) as TransactionRow[];
+  // fetchAllRows, pas un .limit(1000) : au-delà de 1000 transactions, un
+  // simple .limit() tronquerait silencieusement la liste aux plus récentes,
+  // même bug de fond que celui déjà corrigé sur /ayekoutche/users (cf.
+  // commentaire de fetchAllRows dans lib/supabase/admin.ts).
+  const rows = await fetchAllRows<TransactionRow>((from, to) =>
+    admin.from("transactions").select("*").order("created_at", { ascending: false }).range(from, to)
+  );
 
   const userIds = [...new Set(rows.map((t) => t.user_id))];
   const { data: profiles } = userIds.length > 0 ? await admin.from("profiles").select("id, first_name, last_name").in("id", userIds) : { data: [] };

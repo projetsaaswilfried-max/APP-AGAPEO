@@ -199,7 +199,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
                   </Link>
                   {profile.role !== "USER" && (
                     <Link
-                      href="/admin"
+                      href="/ayekoutche/overview"
                       onClick={() => setIsProfileMenuOpen(false)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-secondary rounded-lg transition-colors"
                     >

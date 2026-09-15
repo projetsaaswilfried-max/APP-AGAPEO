@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { SuspendUserModal } from "@/components/features/admin/suspend-user-modal";
 import { updateUserRoleAction, toggleSuspendUserAction, toggleUserPremiumAction, revokeVerificationAction } from "@/lib/actions/admin.actions";
 import { PREMIUM_PLANS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
-import type { AppRole, VerificationStatus } from "@/lib/supabase/database.types";
+import type { AppRole, GenderType, VerificationStatus } from "@/lib/supabase/database.types";
 import { ExternalLink, ShieldOff, ShieldCheck, ShieldX, Download, Crown } from "lucide-react";
 
 export interface AdminUserRow {
@@ -19,6 +19,7 @@ export interface AdminUserRow {
   lastName: string;
   email: string;
   role: AppRole;
+  gender: GenderType;
   isTestAccount: boolean;
   isSuspended: boolean;
   isPremium: boolean;
@@ -29,16 +30,16 @@ export interface AdminUserRow {
   lastActiveAt: string;
 }
 
-const ROLE_LABELS: Record<AppRole, string> = {
+export const ROLE_LABELS: Record<AppRole, string> = {
   USER: "Membre",
   MODERATOR: "Modérateur",
   ADMIN: "Admin",
   SUPER_ADMIN: "Super Admin"
 };
 
-const ASSIGNABLE_ROLES: AppRole[] = ["USER", "MODERATOR", "ADMIN"];
+export const ASSIGNABLE_ROLES: AppRole[] = ["USER", "MODERATOR", "ADMIN"];
 
-const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
+export const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
   VERIFIED: "Validé",
   PENDING: "En attente",
   REJECTED: "Refusé",
@@ -51,7 +52,7 @@ function premiumPlanLabel(isPremium: boolean, subscriptionPlan: string | null): 
   return planKey ? PREMIUM_PLANS[planKey].label : "Premium";
 }
 
-function VerificationBadge({ status }: { status: VerificationStatus }) {
+export function VerificationBadge({ status }: { status: VerificationStatus }) {
   if (status === "VERIFIED") {
     return (
       <Badge variant="verified" className="text-[10px] px-2 py-0.5">
@@ -77,6 +78,13 @@ function VerificationBadge({ status }: { status: VerificationStatus }) {
 }
 
 type StatusFilter = "ALL" | "ACTIVE" | "SUSPENDED";
+type GenderFilter = "ALL" | GenderType;
+
+const GENDER_FILTER_LABELS: Record<GenderFilter, string> = {
+  ALL: "Tous",
+  MALE: "Hommes",
+  FEMALE: "Femmes"
+};
 
 function toCsv(rows: AdminUserRow[]): string {
   const header = ["Prénom", "Nom", "Email", "Rôle", "Statut", "Premium", "Pays", "Profil validé", "Inscrit le"];
@@ -102,6 +110,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
   const [users, setUsers] = useState(initialUsers);
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<AppRole | "ALL">("ALL");
+  const [genderFilter, setGenderFilter] = useState<GenderFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -118,13 +127,14 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
     return users.filter((u) => {
       if (q && !`${u.firstName} ${u.lastName} ${u.email} ${u.country}`.toLowerCase().includes(q)) return false;
       if (roleFilter !== "ALL" && u.role !== roleFilter) return false;
+      if (genderFilter !== "ALL" && u.gender !== genderFilter) return false;
       if (statusFilter === "ACTIVE" && u.isSuspended) return false;
       if (statusFilter === "SUSPENDED" && !u.isSuspended) return false;
       if (dateFrom && u.createdAt < dateFrom) return false;
       if (dateTo && u.createdAt.slice(0, 10) > dateTo) return false;
       return true;
     });
-  }, [users, query, roleFilter, statusFilter, dateFrom, dateTo]);
+  }, [users, query, roleFilter, genderFilter, statusFilter, dateFrom, dateTo]);
 
   const handleExportCsv = () => {
     const csv = toCsv(filtered);
@@ -219,6 +229,24 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-1 p-1 bg-secondary/60 rounded-xl border border-border/40 w-fit">
+        {(["ALL", "MALE", "FEMALE"] as GenderFilter[]).map((g) => (
+          <button
+            key={g}
+            type="button"
+            onClick={() => setGenderFilter(g)}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-colors ${
+              genderFilter === g ? "bg-card text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {GENDER_FILTER_LABELS[g]}
+            <span className="ml-1.5 font-normal text-muted-foreground">
+              ({g === "ALL" ? users.length : users.filter((u) => u.gender === g).length})
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <SearchInput
           placeholder="Rechercher par nom, email, pays..."

@@ -24,6 +24,7 @@ export default async function AdminUsersPage() {
       lastName: p.last_name,
       email: emailById.get(p.id) ?? "",
       role: r?.role ?? "USER",
+      gender: p.gender,
       isTestAccount: p.is_test_account,
       isSuspended: r?.is_suspended ?? false,
       isPremium: r?.subscription_status === "ACTIVE",

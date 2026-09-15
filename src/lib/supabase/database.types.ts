@@ -422,6 +422,22 @@ export interface TransactionRow {
   created_at: string;
 }
 
+export interface ExpenseRow {
+  id: string;
+  label: string;
+  category: string;
+  amount_cents: number;
+  currency: string;
+  expense_date: string;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export type ExpenseInsert = Pick<ExpenseRow, "label" | "category" | "amount_cents" | "expense_date"> &
+  Partial<Pick<ExpenseRow, "currency" | "note" | "created_by">>;
+export type ExpenseUpdate = Partial<Omit<ExpenseRow, "id" | "created_at" | "created_by">>;
+
 export interface EmailCampaignRow {
   id: string;
   sender_id: string | null;
@@ -538,6 +554,7 @@ export interface Database {
       push_subscriptions: Rel<PushSubscriptionRow, Omit<PushSubscriptionRow, "id" | "created_at">, never>;
       reports: Rel<ReportRow, ReportInsert, Partial<Pick<ReportRow, "status">>>;
       transactions: Rel<TransactionRow, Omit<TransactionRow, "id" | "created_at">, Partial<TransactionRow>>;
+      expenses: Rel<ExpenseRow, ExpenseInsert, ExpenseUpdate>;
       email_campaigns: Rel<EmailCampaignRow, EmailCampaignInsert, EmailCampaignUpdate>;
       admin_audit_log: Rel<AdminAuditLogRow, AdminAuditLogInsert, never>;
       support_tickets: Rel<SupportTicketRow, SupportTicketInsert, SupportTicketUpdate>;

@@ -145,7 +145,7 @@ export async function sendEmailCampaignAction(input: {
       targetType: "email_campaign",
       details: { subject, audience: input.audience, scheduledFor: scheduledDate!.toISOString() }
     });
-    revalidatePath("/admin/emails");
+    revalidatePath("/ayekoutche/emails");
     return { success: true, scheduled: true, scheduledFor: scheduledDate!.toISOString() };
   }
 
@@ -179,7 +179,7 @@ export async function sendEmailCampaignAction(input: {
     targetType: "email_campaign",
     details: { subject, audience: input.audience, sent, failed }
   });
-  revalidatePath("/admin/emails");
+  revalidatePath("/ayekoutche/emails");
   return { success: true, sent, failed, total: recipients.length };
 }
 
@@ -191,6 +191,6 @@ export async function cancelScheduledCampaignAction(campaignId: string) {
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "CANCEL_EMAIL_CAMPAIGN", { targetType: "email_campaign", targetId: campaignId });
-  revalidatePath("/admin/emails");
+  revalidatePath("/ayekoutche/emails");
   return { success: true };
 }

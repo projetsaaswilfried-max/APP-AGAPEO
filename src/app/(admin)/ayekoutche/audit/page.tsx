@@ -14,7 +14,10 @@ const ACTION_LABELS: Record<string, string> = {
   SEND_EMAIL_CAMPAIGN: "Campagne email envoyée",
   SCHEDULE_EMAIL_CAMPAIGN: "Campagne email programmée",
   CANCEL_EMAIL_CAMPAIGN: "Campagne email annulée",
-  SWITCH_PAYMENT_PROVIDER: "Changement de processeur de paiement"
+  SWITCH_PAYMENT_PROVIDER: "Changement de processeur de paiement",
+  CREATE_EXPENSE: "Dépense ajoutée",
+  UPDATE_EXPENSE: "Dépense modifiée",
+  DELETE_EXPENSE: "Dépense supprimée"
 };
 
 export default async function AdminAuditPage() {
