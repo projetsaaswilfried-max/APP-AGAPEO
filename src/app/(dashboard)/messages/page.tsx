@@ -276,6 +276,7 @@ function MessagesPageContent() {
       await messageService.declineInvitation(activeConvId);
       setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
       setActiveConvId(null);
+      setIsMobileChatOpen(false);
       router.replace("/messages", { scroll: false });
     } catch (err) {
       setSendError(err instanceof Error ? err.message : "Impossible de refuser cette invitation.");
@@ -365,6 +366,8 @@ function MessagesPageContent() {
   const handleBlocked = () => {
     setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
     setActiveConvId(null);
+    setIsMobileChatOpen(false);
+    router.replace("/messages", { scroll: false });
   };
 
   const handleDeleteConversation = async () => {
@@ -373,6 +376,8 @@ function MessagesPageContent() {
     await messageService.hideConversation(activeConvId);
     setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
     setActiveConvId(null);
+    setIsMobileChatOpen(false);
+    router.replace("/messages", { scroll: false });
     setIsDeletingConv(false);
     setIsDeleteConvOpen(false);
   };
