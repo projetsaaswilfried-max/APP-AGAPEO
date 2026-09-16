@@ -17,7 +17,10 @@ const ACTION_LABELS: Record<string, string> = {
   SWITCH_PAYMENT_PROVIDER: "Changement de processeur de paiement",
   CREATE_EXPENSE: "Dépense ajoutée",
   UPDATE_EXPENSE: "Dépense modifiée",
-  DELETE_EXPENSE: "Dépense supprimée"
+  DELETE_EXPENSE: "Dépense supprimée",
+  CREATE_PLATFORM_DEDUCTION: "Prélèvement plateforme ajouté",
+  UPDATE_PLATFORM_DEDUCTION: "Prélèvement plateforme modifié",
+  DELETE_PLATFORM_DEDUCTION: "Prélèvement plateforme supprimé"
 };
 
 export default async function AdminAuditPage() {
