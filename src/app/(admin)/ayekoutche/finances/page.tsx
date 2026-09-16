@@ -19,7 +19,7 @@ export default async function AdminFinancesPage() {
   const [expenses, deductions, succeededTransactions, testAccounts] = await Promise.all([
     fetchAllRows<ExpenseRow>((from, to) => admin.from("expenses").select("*").order("expense_date", { ascending: false }).range(from, to)),
     fetchAllRows<PlatformDeductionRow>((from, to) =>
-      admin.from("platform_deductions").select("*").order("deduction_date", { ascending: false }).range(from, to)
+      admin.from("platform_deductions").select("*").order("period_end", { ascending: false }).range(from, to)
     ),
     fetchAllRows<TransactionRow>((from, to) =>
       admin.from("transactions").select("*").eq("status", "SUCCEEDED").order("created_at", { ascending: false }).range(from, to)
@@ -62,7 +62,8 @@ export default async function AdminFinancesPage() {
     id: d.id,
     provider: d.provider,
     amountCents: d.amount_cents,
-    date: d.deduction_date,
+    periodStart: d.period_start,
+    periodEnd: d.period_end,
     note: d.note
   }));
 

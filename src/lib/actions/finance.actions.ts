@@ -71,12 +71,15 @@ export async function deleteExpenseAction(expenseId: string) {
   return { success: true };
 }
 
-const PlatformDeductionInputSchema = z.object({
-  provider: z.string().trim().min(1, "Plateforme requise."),
-  amountCents: z.number().int().positive("Le montant doit être positif."),
-  deductionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
-  note: z.string().trim().max(500).optional()
-});
+const PlatformDeductionInputSchema = z
+  .object({
+    provider: z.string().trim().min(1, "Plateforme requise."),
+    amountCents: z.number().int().positive("Le montant doit être positif."),
+    periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date de début invalide."),
+    periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date de fin invalide."),
+    note: z.string().trim().max(500).optional()
+  })
+  .refine((data) => data.periodEnd >= data.periodStart, { message: "La fin de période doit être après son début.", path: ["periodEnd"] });
 
 // Jamais calculé automatiquement : Chariow/SasPay ne communiquent leur
 // pourcentage prélevé par aucune API/webhook, seulement constaté sur le
@@ -91,7 +94,8 @@ export async function createPlatformDeductionAction(input: unknown) {
     provider: validated.data.provider,
     amount_cents: validated.data.amountCents,
     currency: "USD",
-    deduction_date: validated.data.deductionDate,
+    period_start: validated.data.periodStart,
+    period_end: validated.data.periodEnd,
     note: validated.data.note || null,
     created_by: user.id
   });
@@ -113,7 +117,8 @@ export async function updatePlatformDeductionAction(deductionId: string, input: 
     .update({
       provider: validated.data.provider,
       amount_cents: validated.data.amountCents,
-      deduction_date: validated.data.deductionDate,
+      period_start: validated.data.periodStart,
+      period_end: validated.data.periodEnd,
       note: validated.data.note || null,
       updated_at: new Date().toISOString()
     })

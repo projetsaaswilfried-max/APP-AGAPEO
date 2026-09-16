@@ -39,7 +39,8 @@ export interface FinanceDeductionRow {
   id: string;
   provider: string;
   amountCents: number;
-  date: string;
+  periodStart: string;
+  periodEnd: string;
   note: string | null;
 }
 
@@ -53,15 +54,41 @@ function formatUsd(cents: number): string {
   return usdFormatter.format(cents / 100);
 }
 
+// `.toISOString()` convertit en UTC — appliqué à une date construite en heure
+// locale, ça peut décaler le jour affiché de ±1 selon le fuseau du
+// navigateur (ex: minuit local dans un fuseau UTC+x retombe la veille en
+// UTC). On lit les composants LOCAUX (getFullYear/getMonth/getDate) pour
+// construire la chaîne, jamais toISOString, sur ces sélecteurs de date pure.
+function toIsoDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toIsoDate(new Date());
 }
 function startOfMonthIso(): string {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+  return toIsoDate(new Date(d.getFullYear(), d.getMonth(), 1));
 }
 function daysAgoIso(days: number): string {
-  return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  return toIsoDate(new Date(Date.now() - days * 86400000));
+}
+
+function formatPeriod(periodStart: string, periodEnd: string): string {
+  const start = new Date(periodStart).toLocaleDateString("fr-FR");
+  const end = new Date(periodEnd).toLocaleDateString("fr-FR");
+  return start === end ? start : `${start} → ${end}`;
+}
+
+/** CA encaissé (déjà converti en USD) dont la date tombe dans [periodStart, periodEnd] — sert de repère pour juger un prélèvement, jamais une valeur enregistrée en base. */
+function sumRevenueInPeriod(revenueEntries: FinanceRevenueEntry[], periodStart: string, periodEnd: string): number {
+  if (!periodStart || !periodEnd) return 0;
+  return revenueEntries.reduce((sum, r) => {
+    const d = r.date.slice(0, 10);
+    return d >= periodStart && d <= periodEnd ? sum + (r.usdAmountCents ?? 0) : sum;
+  }, 0);
 }
 
 interface ExpenseFormState {
@@ -74,12 +101,13 @@ interface ExpenseFormState {
 interface DeductionFormState {
   provider: string;
   amount: string;
-  date: string;
+  periodStart: string;
+  periodEnd: string;
   note: string;
 }
 
 const EMPTY_EXPENSE_FORM: ExpenseFormState = { label: "", category: EXPENSE_CATEGORIES[0], amount: "", date: todayIso(), note: "" };
-const EMPTY_DEDUCTION_FORM: DeductionFormState = { provider: DEDUCTION_PROVIDERS[0], amount: "", date: todayIso(), note: "" };
+const EMPTY_DEDUCTION_FORM: DeductionFormState = { provider: DEDUCTION_PROVIDERS[0], amount: "", periodStart: startOfMonthIso(), periodEnd: todayIso(), note: "" };
 
 export function AdminFinancesView({
   revenueEntries,
@@ -134,14 +162,15 @@ export function AdminFinancesView({
       }),
     [revenueEntries, dateFrom, dateTo]
   );
+  // Un prélèvement porte sur une période entière (pas une date ponctuelle) :
+  // il est inclus dès que sa période RECOUVRE, même partiellement, la plage
+  // sélectionnée — un simple test d'égalité de date le ferait disparaître à
+  // tort dès que la plage choisie ne tombe pas pile sur son début/sa fin.
   const filteredDeductions = useMemo(
     () =>
       deductions
-        .filter((d) => {
-          const day = d.date.slice(0, 10);
-          return (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
-        })
-        .sort((a, b) => b.date.localeCompare(a.date)),
+        .filter((d) => (!dateFrom || d.periodEnd >= dateFrom) && (!dateTo || d.periodStart <= dateTo))
+        .sort((a, b) => b.periodEnd.localeCompare(a.periodEnd)),
     [deductions, dateFrom, dateTo]
   );
   const filteredExpenses = useMemo(
@@ -218,18 +247,28 @@ export function AdminFinancesView({
   };
   const openEditDeductionForm = (row: FinanceDeductionRow) => {
     setEditingDeductionId(row.id);
-    setDeductionForm({ provider: row.provider, amount: (row.amountCents / 100).toFixed(2), date: row.date.slice(0, 10), note: row.note ?? "" });
+    setDeductionForm({ provider: row.provider, amount: (row.amountCents / 100).toFixed(2), periodStart: row.periodStart.slice(0, 10), periodEnd: row.periodEnd.slice(0, 10), note: row.note ?? "" });
     setError(null);
     setDeductionFormOpen(true);
   };
   const handleSubmitDeduction = () => {
     setError(null);
     const amount = Number(deductionForm.amount.replace(",", "."));
-    if (!deductionForm.provider.trim() || !Number.isFinite(amount) || amount <= 0 || !deductionForm.date) {
-      setError("Renseigne une plateforme, un montant positif et une date.");
+    if (!deductionForm.provider.trim() || !Number.isFinite(amount) || amount <= 0 || !deductionForm.periodStart || !deductionForm.periodEnd) {
+      setError("Renseigne une plateforme, un montant positif et une période.");
       return;
     }
-    const payload = { provider: deductionForm.provider.trim(), amountCents: Math.round(amount * 100), deductionDate: deductionForm.date, note: deductionForm.note.trim() || undefined };
+    if (deductionForm.periodEnd < deductionForm.periodStart) {
+      setError("La fin de période doit être après son début.");
+      return;
+    }
+    const payload = {
+      provider: deductionForm.provider.trim(),
+      amountCents: Math.round(amount * 100),
+      periodStart: deductionForm.periodStart,
+      periodEnd: deductionForm.periodEnd,
+      note: deductionForm.note.trim() || undefined
+    };
     startTransition(async () => {
       const result = editingDeductionId ? await updatePlatformDeductionAction(editingDeductionId, payload) : await createPlatformDeductionAction(payload);
       if (result?.error) {
@@ -237,9 +276,18 @@ export function AdminFinancesView({
         return;
       }
       if (editingDeductionId) {
-        setDeductions((prev) => prev.map((d) => (d.id === editingDeductionId ? { ...d, provider: payload.provider, amountCents: payload.amountCents, date: payload.deductionDate, note: payload.note ?? null } : d)));
+        setDeductions((prev) =>
+          prev.map((d) =>
+            d.id === editingDeductionId
+              ? { ...d, provider: payload.provider, amountCents: payload.amountCents, periodStart: payload.periodStart, periodEnd: payload.periodEnd, note: payload.note ?? null }
+              : d
+          )
+        );
       } else {
-        setDeductions((prev) => [{ id: `optimistic-${Date.now()}`, provider: payload.provider, amountCents: payload.amountCents, date: payload.deductionDate, note: payload.note ?? null }, ...prev]);
+        setDeductions((prev) => [
+          { id: `optimistic-${Date.now()}`, provider: payload.provider, amountCents: payload.amountCents, periodStart: payload.periodStart, periodEnd: payload.periodEnd, note: payload.note ?? null },
+          ...prev
+        ]);
       }
       setDeductionFormOpen(false);
     });
@@ -340,32 +388,40 @@ export function AdminFinancesView({
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-border/60 text-muted-foreground text-left">
-                      <th className="px-4 py-2 font-medium">Date</th>
+                      <th className="px-4 py-2 font-medium">Période</th>
                       <th className="px-4 py-2 font-medium">Plateforme</th>
+                      <th className="px-4 py-2 font-medium text-right">CA sur la période</th>
                       <th className="px-4 py-2 font-medium">Note</th>
-                      <th className="px-4 py-2 font-medium text-right">Montant</th>
+                      <th className="px-4 py-2 font-medium text-right">Prélevé</th>
+                      <th className="px-4 py-2 font-medium text-right">%</th>
                       <th className="px-4 py-2 font-medium text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDeductions.map((d) => (
-                      <tr key={d.id} className="border-b border-border/40 last:border-0 hover:bg-secondary/30">
-                        <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{new Date(d.date).toLocaleDateString("fr-FR")}</td>
-                        <td className="px-4 py-2 font-medium text-foreground">{d.provider}</td>
-                        <td className="px-4 py-2 text-muted-foreground max-w-xs truncate">{d.note ?? "—"}</td>
-                        <td className="px-4 py-2 text-right font-medium text-destructive font-mono tabular-nums whitespace-nowrap">−{formatUsd(d.amountCents)}</td>
-                        <td className="px-4 py-2">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button onClick={() => openEditDeductionForm(d)} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary" title="Modifier">
-                              <Pencil size={13} />
-                            </button>
-                            <button onClick={() => setDeleteDeductionId(d.id)} className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10" title="Supprimer">
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredDeductions.map((d) => {
+                      const periodRevenueCents = sumRevenueInPeriod(revenueEntries, d.periodStart, d.periodEnd);
+                      const pct = periodRevenueCents > 0 ? (d.amountCents / periodRevenueCents) * 100 : null;
+                      return (
+                        <tr key={d.id} className="border-b border-border/40 last:border-0 hover:bg-secondary/30">
+                          <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{formatPeriod(d.periodStart, d.periodEnd)}</td>
+                          <td className="px-4 py-2 font-medium text-foreground">{d.provider}</td>
+                          <td className="px-4 py-2 text-right text-muted-foreground font-mono tabular-nums whitespace-nowrap">{formatUsd(periodRevenueCents)}</td>
+                          <td className="px-4 py-2 text-muted-foreground max-w-xs truncate">{d.note ?? "—"}</td>
+                          <td className="px-4 py-2 text-right font-medium text-destructive font-mono tabular-nums whitespace-nowrap">−{formatUsd(d.amountCents)}</td>
+                          <td className="px-4 py-2 text-right text-muted-foreground font-mono tabular-nums whitespace-nowrap">{pct !== null ? `${pct.toFixed(1)}%` : "—"}</td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => openEditDeductionForm(d)} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary" title="Modifier">
+                                <Pencil size={13} />
+                              </button>
+                              <button onClick={() => setDeleteDeductionId(d.id)} className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10" title="Supprimer">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -567,26 +623,36 @@ export function AdminFinancesView({
         }
       >
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground">Plateforme</label>
-              <Select value={deductionForm.provider} onChange={(e) => setDeductionForm((f) => ({ ...f, provider: e.target.value }))} className="w-full">
-                {DEDUCTION_PROVIDERS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground">Date</label>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Plateforme</label>
+            <Select value={deductionForm.provider} onChange={(e) => setDeductionForm((f) => ({ ...f, provider: e.target.value }))} className="w-full">
+              {DEDUCTION_PROVIDERS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Période concernée</label>
+            <div className="flex items-center gap-2">
               <input
                 type="date"
-                value={deductionForm.date}
-                onChange={(e) => setDeductionForm((f) => ({ ...f, date: e.target.value }))}
+                value={deductionForm.periodStart}
+                onChange={(e) => setDeductionForm((f) => ({ ...f, periodStart: e.target.value }))}
+                className="w-full h-10 rounded-xl border border-border/60 bg-secondary/50 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <span className="text-xs text-muted-foreground shrink-0">au</span>
+              <input
+                type="date"
+                value={deductionForm.periodEnd}
+                onChange={(e) => setDeductionForm((f) => ({ ...f, periodEnd: e.target.value }))}
                 className="w-full h-10 rounded-xl border border-border/60 bg-secondary/50 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
+            <p className="text-[11px] text-muted-foreground pt-0.5">
+              CA encaissé sur cette période : <span className="font-mono font-semibold text-foreground">{formatUsd(sumRevenueInPeriod(revenueEntries, deductionForm.periodStart, deductionForm.periodEnd))}</span>
+            </p>
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground">Montant prélevé (USD)</label>

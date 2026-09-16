@@ -443,13 +443,14 @@ export interface PlatformDeductionRow {
   provider: string;
   amount_cents: number;
   currency: string;
-  deduction_date: string;
+  period_start: string;
+  period_end: string;
   note: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
 }
-export type PlatformDeductionInsert = Pick<PlatformDeductionRow, "provider" | "amount_cents" | "deduction_date"> &
+export type PlatformDeductionInsert = Pick<PlatformDeductionRow, "provider" | "amount_cents" | "period_start" | "period_end"> &
   Partial<Pick<PlatformDeductionRow, "currency" | "note" | "created_by">>;
 export type PlatformDeductionUpdate = Partial<Omit<PlatformDeductionRow, "id" | "created_at" | "created_by">>;
 
