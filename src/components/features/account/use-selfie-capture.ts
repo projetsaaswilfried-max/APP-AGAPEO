@@ -11,6 +11,35 @@ interface UseSelfieCaptureOptions {
   onCameraDenied?: () => void;
 }
 
+// Certains navigateurs in-app (Instagram/Facebook/TikTok ouverts depuis un
+// lien de bio) et d'anciennes WebViews Android ne posent jamais la question
+// d'autorisation : `getUserMedia` reste alors en attente indéfiniment, sans
+// jamais résoudre ni rejeter. Sans ce filet, la personne restait bloquée sur
+// le spinner "requesting" pour toujours, sans le moindre message ni bouton
+// "Réessayer" — cf. investigation du 2026-09-18 : 801 comptes sur 5679 ayant
+// vu l'étape selfie n'avaient déclenché ni capture réussie ni refus de
+// caméra, un blocage silencieux qu'aucun des deux événements ne pouvait
+// expliquer.
+const CAMERA_TIMEOUT_MS = 15000;
+
+/** Message adapté au type d'erreur réel plutôt qu'un seul message générique qui ne correspond pas toujours à la vraie cause. */
+function classifyCameraError(err: unknown): string {
+  if (err instanceof DOMException) {
+    switch (err.name) {
+      case "NotAllowedError":
+      case "PermissionDeniedError":
+        return "Autorise l'accès à la caméra dans les réglages de ton navigateur pour continuer.";
+      case "NotFoundError":
+      case "DevicesNotFoundError":
+        return "Aucune caméra détectée sur cet appareil.";
+      case "NotReadableError":
+      case "TrackStartError":
+        return "Impossible d'accéder à la caméra. Vérifie qu'aucune autre application (ou un autre onglet) ne l'utilise, puis réessaie.";
+    }
+  }
+  return "Impossible d'accéder à la caméra. Vérifie qu'aucune autre application ne l'utilise, puis réessaie.";
+}
+
 /**
  * Capture caméra en direct uniquement — jamais un `<input type="file">`
  * pouvant piocher dans la galerie (cf. `SelfieCaptureModal`, son premier
@@ -41,26 +70,60 @@ export function useSelfieCapture({ userId, active, onCameraDenied }: UseSelfieCa
     });
   };
 
+  const fail = (message: string) => {
+    setStatus("error");
+    setErrorMessage(message);
+    onCameraDenied?.();
+  };
+
   const startCamera = async () => {
     setStatus("requesting");
     setErrorMessage(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      // Cas des navigateurs in-app qui n'exposent jamais l'API caméra —
+      // "réessaie" ne suffit pas ici, il faut changer de navigateur.
+      fail("La caméra n'est pas accessible depuis ce navigateur. Ouvre Agapeo dans Chrome, Safari ou un autre navigateur plutôt que depuis Instagram, Facebook ou TikTok, puis réessaie.");
+      return;
+    }
+
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      fail("La caméra met trop de temps à répondre. Vérifie l'autorisation demandée par ton navigateur, puis réessaie.");
+    }, CAMERA_TIMEOUT_MS);
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+      if (settled) {
+        // Le délai a déjà été signalé à la personne — ce flux arrive trop
+        // tard, on le referme aussitôt plutôt que de laisser la caméra
+        // allumée pour rien derrière un écran d'erreur.
+        stream.getTracks().forEach((track) => track.stop());
+        return;
       }
-      setStatus("live");
+      clearTimeout(timeoutId);
+      streamRef.current = stream;
+      try {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        setStatus("live");
+      } catch {
+        // `play()` peut être rejeté (fréquent sur iOS Safari) — sans ce
+        // stopStream, la piste caméra restait active malgré l'état "error",
+        // et la tentative suivante échouait avec NotReadableError ("déjà
+        // utilisée") à cause de CE flux-là, jamais relâché.
+        stopStream();
+        fail("Impossible de démarrer l'aperçu de la caméra. Réessaie.");
+      }
     } catch (err) {
-      setStatus("error");
-      const denied = err instanceof DOMException && err.name === "NotAllowedError";
-      setErrorMessage(
-        denied
-          ? "Autorise l'accès à la caméra dans les réglages de ton navigateur pour continuer."
-          : "Impossible d'accéder à la caméra. Vérifie qu'aucune autre application ne l'utilise, puis réessaie."
-      );
-      onCameraDenied?.();
+      clearTimeout(timeoutId);
+      if (settled) return;
+      settled = true;
+      fail(classifyCameraError(err));
     }
   };
 
@@ -90,7 +153,16 @@ export function useSelfieCapture({ userId, active, onCameraDenied }: UseSelfieCa
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob(
       (blob) => {
-        if (!blob) return;
+        if (!blob) {
+          // La caméra elle-même fonctionne très bien ici (contrairement aux
+          // échecs gérés par `fail`) — seule cette capture a raté (ex: canvas
+          // pas encore dimensionné). On laisse le flux tourner et le bouton
+          // "Prendre le selfie" en place plutôt que de forcer un redémarrage
+          // complet de la caméra pour un simple raté ponctuel.
+          setErrorMessage("La capture a échoué. Réessaie.");
+          return;
+        }
+        setErrorMessage(null);
         setCapturedBlob(blob);
         setCapturedPreviewUrl(URL.createObjectURL(blob));
         setStatus("captured");
