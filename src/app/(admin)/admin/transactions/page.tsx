@@ -9,7 +9,7 @@ export default async function AdminTransactionsPage() {
 
   // fetchAllRows, pas un .limit(1000) : au-delà de 1000 transactions, un
   // simple .limit() tronquerait silencieusement la liste aux plus récentes,
-  // même bug de fond que celui déjà corrigé sur /ayekoutche/users (cf.
+  // même bug de fond que celui déjà corrigé sur /admin/users (cf.
   // commentaire de fetchAllRows dans lib/supabase/admin.ts).
   const rows = await fetchAllRows<TransactionRow>((from, to) =>
     admin.from("transactions").select("*").order("created_at", { ascending: false }).range(from, to)

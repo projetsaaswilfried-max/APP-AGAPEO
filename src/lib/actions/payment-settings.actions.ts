@@ -26,6 +26,6 @@ export async function setActivePaymentProviderAction(provider: PaymentProvider) 
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "SWITCH_PAYMENT_PROVIDER", { targetType: "payment_settings", details: { provider } });
-  revalidatePath("/ayekoutche/payments");
+  revalidatePath("/admin/payments");
   return { success: true };
 }

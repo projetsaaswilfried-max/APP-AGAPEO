@@ -32,7 +32,7 @@ export async function createExpenseAction(input: unknown) {
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "CREATE_EXPENSE", { targetType: "expense", details: { label: validated.data.label, amountCents: validated.data.amountCents } });
-  revalidatePath("/ayekoutche/finances");
+  revalidatePath("/admin/finances");
   return { success: true };
 }
 
@@ -56,7 +56,7 @@ export async function updateExpenseAction(expenseId: string, input: unknown) {
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "UPDATE_EXPENSE", { targetType: "expense", targetId: expenseId });
-  revalidatePath("/ayekoutche/finances");
+  revalidatePath("/admin/finances");
   return { success: true };
 }
 
@@ -67,7 +67,7 @@ export async function deleteExpenseAction(expenseId: string) {
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "DELETE_EXPENSE", { targetType: "expense", targetId: expenseId });
-  revalidatePath("/ayekoutche/finances");
+  revalidatePath("/admin/finances");
   return { success: true };
 }
 
@@ -102,7 +102,7 @@ export async function createPlatformDeductionAction(input: unknown) {
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "CREATE_PLATFORM_DEDUCTION", { targetType: "platform_deduction", details: { provider: validated.data.provider, amountCents: validated.data.amountCents } });
-  revalidatePath("/ayekoutche/finances");
+  revalidatePath("/admin/finances");
   return { success: true };
 }
 
@@ -126,7 +126,7 @@ export async function updatePlatformDeductionAction(deductionId: string, input: 
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "UPDATE_PLATFORM_DEDUCTION", { targetType: "platform_deduction", targetId: deductionId });
-  revalidatePath("/ayekoutche/finances");
+  revalidatePath("/admin/finances");
   return { success: true };
 }
 
@@ -137,6 +137,6 @@ export async function deletePlatformDeductionAction(deductionId: string) {
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "DELETE_PLATFORM_DEDUCTION", { targetType: "platform_deduction", targetId: deductionId });
-  revalidatePath("/ayekoutche/finances");
+  revalidatePath("/admin/finances");
   return { success: true };
 }

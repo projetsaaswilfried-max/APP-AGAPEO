@@ -64,7 +64,7 @@ export function AdminReportsList({ initialReports }: { initialReports: AdminRepo
         return;
       }
       setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: "REVIEWED" } : r)));
-      if ("ticketId" in result) router.push(`/ayekoutche/support?ticket=${result.ticketId}`);
+      if ("ticketId" in result) router.push(`/admin/support?ticket=${result.ticketId}`);
     });
   };
 

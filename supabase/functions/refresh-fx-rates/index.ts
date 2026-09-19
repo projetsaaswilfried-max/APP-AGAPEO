@@ -15,7 +15,7 @@ const FX_API_URL = "https://open.er-api.com/v6/latest/XOF";
 // USD ajouté séparément : pas une devise SasPay (Chariow facture déjà
 // directement en USD, aucune conversion n'était nécessaire au paiement) mais
 // requis pour reconvertir ces transactions en FCFA sur le tableau de bord
-// Finances (/ayekoutche/finances, cf. src/lib/finance/revenue.ts).
+// Finances (/admin/finances, cf. src/lib/finance/revenue.ts).
 const NON_CFA_CURRENCIES = ["GNF", "CDF", "GHS", "NGN", "KES", "RWF", "UGX", "TZS", "ZMW", "MWK", "MZN", "USD"];
 
 Deno.serve(async (req) => {

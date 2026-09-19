@@ -9,7 +9,7 @@ const EUR_TO_XOF_PEG = 655.957;
 
 /**
  * Construit un convertisseur "devise réellement encaissée -> centimes USD"
- * pour le tableau de bord Finances (/ayekoutche/finances) — reporting
+ * pour le tableau de bord Finances (/admin/finances) — reporting
  * comptable interne en USD, indépendant de la devise réellement facturée aux
  * membres (Chariow en USD, SasPay dans la devise du pays du client). `fx_rates`
  * n'a que le XOF pour base commune (cf. src/lib/fx-rates.ts, alimenté par le

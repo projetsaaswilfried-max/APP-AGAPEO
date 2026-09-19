@@ -30,7 +30,7 @@ const OfficialPostSchema = z.object({
  * Publication officielle : réservée à ADMIN/SUPER_ADMIN (pas MODERATOR, dont
  * le périmètre est la modération — signalements, support, vérifications).
  * La RLS (`posts_insert`) autorise en réalité aussi MODERATOR, mais cette
- * action ne l'expose qu'à ADMIN+ : la page `/ayekoutche/posts` elle-même est
+ * action ne l'expose qu'à ADMIN+ : la page `/admin/posts` elle-même est
  * gated pareil, MODERATOR ne peut donc jamais l'atteindre via l'UI.
  */
 export async function createOfficialPostAction(input: unknown) {
@@ -74,7 +74,7 @@ export async function createOfficialPostAction(input: unknown) {
   }
 
   revalidatePath("/");
-  revalidatePath("/ayekoutche/posts");
+  revalidatePath("/admin/posts");
   return { success: true };
 }
 
@@ -130,7 +130,7 @@ export async function updateOfficialPostAction(input: unknown) {
   }
 
   revalidatePath("/");
-  revalidatePath("/ayekoutche/posts");
+  revalidatePath("/admin/posts");
   return { success: true };
 }
 
@@ -141,7 +141,7 @@ export async function deleteOfficialPostAction(postId: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/");
-  revalidatePath("/ayekoutche/posts");
+  revalidatePath("/admin/posts");
   return { success: true };
 }
 
@@ -178,7 +178,7 @@ export async function pinOfficialPostAction(postId: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/");
-  revalidatePath("/ayekoutche/posts");
+  revalidatePath("/admin/posts");
   return { success: true };
 }
 
@@ -193,7 +193,7 @@ export async function unpinOfficialPostAction(postId: string) {
   if (error) return { error: error.message };
 
   revalidatePath("/");
-  revalidatePath("/ayekoutche/posts");
+  revalidatePath("/admin/posts");
   return { success: true };
 }
 
@@ -226,7 +226,7 @@ export async function reorderPinnedPostAction(postId: string, direction: "up" | 
   if (error1 || error2) return { error: error1?.message ?? error2?.message };
 
   revalidatePath("/");
-  revalidatePath("/ayekoutche/posts");
+  revalidatePath("/admin/posts");
   return { success: true };
 }
 
@@ -253,8 +253,8 @@ export async function updateUserRoleAction(userId: string, role: (typeof ASSIGNA
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "UPDATE_USER_ROLE", { targetType: "profile", targetId: userId, details: { role } });
-  revalidatePath("/ayekoutche/users");
-  revalidatePath("/ayekoutche/team");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/team");
 
   const { data: target } = await admin.from("profiles").select("first_name").eq("id", userId).maybeSingle();
   const { data: authUser } = await admin.auth.admin.getUserById(userId);
@@ -304,7 +304,7 @@ export async function toggleSuspendUserAction(userId: string, suspend: boolean, 
   }
 
   await logAdminAction(user.id, suspend ? "SUSPEND_USER" : "UNSUSPEND_USER", { targetType: "profile", targetId: userId, details: { reason } });
-  revalidatePath("/ayekoutche/users");
+  revalidatePath("/admin/users");
   return { success: true };
 }
 
@@ -338,7 +338,7 @@ export async function toggleUserPremiumAction(userId: string, grant: boolean, pl
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, grant ? "GRANT_PREMIUM" : "REVOKE_PREMIUM", { targetType: "profile", targetId: userId });
-  revalidatePath("/ayekoutche/users");
+  revalidatePath("/admin/users");
 
   if (!grant) {
     const [{ data: memberProfile }, { data: authUser }] = await Promise.all([
@@ -401,7 +401,7 @@ export async function approveVerificationRequestAction(requestId: string, userId
   );
 
   await logAdminAction(user.id, "APPROVE_VERIFICATION", { targetType: "profile", targetId: userId, details: { requestId } });
-  revalidatePath("/ayekoutche/verifications");
+  revalidatePath("/admin/verifications");
   return { success: true };
 }
 
@@ -425,7 +425,7 @@ export async function rejectVerificationRequestAction(requestId: string, userId:
   // Symétrique du bulk-approve ci-dessus : les photos soumises avec cette
   // vérification étaient promues PENDING dès la soumission (cf.
   // submitVerificationRequestAction) et restaient telles quelles après un
-  // refus — elles continuaient donc de traîner dans la file /ayekoutche/photos,
+  // refus — elles continuaient donc de traîner dans la file /admin/photos,
   // décorrélées du refus, où un·e admin pouvait les approuver individuellement
   // sans lien avec la vérification refusée. Un refus doit tout renvoyer en
   // DRAFT (retiré de la file de modération, privé au propriétaire) : la
@@ -441,7 +441,7 @@ export async function rejectVerificationRequestAction(requestId: string, userId:
   }
 
   await logAdminAction(user.id, "REJECT_VERIFICATION", { targetType: "profile", targetId: userId, details: { requestId, reason: trimmedReason } });
-  revalidatePath("/ayekoutche/verifications");
+  revalidatePath("/admin/verifications");
   return { success: true };
 }
 
@@ -486,7 +486,7 @@ export async function revokeVerificationAction(userId: string) {
   }
 
   await logAdminAction(user.id, "REVOKE_VERIFICATION", { targetType: "profile", targetId: userId });
-  revalidatePath("/ayekoutche/users");
+  revalidatePath("/admin/users");
   return { success: true };
 }
 
@@ -529,7 +529,7 @@ export async function approvePhotoAction(photoId: string, userId: string) {
   }
 
   await logAdminAction(user.id, "APPROVE_PHOTO", { targetType: "profile_photo", targetId: photoId, details: { userId } });
-  revalidatePath("/ayekoutche/photos");
+  revalidatePath("/admin/photos");
   return { success: true };
 }
 
@@ -565,7 +565,7 @@ export async function rejectPhotoAction(photoId: string, userId: string, reason:
   }
 
   await logAdminAction(user.id, "REJECT_PHOTO", { targetType: "profile_photo", targetId: photoId, details: { userId, reason: trimmedReason } });
-  revalidatePath("/ayekoutche/photos");
+  revalidatePath("/admin/photos");
   return { success: true };
 }
 
@@ -580,7 +580,7 @@ export async function updateReportStatusAction(reportId: string, status: (typeof
   if (error) return { error: error.message };
 
   await logAdminAction(user.id, "UPDATE_REPORT_STATUS", { targetType: "report", targetId: reportId, details: { status } });
-  revalidatePath("/ayekoutche/reports");
+  revalidatePath("/admin/reports");
   return { success: true };
 }
 
@@ -648,7 +648,7 @@ export async function openReportConversationAction(reportId: string) {
   }
 
   await logAdminAction(user.id, "OPEN_REPORT_CONVERSATION", { targetType: "report", targetId: reportId, details: { ticketId, targetUserId } });
-  revalidatePath("/ayekoutche/reports");
-  revalidatePath("/ayekoutche/support");
+  revalidatePath("/admin/reports");
+  revalidatePath("/admin/support");
   return { success: true, ticketId };
 }

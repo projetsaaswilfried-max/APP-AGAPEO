@@ -19,7 +19,7 @@ export default function robots(): MetadataRoute.Robots {
           "/support",
           "/charter",
           "/onboarding",
-          "/ayekoutche",
+          "/admin",
           "/api",
           "/auth/callback",
           "/forgot-password",
