@@ -179,6 +179,11 @@ export function PublicationCard({
   const [shareCopied, setShareCopied] = useState(false);
   const [isTextExpanded, setIsTextExpanded] = useState(false);
   const [isTextTruncated, setIsTextTruncated] = useState(false);
+  // Format réel de la vidéo uploadée (ex: une story verticale) — 16:9 n'est
+  // qu'une valeur de repos tant que le navigateur n'a pas lu les dimensions
+  // réelles du fichier (onLoadedMetadata) ; jamais forcé, sinon une vidéo
+  // verticale s'affichait avec de l'espace vide de part et d'autre.
+  const [videoAspectRatio, setVideoAspectRatio] = useState(16 / 9);
   const contentRef = useRef<HTMLParagraphElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -358,7 +363,10 @@ export function PublicationCard({
       )}
 
       {publication.mediaType === "VIDEO" && publication.videoUrl && (
-        <div className="bg-black relative">
+        <div
+          className="bg-black relative mx-auto"
+          style={{ aspectRatio: videoAspectRatio, maxWidth: `${videoAspectRatio * 512}px` }}
+        >
           {/* controlsList="nodownload" + blocage du clic droit retirent le
               bouton de téléchargement natif et le "Enregistrer la vidéo
               sous..." du menu contextuel — un frein pour un visiteur
@@ -371,8 +379,12 @@ export function PublicationCard({
             controlsList="nodownload noremoteplayback"
             disablePictureInPicture
             onContextMenu={(e) => e.preventDefault()}
+            onLoadedMetadata={(e) => {
+              const { videoWidth, videoHeight } = e.currentTarget;
+              if (videoWidth > 0 && videoHeight > 0) setVideoAspectRatio(videoWidth / videoHeight);
+            }}
             preload="metadata"
-            className="w-full max-h-[32rem]"
+            className="w-full h-full"
           />
           {/* Filet visuel pour une vidéo sans miniature (ancienne publication
               d'avant la génération automatique, ou échec de génération) :

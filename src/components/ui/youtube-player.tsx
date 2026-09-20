@@ -13,6 +13,18 @@ interface YouTubePlayerProps {
 /** Le script de l'API JS et le domaine youtube-nocookie.com du lecteur sont parfois lents/bloqués sur certains réseaux mobiles — passé ce délai, on bascule sur une intégration classique qui ne dépend d'aucun des deux. */
 const API_LOAD_TIMEOUT_MS = 8000;
 
+// Hauteur de référence pour dimensionner une vidéo verticale (format story) :
+// même valeur que le plafond utilisé pour les vidéos uploadées directement
+// (cf. publication-card.tsx, max-h-[32rem]) pour que les deux formats de
+// post gardent une taille cohérente dans le fil.
+const REFERENCE_HEIGHT_PX = 512;
+const DEFAULT_ASPECT_RATIO = 16 / 9;
+// Au-delà de ces bornes, on suppose une donnée oEmbed aberrante plutôt qu'un
+// format réel et on revient au 16:9 par défaut — jamais un post cassé à
+// cause d'une réponse inattendue.
+const MIN_ASPECT_RATIO = 9 / 16;
+const MAX_ASPECT_RATIO = 16 / 9;
+
 /**
  * Lecteur YouTube intégré (pas de rehébergement du fichier) avec le bouton
  * play, la timeline et le plein écran NATIFS de YouTube de bout en bout —
@@ -42,6 +54,30 @@ export function YouTubePlayer({ videoId, className }: YouTubePlayerProps) {
   const [hasEnded, setHasEnded] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [useFallbackEmbed, setUseFallbackEmbed] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO);
+
+  // Format réel de la vidéo (ex: un Short vertical) via l'API oEmbed
+  // publique de YouTube — jamais forcé en 16:9 par défaut comme avant : une
+  // story verticale s'affichait alors avec deux bandes noires au lieu de
+  // remplir tout l'espace. Purement cosmétique : un échec de cette requête
+  // ne doit jamais empêcher la vidéo de s'afficher, on garde alors le 16:9.
+  useEffect(() => {
+    let cancelled = false;
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`;
+    fetch(oembedUrl)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { width?: number; height?: number } | null) => {
+        if (cancelled || !data?.width || !data?.height) return;
+        const ratio = data.width / data.height;
+        if (Number.isFinite(ratio) && ratio >= MIN_ASPECT_RATIO && ratio <= MAX_ASPECT_RATIO) {
+          setAspectRatio(ratio);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [videoId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,8 +135,17 @@ export function YouTubePlayer({ videoId, className }: YouTubePlayerProps) {
 
   return (
     <div
-      className={cn("relative w-full aspect-video bg-black bg-cover bg-center", className)}
-      style={!isReady ? { backgroundImage: `url(${thumbnailUrl})` } : undefined}
+      className={cn("relative w-full mx-auto bg-black bg-cover bg-center", className)}
+      style={{
+        aspectRatio,
+        // Plafonne la largeur d'une vidéo verticale à ce qu'elle occuperait à
+        // REFERENCE_HEIGHT_PX de haut, centrée — sans ça, `w-full` l'étirerait
+        // à toute la largeur du post et la rendrait démesurément haute.
+        // Une vidéo horizontale (ratio proche de 16:9) n'est jamais bridée
+        // par cette limite, généreuse, et garde son comportement plein cadre.
+        maxWidth: `${aspectRatio * REFERENCE_HEIGHT_PX}px`,
+        ...(!isReady ? { backgroundImage: `url(${thumbnailUrl})` } : {})
+      }}
     >
       {useFallbackEmbed ? (
         <iframe
