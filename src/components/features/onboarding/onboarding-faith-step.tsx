@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
+import { DenominationSelect } from "@/components/features/profile/denomination-select";
+import { resolveDenomination } from "@/config/denomination-options";
 import { OnboardingStepFooter } from "./onboarding-step-footer";
 import { updateProfileAction } from "@/lib/actions/profile.actions";
 import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
@@ -27,9 +29,15 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
       return;
     }
     const parsedHeight = heightCm.trim() ? Number(heightCm) : null;
+    // Réécrit vers l'orthographe canonique à CHAQUE enregistrement, même si
+    // la personne n'a pas retouché le menu déroulant — sinon une ancienne
+    // saisie libre reconnue et déjà affichée normalisée à l'écran (ex:
+    // "evangelique" -> "Évangélique" dans le menu) restait telle quelle en
+    // base tant que personne ne cliquait dessus une deuxième fois.
+    const normalizedDenomination = resolveDenomination(denomination).canonical;
     startTransition(async () => {
       await updateProfileAction({
-        church_denomination: denomination || null,
+        church_denomination: normalizedDenomination || null,
         marital_status: maritalStatus || null,
         height_cm: parsedHeight && parsedHeight >= 120 && parsedHeight <= 230 ? parsedHeight : null
       });
@@ -46,11 +54,10 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
         </p>
       </div>
 
-      <Input
-        label="Confession chrétienne *"
-        placeholder="Ex : Évangélique, Catholique, Baptiste..."
+      <DenominationSelect
+        required
         value={denomination}
-        onChange={(e) => setDenomination(e.target.value)}
+        onChange={setDenomination}
         error={showErrors && !denomination.trim() ? "Champ obligatoire" : undefined}
       />
 

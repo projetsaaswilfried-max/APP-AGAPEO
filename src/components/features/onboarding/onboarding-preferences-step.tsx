@@ -5,11 +5,13 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TagInput } from "@/components/ui/tag-input";
+import { ToggleChipGroup } from "@/components/ui/toggle-chip-group";
 import { OnboardingStepFooter } from "./onboarding-step-footer";
 import { updateProfileAction, completeOnboardingAction } from "@/lib/actions/profile.actions";
 import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
 import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
 import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
+import { INTEREST_OPTIONS, MAX_INTERESTS, resolveInterests } from "@/config/interest-options";
 import type { OnboardingStepKey } from "@/domain/profile-completeness";
 import { AlertCircle, ArrowRight, Check } from "lucide-react";
 import type { ProfileRow, MaritalStatusType } from "@/lib/supabase/database.types";
@@ -34,7 +36,10 @@ const AUTOSAVE_DELAY_MS = 1500;
 
 export function OnboardingPreferencesStep({ profile, onBack, onJumpToStep }: OnboardingPreferencesStepProps) {
   const [bio, setBio] = useState(profile.bio ?? "");
-  const [hobbies, setHobbies] = useState(profile.hobbies);
+  // Reconnaît les anciennes saisies libres (avant le passage aux cases à
+  // cocher) pour pré-cocher ce qui est reconnaissable, plutôt que de
+  // repartir d'une liste vide pour un profil qui avait déjà rempli ce champ.
+  const [hobbies, setHobbies] = useState<string[]>(() => resolveInterests(profile.hobbies));
   const [whyMarriage, setWhyMarriage] = useState(profile.why_marriage ?? "");
   const [coreValues, setCoreValues] = useState(profile.core_values);
   const [ageMin, setAgeMin] = useState(profile.desired_age_min);
@@ -167,7 +172,7 @@ export function OnboardingPreferencesStep({ profile, onBack, onJumpToStep }: Onb
         <Textarea placeholder="Parle un peu de toi..." value={bio} onChange={(e) => setBio(e.target.value)} maxLength={600} />
       </div>
 
-      <TagInput label="Loisirs" placeholder="Ex : Randonnée, Cuisine..." value={hobbies} onChange={setHobbies} maxTags={12} />
+      <ToggleChipGroup label="Centres d'intérêt" options={INTEREST_OPTIONS} value={hobbies} onChange={setHobbies} maxSelected={MAX_INTERESTS} />
 
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">

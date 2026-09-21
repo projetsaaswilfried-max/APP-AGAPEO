@@ -4,13 +4,15 @@ import React, { useState } from "react";
 import { UserProfile } from "@/domain/types/user";
 import { Textarea } from "@/components/ui/textarea";
 import { TagInput } from "@/components/ui/tag-input";
+import { ToggleChipGroup } from "@/components/ui/toggle-chip-group";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Check } from "lucide-react";
+import { INTEREST_OPTIONS, MAX_INTERESTS, resolveInterests } from "@/config/interest-options";
 
 export interface AdditionalInfoUpdate {
   qualities: string[];
-  passions: string[];
+  hobbies: string[];
   familyVision: string;
   desiredChildrenCount: string;
   marriageTimeline: string;
@@ -29,12 +31,16 @@ const TIMELINE_OPTIONS = ["Dès que possible", "Dans l'année", "Dans 1 à 2 ans
  * Champs volontairement retirés de l'onboarding pour le raccourcir (redevenus
  * des sujets de discussion entre deux personnes plutôt que des données
  * obligatoires) — un membre qui le souhaite peut quand même les renseigner
- * ici, mais ils ne sont jamais utilisés comme critère de recherche (ni dans
- * l'algorithme de compatibilité, ni dans les filtres de Découvrir).
+ * ici. La plupart ne sont jamais utilisés comme critère de recherche (ni
+ * dans l'algorithme de compatibilité, ni dans les filtres de Découvrir) —
+ * SEULE exception : les centres d'intérêt (`hobbies`), qui alimentent bien
+ * le score de compatibilité (cf. src/domain/matching/compatibility.ts) même
+ * si leur point d'entrée historique est resté ici plutôt que dans
+ * l'onboarding "Préférences" (qui les édite aussi, sur le même champ).
  */
 export function AccountAdditionalInfoForm({ profile, onSave }: AccountAdditionalInfoFormProps) {
   const [qualities, setQualities] = useState(profile.aboutMe.qualities);
-  const [passions, setPassions] = useState(profile.aboutMe.passions);
+  const [hobbies, setHobbies] = useState<string[]>(() => resolveInterests(profile.aboutMe.hobbies));
   const [familyVision, setFamilyVision] = useState(profile.marriageVision.familyVision || "");
   const [desiredChildrenCount, setDesiredChildrenCount] = useState(profile.marriageVision.desiredChildrenCount || "");
   const [marriageTimeline, setMarriageTimeline] = useState(profile.marriageVision.timelineYears || "");
@@ -43,7 +49,7 @@ export function AccountAdditionalInfoForm({ profile, onSave }: AccountAdditional
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ qualities, passions, familyVision, desiredChildrenCount, marriageTimeline, desiredValues });
+    onSave({ qualities, hobbies, familyVision, desiredChildrenCount, marriageTimeline, desiredValues });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
@@ -64,13 +70,13 @@ export function AccountAdditionalInfoForm({ profile, onSave }: AccountAdditional
         </div>
 
         <p className="text-xs text-muted-foreground -mt-2">
-          Entièrement facultatif — remplis uniquement ce que tu souhaites partager. Ces informations ne sont jamais
-          utilisées pour te proposer des profils dans Découvrir : elles servent uniquement à te présenter, le reste se
-          discute directement avec la personne.
+          Entièrement facultatif — remplis uniquement ce que tu souhaites partager. En dehors des centres d&apos;intérêt
+          (qui comptent dans ton score de compatibilité), ces informations ne servent qu&apos;à te présenter : le reste
+          se discute directement avec la personne.
         </p>
 
         <TagInput label="Tes qualités" placeholder="Ex : Patient(e), Généreux(se)..." value={qualities} onChange={setQualities} maxTags={10} />
-        <TagInput label="Passions" placeholder="Ex : Musique, Voyage..." value={passions} onChange={setPassions} maxTags={12} />
+        <ToggleChipGroup label="Centres d'intérêt" options={INTEREST_OPTIONS} value={hobbies} onChange={setHobbies} maxSelected={MAX_INTERESTS} />
 
         <div className="space-y-2">
           <label className="text-xs font-medium text-foreground">Ta vision de la famille</label>

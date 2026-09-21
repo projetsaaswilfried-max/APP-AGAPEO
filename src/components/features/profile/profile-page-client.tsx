@@ -79,7 +79,7 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
   const handleUpdateAdditionalInfo = async (updated: AdditionalInfoUpdate) => {
     setProfile((prev) => ({
       ...prev,
-      aboutMe: { ...prev.aboutMe, qualities: updated.qualities, passions: updated.passions },
+      aboutMe: { ...prev.aboutMe, qualities: updated.qualities, hobbies: updated.hobbies },
       marriageVision: {
         ...prev.marriageVision,
         familyVision: updated.familyVision,
@@ -90,7 +90,7 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
     }));
     await updateProfileAction({
       qualities: updated.qualities,
-      passions: updated.passions,
+      hobbies: updated.hobbies,
       family_vision: updated.familyVision || null,
       desired_children_count: updated.desiredChildrenCount || null,
       marriage_timeline: updated.marriageTimeline || null,

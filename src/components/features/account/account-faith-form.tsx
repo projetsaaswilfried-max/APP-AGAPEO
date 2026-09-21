@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { UserFaithProfile } from "@/domain/types/user";
 import { Input } from "@/components/ui/input";
+import { DenominationSelect } from "@/components/features/profile/denomination-select";
+import { resolveDenomination } from "@/config/denomination-options";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,8 +28,12 @@ export function AccountFaithForm({ faith, onSave }: AccountFaithFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Réécrit vers l'orthographe canonique à chaque enregistrement — sinon
+    // une ancienne saisie libre déjà affichée normalisée dans le menu
+    // (ex: "evangelique" -> "Évangélique") reste inchangée en base tant que
+    // la personne ne re-choisit pas explicitement une option.
     onSave({
-      churchDenomination,
+      churchDenomination: resolveDenomination(churchDenomination).canonical,
       faithJourneyYears,
       baptized,
       faithDescription,
@@ -59,11 +65,7 @@ export function AccountFaithForm({ faith, onSave }: AccountFaithFormProps) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label="Dénomination d'église"
-            value={churchDenomination}
-            onChange={(e) => setChurchDenomination(e.target.value)}
-          />
+          <DenominationSelect value={churchDenomination} onChange={setChurchDenomination} />
           <Input
             label="Nombre d'années de conversion"
             type="number"

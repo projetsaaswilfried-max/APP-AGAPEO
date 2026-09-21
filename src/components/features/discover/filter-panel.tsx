@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SUPPORTED_COUNTRIES } from "@/config/countries";
 import { FAITH_ENGAGEMENT_LEVELS } from "@/config/faith-options";
+import { DENOMINATION_OPTIONS } from "@/config/denomination-options";
 import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
 import { SlidersHorizontal, RefreshCw, X, Lock } from "lucide-react";
 
@@ -130,12 +131,18 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose,
         <AdvancedField isPremium={isPremium} onRequirePremium={onRequirePremium}>
           <div className="space-y-2">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Confession chrétienne</label>
-            <input
-              placeholder="Ex : Évangélique, Catholique..."
+            <select
               value={filters.denomination ?? ""}
               onChange={(e) => update({ denomination: e.target.value || undefined })}
-              className={inputClass}
-            />
+              className={selectClass}
+            >
+              <option value="">Toutes confessions</option>
+              {DENOMINATION_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
           </div>
         </AdvancedField>
 
