@@ -52,6 +52,8 @@ export async function createOfficialPostAction(input: unknown) {
     return { error: "Lien YouTube invalide." };
   }
 
+  // `author_id` est réécrit côté base (trigger posts_force_official_team_author) : le
+  // post est signé "Équipe Agapeo" pour tous les clients, et `published_by` retient `user.id`.
   const { data: post, error } = await supabase
     .from("posts")
     .insert({

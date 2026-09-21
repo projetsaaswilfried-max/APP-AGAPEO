@@ -271,6 +271,8 @@ export interface PostRow {
   views_count: number;
   is_pinned: boolean;
   pinned_position: number | null;
+  /** Posts officiels uniquement : qui a réellement publié (`author_id` est toujours le compte d'équipe, posé par trigger). */
+  published_by: string | null;
   created_at: string;
   updated_at: string;
 }
