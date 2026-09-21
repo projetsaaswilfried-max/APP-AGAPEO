@@ -26,6 +26,12 @@ export function CommentSection({
   const [newCommentText, setNewCommentText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
+  // Replie les réponses par défaut (stratégie Facebook) : afficher tout d'un
+  // coup mélangeait visuellement commentaires et réponses, ce qui était
+  // remonté comme confus. Un commentaire donné ne réapparaît dans cet
+  // ensemble que si la personne clique explicitement sur "Voir les
+  // réponses" — retirer son id l'y remet à l'état replié initial.
+  const [expandedReplyIds, setExpandedReplyIds] = useState<Set<string>>(new Set());
   const [openReplyForId, setOpenReplyForId] = useState<string | null>(null);
   const [replyTargetName, setReplyTargetName] = useState("");
   const [replyText, setReplyText] = useState("");
@@ -44,10 +50,21 @@ export function CommentSection({
     }
   };
 
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplyIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(commentId)) next.delete(commentId);
+      else next.add(commentId);
+      return next;
+    });
+  };
+
+  /** Répondre à un commentaire déplié automatiquement ses réponses existantes — sinon la personne composerait une réponse sans voir celles déjà là. */
   const startReply = (parentId: string, authorName: string) => {
     setOpenReplyForId(parentId);
     setReplyTargetName(authorName);
     setReplyText("");
+    setExpandedReplyIds((prev) => new Set(prev).add(parentId));
   };
 
   const cancelReply = () => {
@@ -112,6 +129,8 @@ export function CommentSection({
           {displayedComments.map((comment) => {
             const hasReplies = !!comment.replies && comment.replies.length > 0;
             const isReplyOpen = openReplyForId === comment.id;
+            const isRepliesExpanded = expandedReplyIds.has(comment.id);
+            const replyCount = comment.replies?.length ?? 0;
 
             return (
               <div key={comment.id} className="space-y-2">
@@ -146,20 +165,33 @@ export function CommentSection({
                         {linkifyText(comment.content)}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => (isReplyOpen ? cancelReply() : startReply(comment.id, comment.authorName))}
-                      className="pl-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
-                    >
-                      Répondre
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => (isReplyOpen ? cancelReply() : startReply(comment.id, comment.authorName))}
+                        className="pl-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        Répondre
+                      </button>
+                      {/* Repliées par défaut façon Facebook : évite de mélanger commentaires et réponses d'un coup d'œil. */}
+                      {hasReplies && !isRepliesExpanded && (
+                        <button
+                          type="button"
+                          onClick={() => toggleReplies(comment.id)}
+                          className="text-[11px] font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+                        >
+                          <span className="inline-block w-4 h-px bg-border" />
+                          Voir {replyCount === 1 ? "1 réponse" : `les ${replyCount} réponses`}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Reponses Imbriquees + champ de réponse en bas du fil */}
-                {(hasReplies || isReplyOpen) && (
+                {(isRepliesExpanded || isReplyOpen) && (
                   <div className="pl-6 space-y-2 border-l-2 border-border/40 ml-4">
-                    {comment.replies?.map((reply) => (
+                    {isRepliesExpanded && comment.replies?.map((reply) => (
                       <div key={reply.id} className="flex items-start gap-2.5">
                         <CornerDownRight size={14} className="text-muted-foreground shrink-0 mt-2" />
                         <Link href={`/profile/${reply.authorId}`} className="shrink-0">
@@ -202,6 +234,18 @@ export function CommentSection({
                         </div>
                       </div>
                     ))}
+
+                    {/* Repasse à l'état initial (replié) — la personne retrouve exactement l'affichage compact d'origine. */}
+                    {hasReplies && isRepliesExpanded && (
+                      <button
+                        type="button"
+                        onClick={() => toggleReplies(comment.id)}
+                        className="pl-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+                      >
+                        <span className="inline-block w-4 h-px bg-border" />
+                        Masquer les réponses
+                      </button>
+                    )}
 
                     {/* Champ de réponse, ancré en bas du commentaire (et de ses réponses) */}
                     {isReplyOpen && (
