@@ -150,7 +150,7 @@ interface CompatProfileRow {
   faith_engagement_level: string | null;
   core_values: string[];
   hobbies: string[];
-  country: string;
+  country: string | null;
   desired_countries: string[];
   birth_date: string;
   desired_age_min: number;
@@ -198,13 +198,18 @@ function computeCompatibilityScore(viewer: CompatProfileRow, candidate: CompatPr
   }
   score += Math.round(overlapRatioLocal(viewer.core_values, candidate.core_values) * 20);
   score += Math.round(overlapRatioLocal(viewer.hobbies, candidate.hobbies) * 15);
-  if (normalizeText(viewer.country) === normalizeText(candidate.country)) {
-    score += 15;
-  } else if (
-    viewer.desired_countries.some((c) => normalizeText(c) === normalizeText(candidate.country)) ||
-    candidate.desired_countries.some((c) => normalizeText(c) === normalizeText(viewer.country))
-  ) {
-    score += 8;
+  // `country` est nullable (bug réel trouvé en marge de cette session, cf.
+  // src/domain/matching/compatibility.ts : sans ce garde, un `country`
+  // manquant chez l'un des deux profils faisait planter le calcul).
+  if (viewer.country && candidate.country) {
+    if (normalizeText(viewer.country) === normalizeText(candidate.country)) {
+      score += 15;
+    } else if (
+      viewer.desired_countries.some((c) => normalizeText(c) === normalizeText(candidate.country!)) ||
+      candidate.desired_countries.some((c) => normalizeText(c) === normalizeText(viewer.country!))
+    ) {
+      score += 8;
+    }
   }
   const viewerAge = computeAgeLocal(viewer.birth_date);
   const candidateAge = computeAgeLocal(candidate.birth_date);

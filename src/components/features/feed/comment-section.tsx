@@ -6,6 +6,7 @@ import { FeedComment } from "@/domain/types/feed";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { VerifiedBadge } from "@/components/ui/verified-badge";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
@@ -140,7 +141,6 @@ export function CommentSection({
                       size="sm"
                       src={comment.authorAvatar}
                       fallback={comment.authorName.charAt(0)}
-                      isVerified={comment.isOfficialResponse}
                       className="hover:opacity-80 transition-opacity"
                     />
                   </Link>
@@ -151,10 +151,15 @@ export function CommentSection({
                           <Link href={`/profile/${comment.authorId}`} className="font-semibold text-foreground hover:underline">
                             {comment.authorName}
                           </Link>
-                          {comment.authorBadge && (
-                            <Badge variant="verified" className="text-[9px] px-1.5 py-0">
-                              {comment.authorBadge}
-                            </Badge>
+                          {/* Équipe Agapeo (SUPER_ADMIN/ADMIN/MODERATOR) : même badge bleu que le fil officiel, jamais le badge "Vérifié" générique. */}
+                          {comment.isOfficialResponse ? (
+                            <VerifiedBadge size="xs" color="blue" ring={false} title="Compte officiel Agapeo" />
+                          ) : (
+                            comment.authorBadge && (
+                              <Badge variant="verified" className="text-[9px] px-1.5 py-0">
+                                {comment.authorBadge}
+                              </Badge>
+                            )
                           )}
                         </div>
                         <span className="text-[10px] text-muted-foreground">
@@ -199,7 +204,6 @@ export function CommentSection({
                             size="sm"
                             src={reply.authorAvatar}
                             fallback={reply.authorName.charAt(0)}
-                            isVerified={reply.isOfficialResponse}
                             className="hover:opacity-80 transition-opacity"
                           />
                         </Link>
@@ -210,10 +214,14 @@ export function CommentSection({
                                 <Link href={`/profile/${reply.authorId}`} className="font-semibold text-foreground hover:underline">
                                   {reply.authorName}
                                 </Link>
-                                {reply.authorBadge && (
-                                  <Badge variant="verified" className="text-[9px] px-1.5 py-0">
-                                    {reply.authorBadge}
-                                  </Badge>
+                                {reply.isOfficialResponse ? (
+                                  <VerifiedBadge size="xs" color="blue" ring={false} title="Compte officiel Agapeo" />
+                                ) : (
+                                  reply.authorBadge && (
+                                    <Badge variant="verified" className="text-[9px] px-1.5 py-0">
+                                      {reply.authorBadge}
+                                    </Badge>
+                                  )
                                 )}
                               </div>
                               <span className="text-[10px] text-muted-foreground">

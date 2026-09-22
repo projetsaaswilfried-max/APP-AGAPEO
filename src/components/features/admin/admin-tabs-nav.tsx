@@ -11,15 +11,7 @@ import type { AppRole } from "@/lib/supabase/database.types";
 // (MODERATOR+), requireAdminSession (ADMIN+) et requireSuperAdminSession
 // (SUPER_ADMIN) dans src/lib/supabase/session.ts, qui appliquent la même
 // restriction côté page/action.
-//
-// "Accueil" et "Découvrir" ne sont pas des pages d'administration : ce sont
-// des raccourcis vers les vraies pages membre (/feed, /discover), pour que
-// l'équipe puisse voir la plateforme telle que les membres la voient, sans
-// sortir de ce menu pour la retrouver. Le staff (is_staff) y a déjà un accès
-// complet, aucune logique supplémentaire n'est nécessaire côté page.
 const TABS = [
-  { href: "/feed", label: "Accueil", minRole: "MODERATOR" },
-  { href: "/discover", label: "Découvrir", minRole: "MODERATOR" },
   { href: "/admin", label: "Vue d'ensemble", minRole: "MODERATOR" },
   { href: "/admin/reports", label: "Signalements", badgeKey: "reports", minRole: "MODERATOR" },
   { href: "/admin/verifications", label: "Vérifications", badgeKey: "verifications", minRole: "MODERATOR" },

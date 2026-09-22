@@ -28,7 +28,16 @@ export default async function AdminOverviewPage() {
     admin.from("profile_restricted").select("id", { count: "exact", head: true }).eq("is_suspended", true),
     admin.from("reports").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
     admin.from("profiles").select("id", { count: "exact", head: true }).eq("photo_verification_status", "PENDING"),
-    admin.from("profile_restricted").select("id", { count: "exact", head: true }).eq("subscription_status", "ACTIVE"),
+    // Comme toutes les autres stats de cette page, exclut les profils de test
+    // ET l'équipe (`is_staff`) — sans ce filtre, le compte du fondateur et le
+    // compte de test permanent du développeur mobile, tous deux abonnés pour
+    // leurs propres besoins, gonflaient artificiellement "Abonnés premium".
+    admin
+      .from("profile_restricted")
+      .select("id, profiles!inner(is_test_account, is_staff)", { count: "exact", head: true })
+      .eq("subscription_status", "ACTIVE")
+      .eq("profiles.is_test_account", false)
+      .eq("profiles.is_staff", false),
     // Horodatages bruts (pas de count:head) : nécessaires au filtrage par
     // date choisie côté client, cf. AdminOverviewActivity — même pattern que
     // AdminTransactionsList. `profiles` et `onboarding_events` dépassent

@@ -17,7 +17,7 @@ interface ProfileRow {
   gender: "MALE" | "FEMALE";
   birth_date: string;
   city: string | null;
-  country: string;
+  country: string | null;
   profession: string | null;
   church_denomination: string | null;
   faith_engagement_level: string | null;
@@ -94,15 +94,20 @@ function computeCompatibility(viewer: ProfileRow, candidate: ProfileRow): { scor
     reasons.push(`Des centres d'intérêt communs : ${sharedInterests.slice(0, 3).join(", ")}`);
   }
 
-  if (normalize(viewer.country) === normalize(candidate.country)) {
-    score += 15;
-    reasons.push("Vous vivez dans le même pays");
-  } else {
-    const viewerWantsCandidateCountry = viewer.desired_countries.some((c) => normalize(c) === normalize(candidate.country));
-    const candidateWantsViewerCountry = candidate.desired_countries.some((c) => normalize(c) === normalize(viewer.country));
-    if (viewerWantsCandidateCountry || candidateWantsViewerCountry) {
-      score += 8;
-      reasons.push("Votre localisation correspond à ce que vous recherchez");
+  // `country` est nullable (bug réel trouvé en marge de cette session, cf.
+  // src/domain/matching/compatibility.ts : sans ce garde, un `country`
+  // manquant chez l'un des deux profils faisait planter le calcul).
+  if (viewer.country && candidate.country) {
+    if (normalize(viewer.country) === normalize(candidate.country)) {
+      score += 15;
+      reasons.push("Vous vivez dans le même pays");
+    } else {
+      const viewerWantsCandidateCountry = viewer.desired_countries.some((c) => normalize(c) === normalize(candidate.country!));
+      const candidateWantsViewerCountry = candidate.desired_countries.some((c) => normalize(c) === normalize(viewer.country!));
+      if (viewerWantsCandidateCountry || candidateWantsViewerCountry) {
+        score += 8;
+        reasons.push("Votre localisation correspond à ce que vous recherchez");
+      }
     }
   }
 
@@ -125,14 +130,14 @@ const DIGEST_FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 const TOP_N = 3;
 
-function renderEmailHtml(viewerFirstName: string, matches: { firstName: string; age: number; city: string | null; country: string; score: number; reasons: string[] }[]) {
+function renderEmailHtml(viewerFirstName: string, matches: { firstName: string; age: number; city: string | null; country: string | null; score: number; reasons: string[] }[]) {
   const rows = matches
     .map(
       (m) => `
       <tr>
         <td style="padding:16px;border-bottom:1px solid #eee;">
           <div style="font-weight:600;font-size:15px;color:#090A0F;">${escapeHtml(m.firstName)}, ${m.age} ans — ${m.score}%</div>
-          <div style="font-size:13px;color:#64748B;margin-top:2px;">${m.city ? escapeHtml(m.city) + ", " : ""}${escapeHtml(m.country)}</div>
+          <div style="font-size:13px;color:#64748B;margin-top:2px;">${m.city ? escapeHtml(m.city) + ", " : ""}${m.country ? escapeHtml(m.country) : ""}</div>
           ${m.reasons[0] ? `<div style="font-size:12px;color:#FE70B2;margin-top:6px;">✓ ${escapeHtml(m.reasons[0])}</div>` : ""}
         </td>
       </tr>`

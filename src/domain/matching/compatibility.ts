@@ -70,16 +70,21 @@ export function computeCompatibility(viewer: ProfileRow, candidate: ProfileRow):
     reasons.push(`Des centres d'intérêt communs : ${sharedInterests.slice(0, 3).join(", ")}`);
   }
 
-  // Localisation — 15 pts
-  if (normalize(viewer.country) === normalize(candidate.country)) {
-    score += 15;
-    reasons.push("Vous vivez dans le même pays");
-  } else {
-    const viewerWantsCandidateCountry = viewer.desired_countries.some((c) => normalize(c) === normalize(candidate.country));
-    const candidateWantsViewerCountry = candidate.desired_countries.some((c) => normalize(c) === normalize(viewer.country));
-    if (viewerWantsCandidateCountry || candidateWantsViewerCountry) {
-      score += 8;
-      reasons.push("Votre localisation correspond à ce que vous recherchez");
+  // Localisation — 15 pts. `country` est nullable (onboarding via Google
+  // OAuth notamment) — bug réel trouvé en marge de cette session : sans ce
+  // garde, un `country` manquant faisait planter cette fonction (donc toute
+  // la page profil public) en erreur 500, y compris pour de vrais membres.
+  if (viewer.country && candidate.country) {
+    if (normalize(viewer.country) === normalize(candidate.country)) {
+      score += 15;
+      reasons.push("Vous vivez dans le même pays");
+    } else {
+      const viewerWantsCandidateCountry = viewer.desired_countries.some((c) => normalize(c) === normalize(candidate.country!));
+      const candidateWantsViewerCountry = candidate.desired_countries.some((c) => normalize(c) === normalize(viewer.country!));
+      if (viewerWantsCandidateCountry || candidateWantsViewerCountry) {
+        score += 8;
+        reasons.push("Votre localisation correspond à ce que vous recherchez");
+      }
     }
   }
 

@@ -299,6 +299,8 @@ export interface PostCommentRow {
   id: string;
   post_id: string;
   author_id: string;
+  /** Qui a réellement écrit, quand `author_id` a été réécrit vers le compte d'équipe (trigger `force_staff_comment_team_author`) — null pour un commentaire de membre ordinaire. */
+  commented_by: string | null;
   parent_comment_id: string | null;
   content: string;
   created_at: string;

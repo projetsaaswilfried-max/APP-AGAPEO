@@ -283,8 +283,13 @@ class FeedServiceSupabase implements IFeedService {
 
     if (error || !data) throw new Error(error?.message ?? "Impossible de publier le commentaire.");
 
-    const { data: author } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-    return mapCommentRow(data as PostCommentRow, author as ProfileRow);
+    // L'auteur réellement enregistré peut différer de `user.id` : pour un
+    // membre de l'équipe, le trigger `force_staff_comment_team_author`
+    // réattribue le commentaire au compte "Équipe Agapeo" — la ligne renvoyée
+    // par `.select()` reflète déjà ce résultat, jamais `user.id` directement.
+    const insertedComment = data as PostCommentRow;
+    const { data: author } = await supabase.from("profiles").select("*").eq("id", insertedComment.author_id).single();
+    return mapCommentRow(insertedComment, author as ProfileRow);
   }
 
   async recordShare(id: string): Promise<void> {
