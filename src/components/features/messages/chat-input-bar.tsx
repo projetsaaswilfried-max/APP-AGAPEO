@@ -19,7 +19,8 @@ import {
   StopIcon,
   VoiceIcon,
   PlayIcon,
-  PauseIcon
+  PauseIcon,
+  Loading03Icon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { cn } from "@/lib/utils";
@@ -196,6 +197,13 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
         <div className="mb-2 p-2.5 rounded-2xl bg-destructive/10 border border-destructive/30 flex items-center gap-2 text-xs text-destructive">
           <HugeIcon icon={AlertCircleIcon} size={15} />
           <span>{recorder.errorMessage}</span>
+        </div>
+      )}
+
+      {recorder.status === "transcoding" && (
+        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-2xl flex items-center gap-3 animate-in fade-in duration-150">
+          <HugeIcon icon={Loading03Icon} size={18} className="text-primary shrink-0 animate-spin" />
+          <span className="text-xs font-medium text-foreground">Conversion audio en cours…</span>
         </div>
       )}
 
@@ -401,7 +409,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               variant="primary"
               className="h-10 w-10 rounded-full shrink-0 shadow-accent-glow disabled:opacity-40"
               title={hasContentToSend ? "Envoyer" : "Enregistrer une note vocale"}
-              disabled={!hasContentToSend && !onSendVoiceMessage}
+              disabled={(!hasContentToSend && !onSendVoiceMessage) || recorder.status === "transcoding"}
               onClick={(e) => {
                 if (!hasContentToSend && onSendVoiceMessage) {
                   e.preventDefault();

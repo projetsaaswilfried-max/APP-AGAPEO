@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { transcodeToAac } from "@/lib/audio-transcode";
 
-export type VoiceRecorderStatus = "idle" | "recording" | "recorded" | "error";
+export type VoiceRecorderStatus = "idle" | "recording" | "transcoding" | "recorded" | "error";
 
 /** Garde-fou UX (pas une vraie limite technique) — le bucket `message-attachments` plafonne à 25 Mo. */
 const MAX_DURATION_SECONDS = 300;
@@ -68,6 +69,8 @@ export function useVoiceRecorder() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const meterRafRef = useRef<number | null>(null);
   const currentLevelRef = useRef(0);
+  /** Incrémenté à chaque annulation/nouvel enregistrement — une conversion AAC déjà en cours au moment d'un `cancelRecording` se termine dans le vide au lieu d'écraser l'état "idle" avec un résultat obsolète. */
+  const transcodeGenerationRef = useRef(0);
 
   /** Remplace l'URL de prévisualisation en révoquant systématiquement l'ancienne — jamais deux à la fois, jamais de fuite mémoire. */
   const setRecordedPreviewUrl = (url: string | null) => {
@@ -153,7 +156,56 @@ export function useVoiceRecorder() {
     }
   };
 
+  /**
+   * Chrome/Firefox ne savent enregistrer qu'en WebM/Opus — illisible par
+   * l'app mobile (et par Safari en natif). On convertit donc systématiquement
+   * vers AAC/M4A avant de proposer l'écoute/l'envoi, SAUF si l'enregistrement
+   * est déjà en MP4/AAC (Safari) : rien à convertir dans ce cas. Si la
+   * conversion échoue (navigateur trop ancien, wasm bloqué...), on retombe
+   * sur le fichier d'origine plutôt que de bloquer l'envoi — dégradé, mais
+   * jamais bloquant.
+   */
+  const handleRecordingStopped = async () => {
+    const generation = transcodeGenerationRef.current;
+    const rawBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current });
+    const durationSeconds = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000));
+    stopStream();
+
+    if (rawBlob.size === 0) {
+      if (transcodeGenerationRef.current === generation) setStatus("idle");
+      return;
+    }
+
+    const sourceMimeType = mimeTypeRef.current;
+    const isAlreadyMobileCompatible = sourceMimeType.includes("mp4") || sourceMimeType.includes("aac");
+
+    const finalize = (blob: Blob) => {
+      // Annulé pendant la conversion (nouvel enregistrement démarré ou
+      // brouillon abandonné entre-temps) : ce résultat n'a plus lieu d'être.
+      if (transcodeGenerationRef.current !== generation) return;
+      setRecordedBlob(blob);
+      setRecordedPreviewUrl(URL.createObjectURL(blob));
+      setRecordedDurationSeconds(durationSeconds);
+      setStatus("recorded");
+    };
+
+    if (isAlreadyMobileCompatible) {
+      finalize(rawBlob);
+      return;
+    }
+
+    setStatus("transcoding");
+    try {
+      const aacBlob = await transcodeToAac(rawBlob, sourceMimeType);
+      finalize(aacBlob);
+    } catch (err) {
+      console.error("Conversion audio vers AAC impossible, envoi du format d'origine :", err);
+      finalize(rawBlob);
+    }
+  };
+
   const startRecording = async () => {
+    transcodeGenerationRef.current += 1;
     setErrorMessage(null);
     setRecordedBlob(null);
     setRecordedPreviewUrl(null);
@@ -184,17 +236,7 @@ export function useVoiceRecorder() {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current });
-        const durationSeconds = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000));
-        stopStream();
-        if (blob.size > 0) {
-          setRecordedBlob(blob);
-          setRecordedPreviewUrl(URL.createObjectURL(blob));
-          setRecordedDurationSeconds(durationSeconds);
-          setStatus("recorded");
-        } else {
-          setStatus("idle");
-        }
+        void handleRecordingStopped();
       };
 
       mediaRecorderRef.current = recorder;
@@ -226,6 +268,9 @@ export function useVoiceRecorder() {
   };
 
   const cancelRecording = () => {
+    // Invalide toute conversion AAC en cours (statut "transcoding") : son
+    // résultat, quand il arrivera, ne réapparaîtra pas après cette annulation.
+    transcodeGenerationRef.current += 1;
     const recorder = mediaRecorderRef.current;
     if (recorder) recorder.onstop = null;
     if (recorder?.state === "recording") recorder.stop();
@@ -237,6 +282,7 @@ export function useVoiceRecorder() {
   };
 
   const discardRecording = () => {
+    transcodeGenerationRef.current += 1;
     setRecordedBlob(null);
     setRecordedPreviewUrl(null);
     setRecordedDurationSeconds(0);
