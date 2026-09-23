@@ -51,6 +51,16 @@ export function getSasPayWebhookSecret(): string {
   return requireEnv("SASPAY_WEBHOOK_SECRET", process.env.SASPAY_WEBHOOK_SECRET);
 }
 
+/** Clé secrète Stripe (sk_test_... ou sk_live_...) — jamais exposée côté client, appels server-only. Paiement par carte, cf. src/lib/stripe.ts. */
+export function getStripeSecretKey(): string {
+  return requireEnv("STRIPE_SECRET_KEY", process.env.STRIPE_SECRET_KEY);
+}
+
+/** Secret de signature du webhook Stripe (whsec_...), unique pour tout le compte — contrairement à Chariow, un seul endpoint suffit pour tous les plans. */
+export function getStripeWebhookSecret(): string {
+  return requireEnv("STRIPE_WEBHOOK_SECRET", process.env.STRIPE_WEBHOOK_SECRET);
+}
+
 export type ChariowPlanKey = "WEEKLY" | "HALF_MONTH" | "MONTHLY" | "QUARTERLY" | "ACCESS";
 
 // MONTHLY garde les noms de variables historiques (sans suffixe) pour ne pas

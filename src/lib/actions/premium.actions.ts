@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PhoneSchema } from "@/lib/validation/profile.schema";
 import { initiateChariowCheckout } from "@/lib/chariow";
+import { initiateStripeCheckout } from "@/lib/stripe";
 import { env, type ChariowPlanKey } from "@/config/env";
 import { PURCHASABLE_PLAN_KEYS } from "@/domain/premium-plans";
 
@@ -13,15 +14,16 @@ export type PremiumCheckoutState = { errors?: Record<string, string[]>; message?
  * Ouvre un paiement unique d'accès Premium (un des plans proposés à l'achat,
  * cf. le champ caché "plan" porté par chaque formulaire de la page Premium —
  * y compris celui de la modale de récupération du téléphone, qui doit
- * reporter le plan en cours de sélection). Toujours Chariow : soit choix
- * "Carte bancaire" (SasPay ne le propose pas), soit repli "Mobile Money"
- * quand le réglage admin (/admin/payments) désigne Chariow plutôt que SasPay
- * — dans ce dernier cas, le flux natif SasPay (mobile-money.actions.ts,
- * paiement direct sans redirection) est intercepté côté client avant même
- * d'atteindre cette action. Chariow n'a pas de numéro de téléphone enregistré
- * pour un membre qui n'en a jamais renseigné (champ requis par leur API) — le
- * formulaire le demande dans ce cas et l'enregistre sur `profile_private` en
- * même temps, comme le ferait `updatePhoneAction`.
+ * reporter le plan en cours de sélection). Choix "Carte bancaire" → Stripe
+ * Checkout (pas de numéro de téléphone requis). Choix "Mobile Money" → reste
+ * toujours Chariow ici : c'est uniquement le repli quand le réglage admin
+ * (/admin/payments) désigne Chariow plutôt que SasPay comme processeur actif
+ * — le flux natif SasPay (mobile-money.actions.ts, paiement direct sans
+ * redirection) est intercepté côté client avant même d'atteindre cette
+ * action. Chariow exige un numéro de téléphone (champ requis par leur API)
+ * pour un membre qui n'en a jamais renseigné — le formulaire le demande dans
+ * ce cas et l'enregistre sur `profile_private` en même temps, comme le ferait
+ * `updatePhoneAction`.
  */
 export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutState, formData: FormData): Promise<PremiumCheckoutState> {
   const submittedPlan = formData.get("plan");
@@ -31,12 +33,29 @@ export async function startPremiumCheckoutAction(_prevState: PremiumCheckoutStat
   const plan: ChariowPlanKey = PURCHASABLE_PLAN_KEYS.includes(submittedPlan as ChariowPlanKey)
     ? (submittedPlan as ChariowPlanKey)
     : "MONTHLY";
+  const isCardPayment = formData.get("paymentMethod") === "CARD";
 
   const supabase = await createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
   if (!user || !user.email) return { message: "Session expirée, reconnecte-toi." };
+
+  if (isCardPayment) {
+    let checkoutUrl: string;
+    try {
+      checkoutUrl = await initiateStripeCheckout({
+        plan,
+        userId: user.id,
+        email: user.email,
+        successUrl: `${env.siteUrl}/premium/success`,
+        cancelUrl: `${env.siteUrl}/premium`
+      });
+    } catch (err) {
+      return { message: err instanceof Error ? err.message : "Le paiement n'a pas pu être initié." };
+    }
+    redirect(checkoutUrl);
+  }
 
   const [{ data: profile }, { data: privateData }] = await Promise.all([
     supabase.from("profiles").select("first_name, last_name").eq("id", user.id).single(),
