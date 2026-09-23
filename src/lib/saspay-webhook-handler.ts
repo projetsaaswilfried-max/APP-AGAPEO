@@ -188,7 +188,17 @@ export async function reconcilePendingSasPayTransactions(): Promise<{ checked: n
       console.error(`Lecture paiement SasPay ${tx.provider_reference} échouée :`, err);
       continue;
     }
-    if (!payment) continue;
+    if (!payment) {
+      // 404 côté SasPay = ce paiement n'existe plus chez eux (expiré et
+      // purgé, jamais confirmé...) — rien à réconcilier, jamais. Sans ce
+      // classement en FAILED, la transaction restait PENDING indéfiniment et
+      // le cron (toutes les minutes) la re-vérifiait pour rien, pour
+      // toujours. Trouvé en investiguant une plainte "j'ai payé mais je n'ai
+      // pas accès" : confirmé sur plusieurs cas réels que ces paiements
+      // n'avaient en réalité jamais abouti côté SasPay non plus.
+      await admin.from("transactions").update({ status: "FAILED" }).eq("id", tx.id).eq("status", "PENDING");
+      continue;
+    }
 
     if (payment.status === "FAILED" || payment.status === "CANCELLED" || payment.status === "EXPIRED") {
       await admin.from("transactions").update({ status: "FAILED" }).eq("id", tx.id).eq("status", "PENDING");
