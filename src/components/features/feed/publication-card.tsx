@@ -34,6 +34,8 @@ interface PublicationCardProps {
   onLikeToggle: (id: string) => void;
   onBookmarkToggle: (id: string) => void;
   onAddComment: (id: string, content: string, parentCommentId?: string) => void;
+  onUpdateComment: (commentId: string, content: string) => void;
+  onDeleteComment: (commentId: string) => void;
   /** Chemin de la page où cette publication est affichée (`/feed`, `/profile`, `/profile/{id}`) — sert à construire un lien de partage qui pointe vraiment vers ce post, pas juste vers la page courante. */
   sharePath: string;
 }
@@ -171,6 +173,8 @@ export function PublicationCard({
   onLikeToggle,
   onBookmarkToggle,
   onAddComment,
+  onUpdateComment,
+  onDeleteComment,
   sharePath
 }: PublicationCardProps) {
   const [showComments, setShowComments] = useState(false);
@@ -472,8 +476,11 @@ export function PublicationCard({
           <div className="w-full -mx-5">
             <CommentSection
               publicationId={publication.id}
+              postAuthorId={publication.author.id}
               comments={publication.comments}
               onAddComment={(content, parentCommentId) => onAddComment(publication.id, content, parentCommentId)}
+              onUpdateComment={onUpdateComment}
+              onDeleteComment={onDeleteComment}
             />
           </div>
         )}

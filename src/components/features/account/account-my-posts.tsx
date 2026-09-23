@@ -48,6 +48,41 @@ export function AccountMyPosts({ publications }: AccountMyPostsProps) {
     );
   };
 
+  const handleUpdateComment = (commentId: string, content: string) => {
+    setPosts((prev) =>
+      prev.map((p) => ({
+        ...p,
+        comments: p.comments.map((c) =>
+          c.id === commentId
+            ? { ...c, content, isEdited: true }
+            : { ...c, replies: c.replies?.map((r) => (r.id === commentId ? { ...r, content, isEdited: true } : r)) }
+        )
+      }))
+    );
+    void feedService.updateComment(commentId, content);
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        const deletedTopLevel = p.comments.find((c) => c.id === commentId);
+        if (deletedTopLevel) {
+          return {
+            ...p,
+            commentsCount: Math.max(0, p.commentsCount - 1 - (deletedTopLevel.replies?.length ?? 0)),
+            comments: p.comments.filter((c) => c.id !== commentId)
+          };
+        }
+        return {
+          ...p,
+          commentsCount: Math.max(0, p.commentsCount - 1),
+          comments: p.comments.map((c) => ({ ...c, replies: c.replies?.filter((r) => r.id !== commentId) }))
+        };
+      })
+    );
+    void feedService.deleteComment(commentId);
+  };
+
   const openCreate = () => {
     setEditingPost(null);
     setIsComposerOpen(true);
@@ -95,6 +130,8 @@ export function AccountMyPosts({ publications }: AccountMyPostsProps) {
                   onLikeToggle={handleLikeToggle}
                   onBookmarkToggle={() => {}}
                   onAddComment={handleAddComment}
+                  onUpdateComment={handleUpdateComment}
+                  onDeleteComment={handleDeleteComment}
                   sharePath="/profile"
                 />
                 <div className="mt-2 flex justify-end gap-2">

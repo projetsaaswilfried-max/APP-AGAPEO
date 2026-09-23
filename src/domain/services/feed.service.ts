@@ -21,6 +21,8 @@ export interface IFeedService {
   toggleLike(id: string): Promise<FeedPublication>;
   toggleBookmark(id: string): Promise<FeedPublication>;
   addComment(publicationId: string, content: string, parentCommentId?: string): Promise<FeedComment>;
+  updateComment(commentId: string, content: string): Promise<void>;
+  deleteComment(commentId: string): Promise<void>;
   recordShare(id: string): Promise<void>;
   recordView(id: string): Promise<void>;
 }
@@ -290,6 +292,20 @@ class FeedServiceSupabase implements IFeedService {
     const insertedComment = data as PostCommentRow;
     const { data: author } = await supabase.from("profiles").select("*").eq("id", insertedComment.author_id).single();
     return mapCommentRow(insertedComment, author as ProfileRow);
+  }
+
+  /** Réservé au véritable auteur (RLS `post_comments_update_own`) — jamais le propriétaire du post ni l'équipe : supprimer un commentaire relève de la modération, le réécrire à sa place non. */
+  async updateComment(commentId: string, content: string): Promise<void> {
+    const supabase = createClient();
+    const { error } = await supabase.from("post_comments").update({ content }).eq("id", commentId);
+    if (error) throw new Error(error.message);
+  }
+
+  /** Auteur, propriétaire du post concerné, ou équipe (RLS `post_comments_delete`) — supprime aussi les réponses (ON DELETE CASCADE). */
+  async deleteComment(commentId: string): Promise<void> {
+    const supabase = createClient();
+    const { error } = await supabase.from("post_comments").delete().eq("id", commentId);
+    if (error) throw new Error(error.message);
   }
 
   async recordShare(id: string): Promise<void> {

@@ -39,6 +39,7 @@ export function mapCommentRow(row: PostCommentRow, author: ProfileRow | undefine
     isOfficialResponse: author?.is_staff === true,
     content: row.content,
     createdAt: formatRelativeDate(row.created_at),
+    isEdited: row.updated_at !== row.created_at,
     likesCount: 0,
     parentCommentId: row.parent_comment_id ?? undefined
   };

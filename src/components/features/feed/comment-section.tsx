@@ -11,17 +11,24 @@ import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { useSession } from "@/core/providers/session-provider";
 import { getInitials } from "@/domain/badges";
 import { linkifyText } from "@/lib/linkify";
-import { Send, CornerDownRight, X } from "lucide-react";
+import { Send, CornerDownRight, X, Check } from "lucide-react";
 
 interface CommentSectionProps {
   publicationId: string;
+  /** Sert à autoriser le propriétaire du post à supprimer (jamais modifier) un commentaire, même si ce n'est pas le sien — même règle que la RLS `post_comments_delete`. */
+  postAuthorId: string;
   comments: FeedComment[];
   onAddComment: (content: string, parentCommentId?: string) => void;
+  onUpdateComment: (commentId: string, content: string) => void;
+  onDeleteComment: (commentId: string) => void;
 }
 
 export function CommentSection({
+  postAuthorId,
   comments,
-  onAddComment
+  onAddComment,
+  onUpdateComment,
+  onDeleteComment
 }: CommentSectionProps) {
   const { profile } = useSession();
   const [newCommentText, setNewCommentText] = useState("");
@@ -37,6 +44,8 @@ export function CommentSection({
   const [replyTargetName, setReplyTargetName] = useState("");
   const [replyText, setReplyText] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +71,7 @@ export function CommentSection({
 
   /** Répondre à un commentaire déplié automatiquement ses réponses existantes — sinon la personne composerait une réponse sans voir celles déjà là. */
   const startReply = (parentId: string, authorName: string) => {
+    setEditingCommentId(null);
     setOpenReplyForId(parentId);
     setReplyTargetName(authorName);
     setReplyText("");
@@ -85,6 +95,42 @@ export function CommentSection({
     } finally {
       setIsSubmittingReply(false);
     }
+  };
+
+  // Réservé au véritable auteur (jamais le propriétaire du post ni l'équipe) —
+  // supprimer relève de la modération, réécrire les mots de quelqu'un d'autre non.
+  const canEditComment = (comment: FeedComment) => comment.authorId === profile.id;
+  // Auteur, propriétaire du post, ou équipe — même règle que la RLS `post_comments_delete`.
+  const canDeleteComment = (comment: FeedComment) =>
+    comment.authorId === profile.id || postAuthorId === profile.id || profile.is_staff;
+
+  const startEdit = (comment: FeedComment) => {
+    setOpenReplyForId(null);
+    setEditingCommentId(comment.id);
+    setEditText(comment.content);
+  };
+
+  const cancelEdit = () => {
+    setEditingCommentId(null);
+    setEditText("");
+  };
+
+  const handleSubmitEdit = (e: React.FormEvent, commentId: string) => {
+    e.preventDefault();
+    const trimmed = editText.trim();
+    if (!trimmed) return;
+    onUpdateComment(commentId, trimmed);
+    setEditingCommentId(null);
+    setEditText("");
+  };
+
+  const handleDelete = (comment: FeedComment) => {
+    const message =
+      comment.replies && comment.replies.length > 0
+        ? "Supprimer ce commentaire ? Les réponses associées seront aussi supprimées."
+        : "Supprimer ce commentaire ?";
+    if (!window.confirm(message)) return;
+    onDeleteComment(comment.id);
   };
 
   const displayedComments = comments.slice(0, visibleCount);
@@ -132,6 +178,7 @@ export function CommentSection({
             const isReplyOpen = openReplyForId === comment.id;
             const isRepliesExpanded = expandedReplyIds.has(comment.id);
             const replyCount = comment.replies?.length ?? 0;
+            const isEditingThis = editingCommentId === comment.id;
 
             return (
               <div key={comment.id} className="space-y-2">
@@ -164,84 +211,186 @@ export function CommentSection({
                         </div>
                         <span className="text-[10px] text-muted-foreground">
                           {comment.createdAt}
+                          {comment.isEdited && " · modifié"}
                         </span>
                       </div>
-                      <p className="text-foreground/90 leading-relaxed font-normal break-words">
-                        {linkifyText(comment.content)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => (isReplyOpen ? cancelReply() : startReply(comment.id, comment.authorName))}
-                        className="pl-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
-                      >
-                        Répondre
-                      </button>
-                      {/* Repliées par défaut façon Facebook : évite de mélanger commentaires et réponses d'un coup d'œil. */}
-                      {hasReplies && !isRepliesExpanded && (
-                        <button
-                          type="button"
-                          onClick={() => toggleReplies(comment.id)}
-                          className="text-[11px] font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
-                        >
-                          <span className="inline-block w-4 h-px bg-border" />
-                          Voir {replyCount === 1 ? "1 réponse" : `les ${replyCount} réponses`}
-                        </button>
+                      {isEditingThis ? (
+                        <form onSubmit={(e) => handleSubmitEdit(e, comment.id)} className="space-y-1.5 pt-0.5">
+                          <input
+                            autoFocus
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            className="w-full bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                          />
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="submit"
+                              disabled={!editText.trim()}
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline disabled:opacity-40"
+                            >
+                              <Check size={12} /> Enregistrer
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <p className="text-foreground/90 leading-relaxed font-normal break-words">
+                          {linkifyText(comment.content)}
+                        </p>
                       )}
                     </div>
+                    {!isEditingThis && (
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => (isReplyOpen ? cancelReply() : startReply(comment.id, comment.authorName))}
+                          className="pl-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                        >
+                          Répondre
+                        </button>
+                        {canEditComment(comment) && (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(comment)}
+                            className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                          >
+                            Modifier
+                          </button>
+                        )}
+                        {canDeleteComment(comment) && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(comment)}
+                            className="text-[11px] font-medium text-muted-foreground hover:text-destructive"
+                          >
+                            Supprimer
+                          </button>
+                        )}
+                        {/* Repliées par défaut façon Facebook : évite de mélanger commentaires et réponses d'un coup d'œil. */}
+                        {hasReplies && !isRepliesExpanded && (
+                          <button
+                            type="button"
+                            onClick={() => toggleReplies(comment.id)}
+                            className="text-[11px] font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+                          >
+                            <span className="inline-block w-4 h-px bg-border" />
+                            Voir {replyCount === 1 ? "1 réponse" : `les ${replyCount} réponses`}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Reponses Imbriquees + champ de réponse en bas du fil */}
                 {(isRepliesExpanded || isReplyOpen) && (
                   <div className="pl-6 space-y-2 border-l-2 border-border/40 ml-4">
-                    {isRepliesExpanded && comment.replies?.map((reply) => (
-                      <div key={reply.id} className="flex items-start gap-2.5">
-                        <CornerDownRight size={14} className="text-muted-foreground shrink-0 mt-2" />
-                        <Link href={`/profile/${reply.authorId}`} className="shrink-0">
-                          <Avatar
-                            size="sm"
-                            src={reply.authorAvatar}
-                            fallback={reply.authorName.charAt(0)}
-                            className="hover:opacity-80 transition-opacity"
-                          />
-                        </Link>
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="bg-card border border-border/60 rounded-2xl p-2.5 text-xs space-y-1">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5">
-                                <Link href={`/profile/${reply.authorId}`} className="font-semibold text-foreground hover:underline">
-                                  {reply.authorName}
-                                </Link>
-                                {reply.isOfficialResponse ? (
-                                  <VerifiedBadge size="xs" color="blue" ring={false} title="Compte officiel Agapeo" />
+                    {isRepliesExpanded &&
+                      comment.replies?.map((reply) => {
+                        const isEditingReply = editingCommentId === reply.id;
+                        return (
+                          <div key={reply.id} className="flex items-start gap-2.5">
+                            <CornerDownRight size={14} className="text-muted-foreground shrink-0 mt-2" />
+                            <Link href={`/profile/${reply.authorId}`} className="shrink-0">
+                              <Avatar
+                                size="sm"
+                                src={reply.authorAvatar}
+                                fallback={reply.authorName.charAt(0)}
+                                className="hover:opacity-80 transition-opacity"
+                              />
+                            </Link>
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="bg-card border border-border/60 rounded-2xl p-2.5 text-xs space-y-1">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <Link href={`/profile/${reply.authorId}`} className="font-semibold text-foreground hover:underline">
+                                      {reply.authorName}
+                                    </Link>
+                                    {reply.isOfficialResponse ? (
+                                      <VerifiedBadge size="xs" color="blue" ring={false} title="Compte officiel Agapeo" />
+                                    ) : (
+                                      reply.authorBadge && (
+                                        <Badge variant="verified" className="text-[9px] px-1.5 py-0">
+                                          {reply.authorBadge}
+                                        </Badge>
+                                      )
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {reply.createdAt}
+                                    {reply.isEdited && " · modifié"}
+                                  </span>
+                                </div>
+                                {isEditingReply ? (
+                                  <form onSubmit={(e) => handleSubmitEdit(e, reply.id)} className="space-y-1.5 pt-0.5">
+                                    <input
+                                      autoFocus
+                                      value={editText}
+                                      onChange={(e) => setEditText(e.target.value)}
+                                      className="w-full bg-secondary/50 border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                                    />
+                                    <div className="flex items-center gap-3">
+                                      <button
+                                        type="submit"
+                                        disabled={!editText.trim()}
+                                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline disabled:opacity-40"
+                                      >
+                                        <Check size={12} /> Enregistrer
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={cancelEdit}
+                                        className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                                      >
+                                        Annuler
+                                      </button>
+                                    </div>
+                                  </form>
                                 ) : (
-                                  reply.authorBadge && (
-                                    <Badge variant="verified" className="text-[9px] px-1.5 py-0">
-                                      {reply.authorBadge}
-                                    </Badge>
-                                  )
+                                  <p className="text-foreground/90 leading-relaxed font-normal break-words">
+                                    {linkifyText(reply.content)}
+                                  </p>
                                 )}
                               </div>
-                              <span className="text-[10px] text-muted-foreground">
-                                {reply.createdAt}
-                              </span>
+                              {!isEditingReply && (
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => (openReplyForId === comment.id ? cancelReply() : startReply(comment.id, reply.authorName))}
+                                    className="pl-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                                  >
+                                    Répondre
+                                  </button>
+                                  {canEditComment(reply) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => startEdit(reply)}
+                                      className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                                    >
+                                      Modifier
+                                    </button>
+                                  )}
+                                  {canDeleteComment(reply) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDelete(reply)}
+                                      className="text-[11px] font-medium text-muted-foreground hover:text-destructive"
+                                    >
+                                      Supprimer
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <p className="text-foreground/90 leading-relaxed font-normal break-words">
-                              {linkifyText(reply.content)}
-                            </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => (openReplyForId === comment.id ? cancelReply() : startReply(comment.id, reply.authorName))}
-                            className="pl-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
-                          >
-                            Répondre
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
 
                     {/* Repasse à l'état initial (replié) — la personne retrouve exactement l'affichage compact d'origine. */}
                     {hasReplies && isRepliesExpanded && (

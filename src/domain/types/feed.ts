@@ -33,6 +33,8 @@ export interface FeedComment {
   isOfficialResponse?: boolean;
   content: string;
   createdAt: string;
+  /** true dès que la date de modification diffère de la date de création. */
+  isEdited?: boolean;
   likesCount: number;
   isLiked?: boolean;
   parentCommentId?: string;

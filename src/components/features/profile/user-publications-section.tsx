@@ -26,6 +26,41 @@ export function UserPublicationsSection({ userName, profileId, publications, isO
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<FeedPublication | null>(null);
 
+  const handleUpdateComment = (commentId: string, content: string) => {
+    setItems((prev) =>
+      prev.map((pub) => ({
+        ...pub,
+        comments: pub.comments.map((c) =>
+          c.id === commentId
+            ? { ...c, content, isEdited: true }
+            : { ...c, replies: c.replies?.map((r) => (r.id === commentId ? { ...r, content, isEdited: true } : r)) }
+        )
+      }))
+    );
+    void feedService.updateComment(commentId, content);
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setItems((prev) =>
+      prev.map((pub) => {
+        const deletedTopLevel = pub.comments.find((c) => c.id === commentId);
+        if (deletedTopLevel) {
+          return {
+            ...pub,
+            commentsCount: Math.max(0, pub.commentsCount - 1 - (deletedTopLevel.replies?.length ?? 0)),
+            comments: pub.comments.filter((c) => c.id !== commentId)
+          };
+        }
+        return {
+          ...pub,
+          commentsCount: Math.max(0, pub.commentsCount - 1),
+          comments: pub.comments.map((c) => ({ ...c, replies: c.replies?.filter((r) => r.id !== commentId) }))
+        };
+      })
+    );
+    void feedService.deleteComment(commentId);
+  };
+
   const openCreate = () => {
     setEditingPost(null);
     setIsComposerOpen(true);
@@ -108,6 +143,8 @@ export function UserPublicationsSection({ userName, profileId, publications, isO
                 onLikeToggle={handleLikeToggle}
                 onBookmarkToggle={handleBookmarkToggle}
                 onAddComment={handleAddComment}
+                onUpdateComment={handleUpdateComment}
+                onDeleteComment={handleDeleteComment}
                 sharePath={sharePath}
               />
               {isOwner && (

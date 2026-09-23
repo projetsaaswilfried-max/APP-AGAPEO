@@ -110,6 +110,41 @@ export default function HomePage() {
     );
   };
 
+  const handleUpdateComment = (commentId: string, content: string) => {
+    setPublications((prev) =>
+      prev.map((pub) => ({
+        ...pub,
+        comments: pub.comments.map((c) =>
+          c.id === commentId
+            ? { ...c, content, isEdited: true }
+            : { ...c, replies: c.replies?.map((r) => (r.id === commentId ? { ...r, content, isEdited: true } : r)) }
+        )
+      }))
+    );
+    void feedService.updateComment(commentId, content);
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setPublications((prev) =>
+      prev.map((pub) => {
+        const deletedTopLevel = pub.comments.find((c) => c.id === commentId);
+        if (deletedTopLevel) {
+          return {
+            ...pub,
+            commentsCount: Math.max(0, pub.commentsCount - 1 - (deletedTopLevel.replies?.length ?? 0)),
+            comments: pub.comments.filter((c) => c.id !== commentId)
+          };
+        }
+        return {
+          ...pub,
+          commentsCount: Math.max(0, pub.commentsCount - 1),
+          comments: pub.comments.map((c) => ({ ...c, replies: c.replies?.filter((r) => r.id !== commentId) }))
+        };
+      })
+    );
+    void feedService.deleteComment(commentId);
+  };
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto w-full pb-16 select-none">
       {/* En-tête du Fil d'Actualité Officiel */}
@@ -193,6 +228,8 @@ export default function HomePage() {
                   onLikeToggle={handleLikeToggle}
                   onBookmarkToggle={handleBookmarkToggle}
                   onAddComment={handleAddComment}
+                  onUpdateComment={handleUpdateComment}
+                  onDeleteComment={handleDeleteComment}
                   sharePath="/feed"
                 />
               ))}
