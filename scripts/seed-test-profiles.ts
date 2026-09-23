@@ -393,6 +393,16 @@ async function main() {
     const { error: photoErr } = await admin.from("profile_photos").insert(photoRows);
     if (photoErr) console.error("  ÉCHEC insertion photos:", photoErr.message);
     else console.log(`  ${photoRows.length} photo(s) ajoutée(s)`);
+
+    // La suppression de l'ancienne photo principale ci-dessus (si le script
+    // est rejoué sur un profil existant) a pu re-remettre avatar_url/
+    // photo_verification_status à UNVERIFIED via le trigger
+    // reset_verification_on_primary_photo_delete — on réapplique donc l'état
+    // voulu par le seed en dernier, pour qu'il l'emporte.
+    await admin
+      .from("profiles")
+      .update({ avatar_url: photoUrl(seed.avatarSeed), photo_verification_status: seed.photoVerification })
+      .eq("id", userId);
   }
 
   // Conversation de démonstration avec le premier vrai compte trouvé

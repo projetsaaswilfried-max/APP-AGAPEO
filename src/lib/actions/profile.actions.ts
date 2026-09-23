@@ -335,15 +335,12 @@ export async function removeProfilePhotoAction(photoId: string) {
     await supabase.storage.from("avatars").remove([photo.storage_path]);
   }
 
-  // Si la photo supprimée était la photo principale : le profil ne doit
-  // plus être visible dans Découvrir (filtre existant sur avatar_url non
-  // nul), et si le profil était vérifié, ce statut ne veut plus rien dire
-  // sans photo — on le repasse à UNVERIFIED (colonne protégée par trigger,
-  // d'où le passage par le client admin, même schéma que la soumission).
-  if (photo?.is_primary) {
-    const admin = createAdminClient();
-    await admin.from("profiles").update({ avatar_url: null, photo_verification_status: "UNVERIFIED" }).eq("id", user.id);
-  }
+  // Si la photo supprimée était la photo principale, le reset du profil
+  // (avatar_url + photo_verification_status -> UNVERIFIED) est géré par le
+  // trigger `reset_verification_on_primary_photo_delete` (AFTER DELETE sur
+  // profile_photos) — pas ici, pour que ça s'applique aussi quand l'app
+  // mobile supprime la photo directement via Supabase, sans passer par
+  // cette Server Action.
 
   revalidatePath("/profile");
   revalidatePath("/discover");
