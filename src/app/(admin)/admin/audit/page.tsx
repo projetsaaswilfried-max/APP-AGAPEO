@@ -20,7 +20,10 @@ const ACTION_LABELS: Record<string, string> = {
   DELETE_EXPENSE: "Dépense supprimée",
   CREATE_PLATFORM_DEDUCTION: "Prélèvement plateforme ajouté",
   UPDATE_PLATFORM_DEDUCTION: "Prélèvement plateforme modifié",
-  DELETE_PLATFORM_DEDUCTION: "Prélèvement plateforme supprimé"
+  DELETE_PLATFORM_DEDUCTION: "Prélèvement plateforme supprimé",
+  CREATE_INTEREST: "Centre d'intérêt ajouté",
+  UPDATE_INTEREST: "Centre d'intérêt renommé",
+  DELETE_INTEREST: "Centre d'intérêt supprimé"
 };
 
 export default async function AdminAuditPage() {

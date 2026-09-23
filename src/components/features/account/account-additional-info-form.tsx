@@ -8,7 +8,8 @@ import { ToggleChipGroup } from "@/components/ui/toggle-chip-group";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Check } from "lucide-react";
-import { INTEREST_OPTIONS, MAX_INTERESTS, resolveInterests } from "@/config/interest-options";
+import { MAX_INTERESTS, resolveInterests } from "@/config/interest-options";
+import { useInterestOptions } from "@/core/hooks/use-interest-options";
 
 export interface AdditionalInfoUpdate {
   qualities: string[];
@@ -39,6 +40,7 @@ const TIMELINE_OPTIONS = ["Dès que possible", "Dans l'année", "Dans 1 à 2 ans
  * l'onboarding "Préférences" (qui les édite aussi, sur le même champ).
  */
 export function AccountAdditionalInfoForm({ profile, onSave }: AccountAdditionalInfoFormProps) {
+  const interestOptions = useInterestOptions();
   const [qualities, setQualities] = useState(profile.aboutMe.qualities);
   const [hobbies, setHobbies] = useState<string[]>(() => resolveInterests(profile.aboutMe.hobbies));
   const [familyVision, setFamilyVision] = useState(profile.marriageVision.familyVision || "");
@@ -76,7 +78,7 @@ export function AccountAdditionalInfoForm({ profile, onSave }: AccountAdditional
         </p>
 
         <TagInput label="Tes qualités" placeholder="Ex : Patient(e), Généreux(se)..." value={qualities} onChange={setQualities} maxTags={10} />
-        <ToggleChipGroup label="Centres d'intérêt" options={INTEREST_OPTIONS} value={hobbies} onChange={setHobbies} maxSelected={MAX_INTERESTS} />
+        <ToggleChipGroup label="Centres d'intérêt" options={interestOptions} value={hobbies} onChange={setHobbies} maxSelected={MAX_INTERESTS} />
 
         <div className="space-y-2">
           <label className="text-xs font-medium text-foreground">Ta vision de la famille</label>

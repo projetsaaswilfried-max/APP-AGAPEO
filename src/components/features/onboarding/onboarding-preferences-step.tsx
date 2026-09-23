@@ -11,7 +11,8 @@ import { updateProfileAction, completeOnboardingAction } from "@/lib/actions/pro
 import { submitVerificationRequestAction } from "@/lib/actions/verification.actions";
 import { SelfieCaptureModal } from "@/components/features/account/selfie-capture-modal";
 import { MARITAL_STATUS_OPTIONS } from "@/domain/marital-status";
-import { INTEREST_OPTIONS, MAX_INTERESTS, resolveInterests } from "@/config/interest-options";
+import { MAX_INTERESTS, resolveInterests } from "@/config/interest-options";
+import { useInterestOptions } from "@/core/hooks/use-interest-options";
 import type { OnboardingStepKey } from "@/domain/profile-completeness";
 import { AlertCircle, ArrowRight, Check } from "lucide-react";
 import type { ProfileRow, MaritalStatusType } from "@/lib/supabase/database.types";
@@ -35,6 +36,7 @@ interface OnboardingPreferencesStepProps {
 const AUTOSAVE_DELAY_MS = 1500;
 
 export function OnboardingPreferencesStep({ profile, onBack, onJumpToStep }: OnboardingPreferencesStepProps) {
+  const interestOptions = useInterestOptions();
   const [bio, setBio] = useState(profile.bio ?? "");
   // Reconnaît les anciennes saisies libres (avant le passage aux cases à
   // cocher) pour pré-cocher ce qui est reconnaissable, plutôt que de
@@ -172,7 +174,7 @@ export function OnboardingPreferencesStep({ profile, onBack, onJumpToStep }: Onb
         <Textarea placeholder="Parle un peu de toi..." value={bio} onChange={(e) => setBio(e.target.value)} maxLength={600} />
       </div>
 
-      <ToggleChipGroup label="Centres d'intérêt" options={INTEREST_OPTIONS} value={hobbies} onChange={setHobbies} maxSelected={MAX_INTERESTS} />
+      <ToggleChipGroup label="Centres d'intérêt" options={interestOptions} value={hobbies} onChange={setHobbies} maxSelected={MAX_INTERESTS} />
 
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-2">

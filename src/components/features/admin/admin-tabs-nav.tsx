@@ -20,6 +20,7 @@ const TABS = [
   { href: "/admin/team", label: "Équipe", minRole: "MODERATOR" },
   { href: "/admin/users", label: "Utilisateurs", minRole: "ADMIN" },
   { href: "/admin/posts", label: "Fil officiel", minRole: "ADMIN" },
+  { href: "/admin/interests", label: "Centres d'intérêt", minRole: "ADMIN" },
   { href: "/admin/emails", label: "Emails", minRole: "ADMIN" },
   { href: "/admin/transactions", label: "Transactions", minRole: "ADMIN" },
   { href: "/admin/finances", label: "Finances", minRole: "SUPER_ADMIN" },

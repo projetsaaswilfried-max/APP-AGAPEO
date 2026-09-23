@@ -519,6 +519,15 @@ export interface AdminAuditLogRow {
 export type AdminAuditLogInsert = Pick<AdminAuditLogRow, "actor_id" | "action"> &
   Partial<Pick<AdminAuditLogRow, "target_type" | "target_id" | "details">>;
 
+/** `id` : slug texte stable choisi une fois à la création (ex. "jeux-video"), jamais recalculé — renommer ne touche que `name`. */
+export interface InterestRow {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+export type InterestInsert = Pick<InterestRow, "id" | "name">;
+
 export interface Database {
   public: {
     Views: Record<string, never>;
@@ -580,6 +589,7 @@ export interface Database {
       admin_audit_log: Rel<AdminAuditLogRow, AdminAuditLogInsert, never>;
       support_tickets: Rel<SupportTicketRow, SupportTicketInsert, SupportTicketUpdate>;
       support_messages: Rel<SupportMessageRow, SupportMessageInsert, Partial<Pick<SupportMessageRow, "is_read">>>;
+      interests: Rel<InterestRow, InterestInsert, Partial<Pick<InterestRow, "name">>>;
     };
     Functions: {
       record_profile_view: { Args: { viewed_profile_id: string }; Returns: void };

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { INTEREST_OPTIONS, MAX_INTERESTS } from "@/config/interest-options";
+import { MAX_INTERESTS } from "@/config/interest-options";
 
 const tagsArray = (max: number) => z.array(z.string().trim().min(1)).max(max);
 
@@ -38,13 +38,15 @@ export const ProfileEditableSchema = z.object({
 
   personality_traits: tagsArray(10),
   passions: tagsArray(12),
-  // Liste fermée depuis le passage au choix par cases à cocher (cf.
-  // src/config/interest-options.ts) — construite à partir des vraies valeurs
-  // déjà les plus courantes en production, pour fiabiliser la recherche/le
-  // matching. `passions` reste un champ texte libre : son formulaire a été
-  // retiré (redondant avec `hobbies`, jamais lu par le matching), mais la
-  // colonne existante n'est pas verrouillée rétroactivement.
-  hobbies: z.array(z.enum(INTEREST_OPTIONS)).max(MAX_INTERESTS),
+  // Choix par cases à cocher (cf. src/config/interest-options.ts) — la liste
+  // proposée vit désormais dans la table `interests` (gérable dans
+  // /admin/interests), donc plus figée au moment du déploiement : un `z.enum`
+  // rejetterait tout centre d'intérêt ajouté après coup par l'équipe. Simple
+  // chaîne libre ici, même principe que `church_denomination`/`faith_engagement_level`.
+  // `passions` reste un champ texte libre : son formulaire a été retiré
+  // (redondant avec `hobbies`, jamais lu par le matching), mais la colonne
+  // existante n'est pas verrouillée rétroactivement.
+  hobbies: tagsArray(MAX_INTERESTS),
   qualities: tagsArray(10),
   likes: tagsArray(10),
   dislikes: tagsArray(10),
