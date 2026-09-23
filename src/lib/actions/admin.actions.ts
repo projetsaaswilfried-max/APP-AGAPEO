@@ -11,6 +11,7 @@ import { sendRoleChangedEmail } from "@/lib/role-emails";
 import { sendPhotoEmail } from "@/lib/photo-emails";
 import { sendAccountSuspendedEmail } from "@/lib/account-suspension-email";
 import { sendAgapeoSystemMessage } from "@/lib/agapeo-system-message";
+import { AGAPEO_SYSTEM_PROFILE_ID } from "@/domain/system-account";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
 import { z } from "zod";
@@ -402,6 +403,20 @@ export async function approveVerificationRequestAction(requestId: string, userId
     "Bienvenue sur Agapeo ! Ton profil est maintenant vérifié et visible dans Découvrir. Aujourd'hui, une seule chose bloque encore ton exploration : sans abonnement, tu ne peux ni consulter un profil en entier, ni démarrer une conversation avec quelqu'un qui t'intéresse. Passe Premium pour débloquer tout ça — Découvrir en illimité, contact prioritaire, favoris, et savoir qui s'intéresse déjà à toi."
   );
 
+  // Notification in-app + push (cf. notify_push_on_notification, déclenché
+  // par tout insert ici) — en plus de l'email ci-dessus, pas à sa place.
+  // actor_id = compte d'équipe : même identité "Équipe Agapeo" que pour les
+  // publications officielles et les commentaires du staff, jamais le nom
+  // réel de la personne qui a validé.
+  await admin.from("notifications").insert({
+    recipient_id: userId,
+    actor_id: AGAPEO_SYSTEM_PROFILE_ID,
+    type: "PHOTO_APPROVED",
+    title: "Ton profil est vérifié !",
+    body: "Ton profil Agapeo est maintenant vérifié et visible dans Découvrir.",
+    target_url: "/discover"
+  });
+
   await logAdminAction(user.id, "APPROVE_VERIFICATION", { targetType: "profile", targetId: userId, details: { requestId } });
   revalidatePath("/admin/verifications");
   return { success: true };
@@ -441,6 +456,16 @@ export async function rejectVerificationRequestAction(requestId: string, userId:
   if (target && authUser?.user?.email) {
     await sendVerificationEmail({ to: authUser.user.email, firstName: target.first_name, kind: "REJECTED", rejectionReason: trimmedReason });
   }
+
+  // Notification in-app + push, en plus de l'email — même identité d'équipe que pour l'approbation.
+  await admin.from("notifications").insert({
+    recipient_id: userId,
+    actor_id: AGAPEO_SYSTEM_PROFILE_ID,
+    type: "PHOTO_REJECTED",
+    title: "Ta vérification n'a pas été validée",
+    body: trimmedReason.slice(0, 140),
+    target_url: "/profile"
+  });
 
   await logAdminAction(user.id, "REJECT_VERIFICATION", { targetType: "profile", targetId: userId, details: { requestId, reason: trimmedReason } });
   revalidatePath("/admin/verifications");

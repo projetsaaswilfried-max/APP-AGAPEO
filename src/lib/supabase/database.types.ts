@@ -36,7 +36,8 @@ export type NotificationTypeDb =
   | "SUPPORT_REPLY"
   | "NEW_RESOURCE"
   | "PHOTO_APPROVED"
-  | "PHOTO_REJECTED";
+  | "PHOTO_REJECTED"
+  | "PAYMENT_FAILED";
 
 export type ConversationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 export type MatchStatus = "PENDING" | "ACCEPTED" | "CANCELLED";

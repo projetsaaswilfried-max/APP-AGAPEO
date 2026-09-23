@@ -18,7 +18,8 @@ export type NotificationIconType =
   | "COMMENT"
   | "RECOMMENDATION"
   | "ANNOUNCEMENT"
-  | "SYSTEM";
+  | "SYSTEM"
+  | "PAYMENT";
 
 export interface AppNotification {
   id: string;

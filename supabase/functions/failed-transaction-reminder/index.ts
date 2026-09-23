@@ -14,6 +14,9 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@agapeo.love>";
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
 const SUPPORT_EMAIL = "support@agapeo.love";
+// Même compte que les publications officielles et les messages système —
+// cf. src/domain/system-account.ts (dupliqué ici, `@/...` n'existe pas côté Edge Function).
+const AGAPEO_SYSTEM_PROFILE_ID = "8d736a66-2597-4f48-b70b-08e6f7059c89";
 
 // Index = palier. En minutes pour pouvoir exprimer "5 minutes" comme J+1/J+3.
 const MILESTONES_MINUTES = [5, 24 * 60, 3 * 24 * 60];
@@ -44,6 +47,14 @@ async function sendResendEmail(to: string, subject: string, html: string) {
     throw new Error(`Resend a refusé l'envoi (${res.status}) : ${body}`);
   }
 }
+
+// Titres/textes courts pour la notification in-app + push — mêmes paliers
+// que l'email ci-dessus, formulation raccourcie (place limitée sur un push).
+const PUSH_CONFIGS = [
+  { title: "Ton paiement n'a pas abouti", body: "Réessaie dès maintenant, ça ne prend qu'une minute." },
+  { title: "Ton offre Premium t'attend toujours", body: "Ta tentative de paiement d'hier n'a pas abouti — réessaie quand tu veux." },
+  { title: "Dernier rappel : paiement non abouti", body: "Depuis 3 jours, ton paiement n'a pas abouti. Contacte-nous si besoin." }
+];
 
 function applicableStage(minutesSince: number): number | undefined {
   // Le plus grand palier déjà atteint.
@@ -172,6 +183,20 @@ Deno.serve(async (req) => {
 
     try {
       await sendFailedPaymentReminderEmail(email, profile?.first_name ?? "Membre", planLabel, stage);
+
+      // Notification in-app + push, en plus de l'email — même trigger générique
+      // (notify_push_on_notification) que toute autre notification, aucun
+      // branchement supplémentaire nécessaire côté push.
+      const pushConfig = PUSH_CONFIGS[stage];
+      await admin.from("notifications").insert({
+        recipient_id: row.user_id,
+        actor_id: AGAPEO_SYSTEM_PROFILE_ID,
+        type: "PAYMENT_FAILED",
+        title: pushConfig.title,
+        body: pushConfig.body,
+        target_url: "/premium"
+      });
+
       await admin.from("transactions").update({ failure_reminder_stage: stage }).eq("id", row.id);
       results.push({ transactionId: row.id, sent: true, stage });
     } catch (err) {

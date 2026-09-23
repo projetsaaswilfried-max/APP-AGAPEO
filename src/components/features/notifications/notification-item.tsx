@@ -16,7 +16,8 @@ import {
   Megaphone01Icon,
   InformationCircleIcon,
   Tick01Icon,
-  Delete02Icon
+  Delete02Icon,
+  CreditCardNotAcceptIcon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { cn } from "@/lib/utils";
@@ -39,7 +40,8 @@ const ICON_MAP: Record<string, any> = {
   COMMENT: Message01Icon,
   RECOMMENDATION: UserGroupIcon,
   ANNOUNCEMENT: Megaphone01Icon,
-  SYSTEM: InformationCircleIcon
+  SYSTEM: InformationCircleIcon,
+  PAYMENT: CreditCardNotAcceptIcon
 };
 
 export function NotificationItem({

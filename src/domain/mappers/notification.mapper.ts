@@ -17,7 +17,8 @@ const TYPE_TO_CATEGORY: Record<NotificationTypeDb, Exclude<NotificationCategory,
   SUPPORT_REPLY: "PLATFORM",
   NEW_RESOURCE: "PLATFORM",
   PHOTO_APPROVED: "PROFILE",
-  PHOTO_REJECTED: "PROFILE"
+  PHOTO_REJECTED: "PROFILE",
+  PAYMENT_FAILED: "PLATFORM"
 };
 
 const TYPE_TO_ICON: Record<NotificationTypeDb, NotificationIconType> = {
@@ -36,7 +37,8 @@ const TYPE_TO_ICON: Record<NotificationTypeDb, NotificationIconType> = {
   SUPPORT_REPLY: "SYSTEM",
   NEW_RESOURCE: "ANNOUNCEMENT",
   PHOTO_APPROVED: "VERIFIED",
-  PHOTO_REJECTED: "SYSTEM"
+  PHOTO_REJECTED: "SYSTEM",
+  PAYMENT_FAILED: "PAYMENT"
 };
 
 function timeLabel(iso: string): string {
