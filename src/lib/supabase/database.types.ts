@@ -401,6 +401,23 @@ export interface PushSubscriptionRow {
   created_at: string;
 }
 
+/**
+ * Jeton FCM pour l'app mobile (push natif iOS/Android), pendant mobile de
+ * `PushSubscriptionRow` pour le web. Jamais écrit directement par le client —
+ * l'app mobile passe par la RPC `register_device_token` (SECURITY DEFINER),
+ * seule capable de réattribuer un jeton déjà utilisé par un autre membre
+ * (changement d'utilisateur sur le même appareil) sans exposer la lecture
+ * croisée entre comptes.
+ */
+export interface DeviceTokenRow {
+  id: string;
+  user_id: string;
+  token: string;
+  platform: "ios" | "android";
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ReportRow {
   id: string;
   reporter_id: string;
@@ -590,6 +607,7 @@ export interface Database {
       support_tickets: Rel<SupportTicketRow, SupportTicketInsert, SupportTicketUpdate>;
       support_messages: Rel<SupportMessageRow, SupportMessageInsert, Partial<Pick<SupportMessageRow, "is_read">>>;
       interests: Rel<InterestRow, InterestInsert, Partial<Pick<InterestRow, "name">>>;
+      device_tokens: Rel<DeviceTokenRow, never, never>;
     };
     Functions: {
       record_profile_view: { Args: { viewed_profile_id: string }; Returns: void };
@@ -599,6 +617,7 @@ export interface Database {
       create_conversation_with_participant: { Args: { other_user_id: string }; Returns: string };
       get_my_blocked_profiles: { Args: Record<string, never>; Returns: { id: string; first_name: string; avatar_url: string | null }[] };
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
+      register_device_token: { Args: { p_token: string; p_platform: "ios" | "android" }; Returns: void };
     };
   };
 }
