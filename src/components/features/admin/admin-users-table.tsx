@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { SearchInput } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -14,7 +14,8 @@ import {
   toggleSuspendUserAction,
   toggleUserPremiumAction,
   revokeVerificationAction,
-  fetchMoreAdminUsersAction
+  fetchMoreAdminUsersAction,
+  searchAdminUsersAction
 } from "@/lib/actions/admin.actions";
 import { PREMIUM_PLANS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
 import { ADMIN_USERS_PAGE_SIZE } from "@/domain/admin-users";
@@ -137,11 +138,34 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialUsers.length === ADMIN_USERS_PAGE_SIZE);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  // Une recherche de 2+ caractères interroge toute la base (pas seulement les
+  // lots déjà chargés) — un profil qui existe mais n'a pas encore été chargé
+  // par la pagination doit quand même ressortir.
+  const [searchResults, setSearchResults] = useState<AdminUserRow[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    const timeout = setTimeout(() => {
+      searchAdminUsersAction(q).then(({ users: results }) => {
+        setSearchResults(results);
+        setIsSearching(false);
+      });
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [query]);
+
+  const isActivelySearching = query.trim().length >= 2;
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return users.filter((u) => {
-      if (q && !`${u.firstName} ${u.lastName} ${u.email} ${u.country}`.toLowerCase().includes(q)) return false;
+    const source = isActivelySearching ? (searchResults ?? []) : users;
+    return source.filter((u) => {
       if (roleFilter !== "ALL" && u.role !== roleFilter) return false;
       if (genderFilter !== "ALL" && u.gender !== genderFilter) return false;
       if (statusFilter === "ACTIVE" && u.isSuspended) return false;
@@ -150,7 +174,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
       if (dateTo && u.createdAt.slice(0, 10) > dateTo) return false;
       return true;
     });
-  }, [users, query, roleFilter, genderFilter, statusFilter, dateFrom, dateTo]);
+  }, [users, isActivelySearching, searchResults, roleFilter, genderFilter, statusFilter, dateFrom, dateTo]);
 
   const handleExportCsv = () => {
     const csv = toCsv(filtered);
@@ -291,13 +315,16 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput
-          placeholder="Rechercher par nom, email, pays..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onClear={() => setQuery("")}
-          className="w-full sm:max-w-sm text-xs h-9 bg-card"
-        />
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+          <SearchInput
+            placeholder="Rechercher par nom, email, pays (toute la base)..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onClear={() => setQuery("")}
+            className="w-full sm:max-w-sm text-xs h-9 bg-card"
+          />
+          {isSearching && <span className="text-[11px] text-muted-foreground shrink-0">Recherche...</span>}
+        </div>
         <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as AppRole | "ALL")}>
           <option value="ALL">Tous les rôles</option>
           {(["USER", "MODERATOR", "ADMIN", "SUPER_ADMIN"] as AppRole[]).map((r) => (
@@ -491,19 +518,25 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-2 py-2">
-        {loadMoreError && <p className="text-xs text-destructive">{loadMoreError}</p>}
-        {hasMore ? (
-          <Button variant="outline" size="sm" onClick={handleLoadMore} isLoading={isLoadingMore} leftIcon={<ChevronDown size={13} />}>
-            Charger {ADMIN_USERS_PAGE_SIZE} membres de plus
-          </Button>
-        ) : (
-          <p className="text-xs text-muted-foreground">Tous les membres sont chargés ({users.length}).</p>
-        )}
-        <p className="text-[11px] text-muted-foreground">
-          Triés par vérification la plus récente d&apos;abord — les recherches et filtres ci-dessus ne portent que sur les membres déjà chargés.
+      {isActivelySearching ? (
+        <p className="text-[11px] text-muted-foreground text-center py-2">
+          Résultats de recherche sur toute la base ({filtered.length} trouvé{filtered.length > 1 ? "s" : ""}) — efface la recherche pour revenir à la liste paginée.
         </p>
-      </div>
+      ) : (
+        <div className="flex flex-col items-center gap-2 py-2">
+          {loadMoreError && <p className="text-xs text-destructive">{loadMoreError}</p>}
+          {hasMore ? (
+            <Button variant="outline" size="sm" onClick={handleLoadMore} isLoading={isLoadingMore} leftIcon={<ChevronDown size={13} />}>
+              Charger {ADMIN_USERS_PAGE_SIZE} membres de plus
+            </Button>
+          ) : (
+            <p className="text-xs text-muted-foreground">Tous les membres sont chargés ({users.length}).</p>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Triés par vérification la plus récente d&apos;abord — les autres filtres (rôle, statut, dates) ne portent que sur les membres déjà chargés.
+          </p>
+        </div>
+      )}
 
       <Modal
         isOpen={Boolean(grantModalUserId)}

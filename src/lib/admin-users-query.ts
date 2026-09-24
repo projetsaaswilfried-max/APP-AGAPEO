@@ -20,22 +20,8 @@ interface AdminUserRpcRow {
   subscription_plan: string | null;
 }
 
-/**
- * Trié par récence de vérification (profils récemment validés/refusés en
- * premier, jamais soumis tout en bas) plutôt que par date d'inscription —
- * demandé pour retrouver en priorité les dossiers dont l'équipe vient de
- * s'occuper. Réservé au service_role côté base (cf. la migration) : la
- * fonction lit `auth.users` directement pour résoudre l'email, ce qui ne
- * doit jamais être exposé à un client authentifié normal.
- */
-export async function fetchAdminUsersPage(admin: SupabaseClient, offset: number): Promise<AdminUserRow[]> {
-  const { data, error } = await admin.rpc("admin_list_users_by_verification_recency", {
-    p_limit: ADMIN_USERS_PAGE_SIZE,
-    p_offset: offset
-  });
-  if (error) throw new Error(error.message);
-
-  return ((data ?? []) as AdminUserRpcRow[]).map((r) => ({
+function mapAdminUserRows(rows: AdminUserRpcRow[]): AdminUserRow[] {
+  return rows.map((r) => ({
     id: r.id,
     firstName: r.first_name,
     lastName: r.last_name,
@@ -51,4 +37,34 @@ export async function fetchAdminUsersPage(admin: SupabaseClient, offset: number)
     createdAt: r.created_at,
     lastActiveAt: r.last_active_at
   }));
+}
+
+/**
+ * Trié par récence de vérification (profils récemment validés/refusés en
+ * premier, jamais soumis tout en bas) plutôt que par date d'inscription —
+ * demandé pour retrouver en priorité les dossiers dont l'équipe vient de
+ * s'occuper. Réservé au service_role côté base (cf. la migration) : la
+ * fonction lit `auth.users` directement pour résoudre l'email, ce qui ne
+ * doit jamais être exposé à un client authentifié normal.
+ */
+export async function fetchAdminUsersPage(admin: SupabaseClient, offset: number): Promise<AdminUserRow[]> {
+  const { data, error } = await admin.rpc("admin_list_users_by_verification_recency", {
+    p_limit: ADMIN_USERS_PAGE_SIZE,
+    p_offset: offset
+  });
+  if (error) throw new Error(error.message);
+
+  return mapAdminUserRows((data ?? []) as AdminUserRpcRow[]);
+}
+
+/**
+ * Recherche sur TOUTE la base (prénom, nom, email, pays) — indépendamment
+ * des lots déjà chargés côté client, pour qu'un profil existant ressorte
+ * même s'il n'a pas encore été chargé par la pagination.
+ */
+export async function searchAdminUsers(admin: SupabaseClient, query: string): Promise<AdminUserRow[]> {
+  const { data, error } = await admin.rpc("admin_search_users", { p_query: query, p_limit: 50 });
+  if (error) throw new Error(error.message);
+
+  return mapAdminUserRows((data ?? []) as AdminUserRpcRow[]);
 }

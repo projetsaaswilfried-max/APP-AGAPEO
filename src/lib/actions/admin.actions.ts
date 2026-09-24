@@ -14,7 +14,7 @@ import { sendAgapeoSystemMessage } from "@/lib/agapeo-system-message";
 import { AGAPEO_SYSTEM_PROFILE_ID } from "@/domain/system-account";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
-import { fetchAdminUsersPage } from "@/lib/admin-users-query";
+import { fetchAdminUsersPage, searchAdminUsers } from "@/lib/admin-users-query";
 import { z } from "zod";
 
 const OfficialPostSchema = z.object({
@@ -274,6 +274,15 @@ export async function fetchMoreAdminUsersAction(offset: number) {
   await requireAdminSession();
   const admin = createAdminClient();
   const users = await fetchAdminUsersPage(admin, offset);
+  return { users };
+}
+
+/** Recherche sur toute la base (pas seulement les lots déjà chargés) — cf. searchAdminUsers. */
+export async function searchAdminUsersAction(query: string) {
+  await requireAdminSession();
+  if (!query.trim()) return { users: [] };
+  const admin = createAdminClient();
+  const users = await searchAdminUsers(admin, query.trim());
   return { users };
 }
 
