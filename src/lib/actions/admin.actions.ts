@@ -269,6 +269,28 @@ export async function updateUserRoleAction(userId: string, role: (typeof ASSIGNA
 }
 
 /**
+ * Correction du genre d'un membre — choix normalement définitif une fois
+ * fait par le membre lui-même (aucun champ d'édition ne lui est exposé,
+ * cf. le matching strict par genre opposé), réservée ici à l'équipe pour
+ * corriger une erreur de saisie signalée. `gender` n'est pas dans la liste
+ * des colonnes protégées par `protect_privileged_profile_columns` (elle ne
+ * concerne que les statuts/badges) — un simple UPDATE via le client
+ * service-role suffit, pas de contournement à faire.
+ */
+export async function updateUserGenderAction(userId: string, gender: "MALE" | "FEMALE") {
+  const { user } = await requireAdminSession();
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("profiles").update({ gender }).eq("id", userId);
+  if (error) return { error: error.message };
+
+  await logAdminAction(user.id, "UPDATE_USER_GENDER", { targetType: "profile", targetId: userId, details: { gender } });
+  revalidatePath("/admin/users");
+
+  return { success: true };
+}
+
+/**
  * `profile_restricted.is_suspended` n'était affiché que par la page (dashboard) —
  * elle ne coupait rien côté API : une session déjà valide continuait de
  * fonctionner pour envoyer des messages, publier, etc. via un appel direct.

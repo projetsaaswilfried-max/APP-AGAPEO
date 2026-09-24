@@ -8,7 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { SuspendUserModal } from "@/components/features/admin/suspend-user-modal";
-import { updateUserRoleAction, toggleSuspendUserAction, toggleUserPremiumAction, revokeVerificationAction } from "@/lib/actions/admin.actions";
+import {
+  updateUserRoleAction,
+  updateUserGenderAction,
+  toggleSuspendUserAction,
+  toggleUserPremiumAction,
+  revokeVerificationAction
+} from "@/lib/actions/admin.actions";
 import { PREMIUM_PLANS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
 import type { AppRole, GenderType, VerificationStatus } from "@/lib/supabase/database.types";
 import { ExternalLink, ShieldOff, ShieldCheck, ShieldX, Download, Crown } from "lucide-react";
@@ -86,6 +92,11 @@ const GENDER_FILTER_LABELS: Record<GenderFilter, string> = {
   FEMALE: "Femmes"
 };
 
+const GENDER_LABELS: Record<GenderType, string> = {
+  MALE: "Homme",
+  FEMALE: "Femme"
+};
+
 function toCsv(rows: AdminUserRow[]): string {
   const header = ["Prénom", "Nom", "Email", "Rôle", "Statut", "Premium", "Pays", "Profil validé", "Inscrit le"];
   const lines = rows.map((u) =>
@@ -155,6 +166,19 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
     startTransition(async () => {
       const result = await updateUserRoleAction(userId, role as "USER" | "MODERATOR" | "ADMIN");
       if (result?.error) setError(result.error);
+    });
+  };
+
+  const handleGenderChange = (userId: string, gender: GenderType) => {
+    setError(null);
+    const previous = users.find((u) => u.id === userId)?.gender;
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, gender } : u)));
+    startTransition(async () => {
+      const result = await updateUserGenderAction(userId, gender);
+      if (result?.error) {
+        setError(result.error);
+        if (previous) setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, gender: previous } : u)));
+      }
     });
   };
 
@@ -312,6 +336,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                 <th className="px-4 py-2.5 font-medium">Membre</th>
                 <th className="px-4 py-2.5 font-medium">Email</th>
                 <th className="px-4 py-2.5 font-medium">Rôle</th>
+                <th className="px-4 py-2.5 font-medium">Genre</th>
                 <th className="px-4 py-2.5 font-medium">Statut</th>
                 <th className="px-4 py-2.5 font-medium">Profil validé</th>
                 <th className="px-4 py-2.5 font-medium">Premium</th>
@@ -347,6 +372,21 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                       {ASSIGNABLE_ROLES.map((r) => (
                         <option key={r} value={r}>
                           {ROLE_LABELS[r]}
+                        </option>
+                      ))}
+                    </Select>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Select
+                      value={u.gender}
+                      disabled={u.role === "SUPER_ADMIN" || isPending}
+                      onChange={(e) => handleGenderChange(u.id, e.target.value as GenderType)}
+                      className="h-auto bg-secondary/60 rounded-lg py-1"
+                      title="Corriger le genre — normalement définitif une fois choisi par le membre, modifiable uniquement depuis l'admin."
+                    >
+                      {(["MALE", "FEMALE"] as GenderType[]).map((g) => (
+                        <option key={g} value={g}>
+                          {GENDER_LABELS[g]}
                         </option>
                       ))}
                     </Select>
@@ -422,7 +462,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                     Aucun membre ne correspond à cette recherche.
                   </td>
                 </tr>
