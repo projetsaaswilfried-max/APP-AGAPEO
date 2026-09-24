@@ -14,6 +14,7 @@ import { sendAgapeoSystemMessage } from "@/lib/agapeo-system-message";
 import { AGAPEO_SYSTEM_PROFILE_ID } from "@/domain/system-account";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
+import { fetchAdminUsersPage } from "@/lib/admin-users-query";
 import { z } from "zod";
 
 const OfficialPostSchema = z.object({
@@ -266,6 +267,14 @@ export async function updateUserRoleAction(userId: string, role: (typeof ASSIGNA
   }
 
   return { success: true };
+}
+
+/** Lot suivant de /admin/users (100 à la fois) — cf. fetchAdminUsersPage pour le tri et la raison du découpage. */
+export async function fetchMoreAdminUsersAction(offset: number) {
+  await requireAdminSession();
+  const admin = createAdminClient();
+  const users = await fetchAdminUsersPage(admin, offset);
+  return { users };
 }
 
 /**

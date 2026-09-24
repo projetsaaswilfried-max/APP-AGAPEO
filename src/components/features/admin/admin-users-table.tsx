@@ -13,11 +13,13 @@ import {
   updateUserGenderAction,
   toggleSuspendUserAction,
   toggleUserPremiumAction,
-  revokeVerificationAction
+  revokeVerificationAction,
+  fetchMoreAdminUsersAction
 } from "@/lib/actions/admin.actions";
 import { PREMIUM_PLANS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
+import { ADMIN_USERS_PAGE_SIZE } from "@/domain/admin-users";
 import type { AppRole, GenderType, VerificationStatus } from "@/lib/supabase/database.types";
-import { ExternalLink, ShieldOff, ShieldCheck, ShieldX, Download, Crown } from "lucide-react";
+import { ExternalLink, ShieldOff, ShieldCheck, ShieldX, Download, Crown, ChevronDown } from "lucide-react";
 
 export interface AdminUserRow {
   id: string;
@@ -132,6 +134,9 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
   const [revokeModalUserId, setRevokeModalUserId] = useState<string | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
   const [suspendModalUserId, setSuspendModalUserId] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialUsers.length === ADMIN_USERS_PAGE_SIZE);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -167,6 +172,20 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
       const result = await updateUserRoleAction(userId, role as "USER" | "MODERATOR" | "ADMIN");
       if (result?.error) setError(result.error);
     });
+  };
+
+  const handleLoadMore = async () => {
+    setLoadMoreError(null);
+    setIsLoadingMore(true);
+    try {
+      const { users: nextBatch } = await fetchMoreAdminUsersAction(users.length);
+      setUsers((prev) => [...prev, ...nextBatch]);
+      setHasMore(nextBatch.length === ADMIN_USERS_PAGE_SIZE);
+    } catch (err) {
+      setLoadMoreError(err instanceof Error ? err.message : "Le chargement a échoué.");
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   const handleGenderChange = (userId: string, gender: GenderType) => {
@@ -470,6 +489,20 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-2 py-2">
+        {loadMoreError && <p className="text-xs text-destructive">{loadMoreError}</p>}
+        {hasMore ? (
+          <Button variant="outline" size="sm" onClick={handleLoadMore} isLoading={isLoadingMore} leftIcon={<ChevronDown size={13} />}>
+            Charger {ADMIN_USERS_PAGE_SIZE} membres de plus
+          </Button>
+        ) : (
+          <p className="text-xs text-muted-foreground">Tous les membres sont chargés ({users.length}).</p>
+        )}
+        <p className="text-[11px] text-muted-foreground">
+          Triés par vérification la plus récente d&apos;abord — les recherches et filtres ci-dessus ne portent que sur les membres déjà chargés.
+        </p>
       </div>
 
       <Modal
