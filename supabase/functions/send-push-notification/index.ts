@@ -32,6 +32,8 @@ interface PushEvent {
   title: string;
   body?: string;
   targetUrl?: string;
+  /** Valeur exacte de `notifications.type` (ex: "NEW_MESSAGE", "PHOTO_APPROVED"...) — jamais reformatée, pour que le mobile puisse router sur le même enum que la liste in-app. */
+  type?: string;
 }
 
 async function sendWebPush(admin: ReturnType<typeof createClient>, event: PushEvent) {
@@ -151,7 +153,16 @@ async function sendFcmPush(admin: ReturnType<typeof createClient>, event: PushEv
           message: {
             token: device.token,
             notification: { title: event.title, body: event.body ?? "" },
-            data: event.targetUrl ? { targetUrl: event.targetUrl } : undefined
+            data:
+              event.targetUrl || event.type
+                ? { ...(event.targetUrl ? { targetUrl: event.targetUrl } : {}), ...(event.type ? { type: event.type } : {}) }
+                : undefined,
+            // Le champ générique `notification` (title/body) ne porte pas de son
+            // dans l'API FCM — sans ces blocs par plateforme, la notification
+            // s'affiche mais reste muette (aucun son par défaut), confirmé en
+            // creusant un signalement du dev mobile.
+            android: { notification: { sound: "default" } },
+            apns: { payload: { aps: { sound: "default" } } }
           }
         })
       });
