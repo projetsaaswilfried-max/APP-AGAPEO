@@ -89,3 +89,32 @@ export async function fetchAllRows<T>(
 
   return all;
 }
+
+/**
+ * `.in("id", tresLongueListe)` construit une URL dont la longueur croît avec
+ * le nombre d'identifiants — au-delà d'un certain nombre (~500, constaté en
+ * réel sur /admin/transactions avec 565 ids), la requête échoue purement et
+ * simplement (`fetch failed`). Comme `error` n'était pas vérifiée là où ce
+ * motif était utilisé, TOUTE la résolution de noms retombait sur "Membre
+ * supprimé" — aucun membre n'était réellement supprimé, la requête entière
+ * avait juste échoué en silence. Découpe la liste en lots pour rester sous
+ * cette limite ; lance si un lot échoue, plutôt que de continuer en silence.
+ */
+export async function fetchRowsByIds<T>(
+  ids: string[],
+  fetchBatch: (batch: string[]) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const BATCH_SIZE = 150;
+  if (ids.length === 0) return [];
+
+  const batches: string[][] = [];
+  for (let i = 0; i < ids.length; i += BATCH_SIZE) batches.push(ids.slice(i, i + BATCH_SIZE));
+
+  const results = await Promise.all(batches.map(fetchBatch));
+  const all: T[] = [];
+  for (const { data, error } of results) {
+    if (error) throw new Error(error.message);
+    all.push(...(data ?? []));
+  }
+  return all;
+}

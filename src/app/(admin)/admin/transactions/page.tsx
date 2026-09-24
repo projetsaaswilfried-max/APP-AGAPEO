@@ -1,4 +1,4 @@
-import { createAdminClient, fetchAllRows } from "@/lib/supabase/admin";
+import { createAdminClient, fetchAllRows, fetchRowsByIds } from "@/lib/supabase/admin";
 import { requireAdminSession } from "@/lib/supabase/session";
 import { AdminTransactionsList, type AdminTransactionRow } from "@/components/features/admin/admin-transactions-list";
 import type { TransactionRow } from "@/lib/supabase/database.types";
@@ -16,8 +16,8 @@ export default async function AdminTransactionsPage() {
   );
 
   const userIds = [...new Set(rows.map((t) => t.user_id))];
-  const { data: profiles } = userIds.length > 0 ? await admin.from("profiles").select("id, first_name, last_name").in("id", userIds) : { data: [] };
-  const nameById = new Map((profiles ?? []).map((p) => [p.id, `${p.first_name} ${p.last_name ?? ""}`.trim()]));
+  const profiles = await fetchRowsByIds(userIds, (batch) => admin.from("profiles").select("id, first_name, last_name").in("id", batch));
+  const nameById = new Map(profiles.map((p) => [p.id, `${p.first_name} ${p.last_name ?? ""}`.trim()]));
 
   const items: AdminTransactionRow[] = rows.map((t) => ({
     id: t.id,

@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, fetchRowsByIds } from "@/lib/supabase/admin";
 import { AdminReportsList, type AdminReportRow } from "@/components/features/admin/admin-reports-list";
 import type { ReportRow } from "@/lib/supabase/database.types";
 
@@ -10,8 +10,8 @@ export default async function AdminReportsPage() {
 
   const profileIds = [...new Set([...rows.map((r) => r.reporter_id), ...rows.filter((r) => r.target_type === "PROFILE").map((r) => r.target_id)])];
 
-  const { data: profiles } = profileIds.length > 0 ? await admin.from("profiles").select("id, first_name, last_name").in("id", profileIds) : { data: [] };
-  const profilesById = new Map((profiles ?? []).map((p) => [p.id, `${p.first_name} ${p.last_name ?? ""}`.trim()]));
+  const profiles = await fetchRowsByIds(profileIds, (batch) => admin.from("profiles").select("id, first_name, last_name").in("id", batch));
+  const profilesById = new Map(profiles.map((p) => [p.id, `${p.first_name} ${p.last_name ?? ""}`.trim()]));
 
   const items: AdminReportRow[] = rows.map((r) => ({
     id: r.id,
