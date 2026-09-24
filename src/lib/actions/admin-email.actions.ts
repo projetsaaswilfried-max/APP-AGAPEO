@@ -45,13 +45,13 @@ export async function getAudienceCountAction(audience: EmailAudience, directReci
   return { count: rows.length };
 }
 
-function renderCampaignEmailHtml(firstName: string, subject: string, bodyHtmlTemplate: string, siteUrl: string) {
+function renderCampaignEmailHtml(firstName: string, subject: string, bodyHtmlTemplate: string, siteUrl: string, preheader?: string) {
   const personalizedBody = applyMergeTags(bodyHtmlTemplate, firstName);
   const personalizedSubject = applyMergeTags(subject, firstName);
 
   return buildAgapeoEmailHtml({
     title: "Communication AGAPEO",
-    preheader: "Message important de l'équipe AGAPEO",
+    preheader: preheader ? applyMergeTags(preheader, firstName) : "Message important de l'équipe AGAPEO",
     eyebrow: "AGAPEO",
     headline: personalizedSubject,
     recipientFirstName: firstName,
@@ -66,7 +66,13 @@ interface Recipient {
   firstName: string;
 }
 
-async function sendBatch(recipients: Recipient[], subject: string, bodyHtmlTemplate: string, siteUrl: string): Promise<{ sent: number; failed: number }> {
+async function sendBatch(
+  recipients: Recipient[],
+  subject: string,
+  bodyHtmlTemplate: string,
+  siteUrl: string,
+  preheader?: string
+): Promise<{ sent: number; failed: number }> {
   const apiKey = getResendApiKey();
   const CHUNK_SIZE = 100;
   let sent = 0;
@@ -78,7 +84,7 @@ async function sendBatch(recipients: Recipient[], subject: string, bodyHtmlTempl
       from: "Agapeo <support@agapeo.love>",
       to: [r.email],
       subject: applyMergeTags(subject, r.firstName),
-      html: renderCampaignEmailHtml(r.firstName, subject, bodyHtmlTemplate, siteUrl)
+      html: renderCampaignEmailHtml(r.firstName, subject, bodyHtmlTemplate, siteUrl, preheader)
     }));
 
     const res = await fetch("https://api.resend.com/emails/batch", {
@@ -103,6 +109,7 @@ export async function sendEmailCampaignAction(input: {
   audience: EmailAudience;
   directRecipientId?: string;
   scheduledFor?: string;
+  preheader?: string;
 }) {
   const { user } = await requireAdminSession();
 
@@ -162,7 +169,7 @@ export async function sendEmailCampaignAction(input: {
     .filter((r) => Boolean(r.email));
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  const { sent, failed } = await sendBatch(recipients, subject, bodyHtml, siteUrl);
+  const { sent, failed } = await sendBatch(recipients, subject, bodyHtml, siteUrl, input.preheader);
 
   await admin.from("email_campaigns").insert({
     sender_id: user.id,
