@@ -1,8 +1,10 @@
 // Cron toutes les 30 min : relance par email les membres qui ont un message
-// non lu depuis plus de 2h (fenêtre 2h-24h pour éviter de ressusciter de très
-// vieux messages après un éventuel incident cron). Un seul email par
-// conversation par passage, suivi via messages.reminder_email_sent_at
-// (jamais réenvoyé pour un même message).
+// non lu depuis plus de 24h (fenêtre 24h-48h pour éviter de ressusciter de
+// très vieux messages après un éventuel incident cron). Laisse à la personne
+// une vraie chance de voir le message par elle-même (notification + push,
+// déjà envoyés à chaque message, restent inchangés) avant de la relancer par
+// email. Un seul email par conversation par passage, suivi via
+// messages.reminder_email_sent_at (jamais réenvoyé pour un même message).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml, escapeHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
@@ -40,8 +42,8 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceRoleKey);
 
   const now = new Date();
-  const twoHoursAgoIso = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
   const oneDayAgoIso = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const twoDaysAgoIso = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
 
   const { data: pending, error } = await admin
     .from("messages")
@@ -49,8 +51,8 @@ Deno.serve(async (req) => {
     .neq("status", "READ")
     .is("reminder_email_sent_at", null)
     .is("deleted_at", null)
-    .lte("created_at", twoHoursAgoIso)
-    .gte("created_at", oneDayAgoIso);
+    .lte("created_at", oneDayAgoIso)
+    .gte("created_at", twoDaysAgoIso);
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
