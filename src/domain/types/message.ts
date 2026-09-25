@@ -30,7 +30,10 @@ export interface ChatMessage {
   readAt?: string;
   /** Bouton d'action optionnel — réservé aux messages système (Équipe Agapeo). */
   ctaText?: string;
+  /** Chemin web (Next.js) — navigation web uniquement. */
   ctaUrl?: string;
+  /** Identifiant stable de destination (ex: "PREMIUM") — à utiliser côté mobile plutôt que ctaUrl, conçu pour le web. */
+  ctaAction?: string;
 }
 
 export interface ConversationSummary {

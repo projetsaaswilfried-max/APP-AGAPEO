@@ -37,7 +37,8 @@ export function mapMessageRow(
     deletedAt: row.deleted_at ?? undefined,
     readAt: row.read_at ?? undefined,
     ctaText: row.cta_text ?? undefined,
-    ctaUrl: row.cta_url ?? undefined
+    ctaUrl: row.cta_url ?? undefined,
+    ctaAction: row.cta_action ?? undefined
   };
 }
 

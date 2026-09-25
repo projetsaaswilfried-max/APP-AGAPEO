@@ -358,7 +358,10 @@ export interface MessageRow {
   created_at: string;
   /** Bouton d'action optionnel — réservé aux messages système (Équipe Agapeo), jamais utilisé entre membres. */
   cta_text: string | null;
+  /** Chemin web (Next.js) — utilisé par la messagerie web via <Link>. */
   cta_url: string | null;
+  /** Identifiant stable de destination (ex: "PREMIUM") — pour le mobile, qui mappe vers son propre écran natif plutôt que de parser cta_url (conçu pour le web). */
+  cta_action: string | null;
 }
 export type MessageInsert = Pick<MessageRow, "conversation_id" | "sender_id"> &
   Partial<Pick<MessageRow, "type" | "content" | "status">>;

@@ -294,7 +294,7 @@ async function sendAgapeoSystemMessage(
   admin: ReturnType<typeof createClient>,
   memberId: string,
   content: string,
-  options?: { ctaText?: string; ctaUrl?: string }
+  options?: { ctaText?: string; ctaUrl?: string; ctaAction?: string }
 ): Promise<void> {
   const { data: existingParticipant } = await admin
     .from("conversation_participants")
@@ -328,7 +328,8 @@ async function sendAgapeoSystemMessage(
     type: "TEXT",
     content,
     cta_text: options?.ctaText ?? null,
-    cta_url: options?.ctaUrl ?? null
+    cta_url: options?.ctaUrl ?? null,
+    cta_action: options?.ctaAction ?? null
   });
   if (messageError) throw new Error(messageError.message);
 
@@ -675,7 +676,8 @@ Deno.serve(async (req) => {
             try {
               await sendAgapeoSystemMessage(admin, row.id, `${content.headline} — ${stripHtmlForMessage(content.contentHtml)}`, {
                 ctaText: content.ctaText,
-                ctaUrl: "/premium"
+                ctaUrl: "/premium",
+                ctaAction: "PREMIUM"
               });
               await admin.from("profile_restricted").update({ in_app_premium_nudge_stage: milestone }).eq("id", row.id);
               premiumResults.push({ userId: row.id, channel: "in_app", sent: true, stage: milestone });

@@ -22,7 +22,7 @@ export async function sendAgapeoSystemMessage(
   admin: ReturnType<typeof createAdminClient>,
   memberId: string,
   content: string,
-  options?: { ctaText?: string; ctaUrl?: string }
+  options?: { ctaText?: string; ctaUrl?: string; ctaAction?: string }
 ): Promise<void> {
   const { data: existingParticipant } = await admin
     .from("conversation_participants")
@@ -58,7 +58,8 @@ export async function sendAgapeoSystemMessage(
     type: "TEXT",
     content,
     cta_text: options?.ctaText ?? null,
-    cta_url: options?.ctaUrl ?? null
+    cta_url: options?.ctaUrl ?? null,
+    cta_action: options?.ctaAction ?? null
   });
   if (messageError) throw new Error(messageError.message);
 
