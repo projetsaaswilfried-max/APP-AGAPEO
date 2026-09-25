@@ -290,7 +290,12 @@ async function sendPremiumUpsellEmail(to: string, firstName: string, content: Re
 // en dur ici pour la même raison que le moteur de compatibilité ci-dessus).
 const AGAPEO_SYSTEM_PROFILE_ID = "8d736a66-2597-4f48-b70b-08e6f7059c89";
 
-async function sendAgapeoSystemMessage(admin: ReturnType<typeof createClient>, memberId: string, content: string): Promise<void> {
+async function sendAgapeoSystemMessage(
+  admin: ReturnType<typeof createClient>,
+  memberId: string,
+  content: string,
+  options?: { ctaText?: string; ctaUrl?: string }
+): Promise<void> {
   const { data: existingParticipant } = await admin
     .from("conversation_participants")
     .select("conversation_id, conversations!inner(is_system_broadcast)")
@@ -317,9 +322,14 @@ async function sendAgapeoSystemMessage(admin: ReturnType<typeof createClient>, m
     if (participantsError) throw new Error(participantsError.message);
   }
 
-  const { error: messageError } = await admin
-    .from("messages")
-    .insert({ conversation_id: conversationId, sender_id: AGAPEO_SYSTEM_PROFILE_ID, type: "TEXT", content });
+  const { error: messageError } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: AGAPEO_SYSTEM_PROFILE_ID,
+    type: "TEXT",
+    content,
+    cta_text: options?.ctaText ?? null,
+    cta_url: options?.ctaUrl ?? null
+  });
   if (messageError) throw new Error(messageError.message);
 
   await admin.from("notifications").insert({
@@ -663,7 +673,10 @@ Deno.serve(async (req) => {
 
           if (wantsInApp) {
             try {
-              await sendAgapeoSystemMessage(admin, row.id, `${content.headline} — ${stripHtmlForMessage(content.contentHtml)}`);
+              await sendAgapeoSystemMessage(admin, row.id, `${content.headline} — ${stripHtmlForMessage(content.contentHtml)}`, {
+                ctaText: content.ctaText,
+                ctaUrl: "/premium"
+              });
               await admin.from("profile_restricted").update({ in_app_premium_nudge_stage: milestone }).eq("id", row.id);
               premiumResults.push({ userId: row.id, channel: "in_app", sent: true, stage: milestone });
             } catch (err) {

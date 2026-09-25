@@ -11,17 +11,18 @@ import { AGAPEO_SYSTEM_PROFILE_ID } from "@/domain/system-account";
  * service-role : `conversations_insert`/`messages_insert` exigent un abonnement
  * ACTIF, ce qui bloquerait précisément les membres gratuits qu'on veut cibler.
  *
- * Insère aussi sa propre notification : le trigger `notify_new_message()` ne
- * notifie que le tout premier message d'une conversation (anti-spam), donc
- * les relances suivantes dans cette même conversation resteraient invisibles
- * sans cet insert explicite. Ignore volontairement `profiles.notify_messages`
- * — communication d'activation/monétisation, pas un message entre membres,
+ * Insère aussi sa propre notification, explicitement, plutôt que de compter
+ * sur `notify_new_message()` (qui ignore désormais les messages de ce compte
+ * système — cf. sa propre migration — précisément pour laisser CETTE fonction
+ * gérer la notification, seule à savoir ignorer `notify_messages` : ces
+ * messages sont de l'activation/monétisation, pas un échange entre membres,
  * même logique que la séquence email qui ignore déjà notify_email_digest.
  */
 export async function sendAgapeoSystemMessage(
   admin: ReturnType<typeof createAdminClient>,
   memberId: string,
-  content: string
+  content: string,
+  options?: { ctaText?: string; ctaUrl?: string }
 ): Promise<void> {
   const { data: existingParticipant } = await admin
     .from("conversation_participants")
@@ -55,7 +56,9 @@ export async function sendAgapeoSystemMessage(
     conversation_id: conversationId,
     sender_id: AGAPEO_SYSTEM_PROFILE_ID,
     type: "TEXT",
-    content
+    content,
+    cta_text: options?.ctaText ?? null,
+    cta_url: options?.ctaUrl ?? null
   });
   if (messageError) throw new Error(messageError.message);
 

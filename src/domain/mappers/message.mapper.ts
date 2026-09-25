@@ -35,7 +35,9 @@ export function mapMessageRow(
     isRead: row.status === "READ",
     createdAt: formatTime(row.created_at),
     deletedAt: row.deleted_at ?? undefined,
-    readAt: row.read_at ?? undefined
+    readAt: row.read_at ?? undefined,
+    ctaText: row.cta_text ?? undefined,
+    ctaUrl: row.cta_url ?? undefined
   };
 }
 

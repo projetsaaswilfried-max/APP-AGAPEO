@@ -356,6 +356,9 @@ export interface MessageRow {
   reminder_email_sent_at: string | null;
   deleted_at: string | null;
   created_at: string;
+  /** Bouton d'action optionnel — réservé aux messages système (Équipe Agapeo), jamais utilisé entre membres. */
+  cta_text: string | null;
+  cta_url: string | null;
 }
 export type MessageInsert = Pick<MessageRow, "conversation_id" | "sender_id"> &
   Partial<Pick<MessageRow, "type" | "content" | "status">>;

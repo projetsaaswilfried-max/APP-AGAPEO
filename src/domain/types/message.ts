@@ -28,6 +28,9 @@ export interface ChatMessage {
   dateLabel?: string;
   deletedAt?: string;
   readAt?: string;
+  /** Bouton d'action optionnel — réservé aux messages système (Équipe Agapeo). */
+  ctaText?: string;
+  ctaUrl?: string;
 }
 
 export interface ConversationSummary {

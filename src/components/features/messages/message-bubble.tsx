@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { ChatMessage } from "@/domain/types/message";
 import { FileAttachment } from "@/components/ui/file-attachment";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
@@ -180,6 +181,21 @@ export function MessageBubble({
               légende saisie par l'utilisateur : on ne l'affiche donc que pour les vrais messages texte. */}
           {message.content && message.type === "TEXT" && (
             <p className="whitespace-pre-line break-words">{linkifyText(message.content)}</p>
+          )}
+
+          {/* Bouton d'action — réservé aux messages système (relances Premium, etc.). */}
+          {message.ctaText && message.ctaUrl && (
+            <Link
+              href={message.ctaUrl}
+              className={cn(
+                "block text-center text-xs font-semibold py-2 px-4 rounded-full transition-colors",
+                isCurrentUser
+                  ? "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
+            >
+              {message.ctaText}
+            </Link>
           )}
 
           {/* Heure et Ticks d'état (✓✓) */}
