@@ -55,9 +55,17 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
     setIsUploading(true);
 
     // Upload séquentiel (pas Promise.all) : chaque envoi dépend du compteur
-    // de photos à jour pour savoir si la limite est atteinte et si la photo
-    // suivante doit devenir la principale par défaut.
+    // de photos à jour pour savoir si la limite est atteinte, et de l'absence
+    // d'une photo déjà principale pour savoir si la suivante doit le devenir.
+    // Bug trouvé en réel : baser ça sur `currentCount === 0` (nombre total de
+    // photos) plutôt que sur "aucune photo n'est déjà principale" bloquait
+    // définitivement quiconque avait supprimé sa photo principale tout en
+    // gardant une autre photo — plus aucun nouvel ajout ne redevenait jamais
+    // principal (currentCount ne repassait plus jamais à 0), avatar_url
+    // restait null pour toujours malgré de vraies photos existantes, et la
+    // soumission échouait avec "il te manque une photo" indéfiniment.
     let currentCount = photos.length;
+    let hasPrimary = photos.some((p) => p.is_primary);
     let uploadedCount = 0;
     let errorMessage: string | null = null;
 
@@ -70,7 +78,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
       }
       try {
         const { url, path } = await uploadAvatar(userId, file);
-        const isPrimary = currentCount === 0;
+        const isPrimary = !hasPrimary;
         const result = await addProfilePhotoAction(url, path, isPrimary);
         if (result.error) {
           errorMessage = result.error;
@@ -79,6 +87,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
         if (result.photo) {
           setPhotos((prev) => [...prev, result.photo!]);
           currentCount += 1;
+          if (isPrimary) hasPrimary = true;
           uploadedCount += 1;
         }
       } catch (err) {
