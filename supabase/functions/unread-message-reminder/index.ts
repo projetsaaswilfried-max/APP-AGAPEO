@@ -3,8 +3,16 @@
 // très vieux messages après un éventuel incident cron). Laisse à la personne
 // une vraie chance de voir le message par elle-même (notification + push,
 // déjà envoyés à chaque message, restent inchangés) avant de la relancer par
-// email. Un seul email par conversation par passage, suivi via
-// messages.reminder_email_sent_at (jamais réenvoyé pour un même message).
+// email.
+//
+// Bug réel trouvé en signalement : le suivi anti-répétition se faisait par
+// MESSAGE (messages.reminder_email_sent_at), jamais par conversation — si
+// l'expéditeur envoyait plusieurs messages à quelques heures d'intervalle
+// sans réponse, chacun entrait dans la fenêtre 24h-48h à un moment différent
+// et déclenchait SA PROPRE relance, donnant l'impression d'un email toutes
+// les 2h dans la même journée pour la même conversation. Corrigé : au plus
+// un email de relance par conversation toutes les 24h, quel que soit le
+// nombre de nouveaux messages non lus entre-temps.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml, escapeHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
@@ -71,6 +79,22 @@ Deno.serve(async (req) => {
     const messageIds = rows.map((r) => r.id);
     const latest = rows.reduce((a, b) => (a.created_at > b.created_at ? a : b));
     const senderId = latest.sender_id;
+
+    // Une relance a-t-elle déjà été envoyée pour CETTE conversation dans les
+    // dernières 24h (potentiellement pour un message différent, plus ancien) ?
+    // Si oui, on saute ce passage plutôt que d'en renvoyer une deuxième —
+    // c'est exactement le doublon signalé.
+    const { data: recentReminder } = await admin
+      .from("messages")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .gte("reminder_email_sent_at", oneDayAgoIso)
+      .limit(1)
+      .maybeSingle();
+    if (recentReminder) {
+      results.push({ conversationId, sent: false, reason: "Relance déjà envoyée pour cette conversation il y a moins de 24h" });
+      continue;
+    }
 
     const { data: participants } = await admin
       .from("conversation_participants")
