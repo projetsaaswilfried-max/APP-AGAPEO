@@ -46,5 +46,9 @@ next-env.d.ts
 # claude code local settings (machine-specific permission cache)
 .claude/settings.local.json
 
+# MCP server config — peut contenir une clé API en clair (ex: 21st.dev),
+# jamais à committer.
+.mcp.json
+
 .vercel
 .env*
