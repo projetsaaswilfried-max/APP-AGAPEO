@@ -10,8 +10,15 @@ export interface PersonalPublicationInput {
   mediaFile?: File;
 }
 
+export interface MoreRecentPublicationsResult {
+  items: FeedPublication[];
+  hasMore: boolean;
+}
+
 export interface IFeedService {
   getPublications(category?: FeedCategory): Promise<FeedPublication[]>;
+  /** Défilement infini mobile (format app native : feed_body.dart) — page au-delà des 30 dernières publications que `getPublications` renvoie déjà ; n'inclut jamais les épinglées, déjà rendues par le premier appel. */
+  getMoreRecentPublications(category: FeedCategory, offset: number, limit?: number): Promise<MoreRecentPublicationsResult>;
   /** Pousse en temps réel toute nouvelle publication officielle (Realtime) — le fil n'attendait avant que le prochain rechargement manuel de la page. */
   subscribeToNewPosts(category: FeedCategory, onNewPost: (post: FeedPublication) => void): () => void;
   getPersonalPublications(profileId: string): Promise<FeedPublication[]>;
@@ -116,6 +123,29 @@ class FeedServiceSupabase implements IFeedService {
     const combined = [...(pinned ?? []), ...(recent ?? [])] as PostRow[];
     if (combined.length === 0) return [];
     return this.hydrate(combined);
+  }
+
+  async getMoreRecentPublications(category: FeedCategory, offset: number, limit = 30): Promise<MoreRecentPublicationsResult> {
+    const supabase = createClient();
+
+    // Jamais les épinglées ici : `getPublications` les a déjà toutes
+    // renvoyées (sans limite) au premier chargement, les re-demander à
+    // chaque page les dupliquerait dans la liste affichée.
+    let query = supabase
+      .from("posts")
+      .select("*")
+      .eq("post_type", "OFFICIAL")
+      .eq("is_pinned", false)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (category !== "ALL") {
+      query = query.eq("category", category);
+    }
+
+    const { data } = await query;
+    const rows = (data ?? []) as PostRow[];
+    return { items: rows.length ? await this.hydrate(rows) : [], hasMore: rows.length >= limit };
   }
 
   subscribeToNewPosts(category: FeedCategory, onNewPost: (post: FeedPublication) => void): () => void {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FeedPublication, FeedCategory } from "@/domain/types/feed";
 import { feedService } from "@/domain/services/feed.service";
 import { PublicationCard } from "@/components/features/feed/publication-card";
@@ -9,6 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Megaphone, BookOpen, RefreshCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Nombre de publications "récentes" (hors épinglées) renvoyées par chaque
+// appel à `getPublications`/`getMoreRecentPublications` — doit rester
+// identique des deux côtés pour que la pagination s'enchaîne sans trou ni doublon.
+const RECENT_PAGE_SIZE = 30;
 
 const CATEGORY_TABS = [
   { id: "ALL", label: "Tout le fil" },
@@ -24,6 +29,13 @@ export default function HomePage() {
   const [publications, setPublications] = useState<FeedPublication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  // Défilement infini mobile uniquement (format app native : feed_body.dart
+  // charge la suite en approchant du bas) — desktop reste plafonné à 30
+  // publications récentes comme aujourd'hui, aucun changement là-bas.
+  const [recentOffset, setRecentOffset] = useState(0);
+  const [hasMoreRecent, setHasMoreRecent] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const mobileSentinelRef = useRef<HTMLDivElement>(null);
 
   const fetchPublications = async (category: FeedCategory) => {
     setIsLoading(true);
@@ -31,6 +43,8 @@ export default function HomePage() {
     try {
       const data = await feedService.getPublications(category);
       setPublications(data);
+      setRecentOffset(RECENT_PAGE_SIZE);
+      setHasMoreRecent(true);
     } catch {
       setIsError(true);
     } finally {
@@ -38,9 +52,44 @@ export default function HomePage() {
     }
   };
 
+  const loadMoreRecent = async () => {
+    if (isLoadingMore || !hasMoreRecent) return;
+    setIsLoadingMore(true);
+    try {
+      const { items, hasMore } = await feedService.getMoreRecentPublications(activeCategory, recentOffset, RECENT_PAGE_SIZE);
+      // Une nouvelle publication arrivée en direct (Realtime) entre deux
+      // pages décale la fenêtre côté serveur d'une position — filtre les
+      // doublons plutôt que de les laisser s'afficher deux fois dans la liste.
+      setPublications((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        return [...prev, ...items.filter((item) => !existingIds.has(item.id))];
+      });
+      setRecentOffset((prev) => prev + RECENT_PAGE_SIZE);
+      setHasMoreRecent(hasMore);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
     fetchPublications(activeCategory);
   }, [activeCategory]);
+
+  useEffect(() => {
+    const sentinel = mobileSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreRecent();
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publications, recentOffset, activeCategory]);
 
   // Un lien partagé (`/feed#post-xxx`) doit amener directement sur ce post
   // précis — sans ça, "copier le lien" ne fait qu'ouvrir le haut du fil.
@@ -233,6 +282,12 @@ export default function HomePage() {
                   sharePath="/feed"
                 />
               ))}
+              {/* Mobile uniquement : sentinelle de défilement infini — desktop reste plafonné à 30 publications récentes, inchangé. */}
+              {hasMoreRecent && (
+                <div ref={mobileSentinelRef} className="md:hidden flex justify-center py-6">
+                  {isLoadingMore && <RefreshCw size={18} className="text-muted-foreground animate-spin" />}
+                </div>
+              )}
             </div>
           )}
         </>
