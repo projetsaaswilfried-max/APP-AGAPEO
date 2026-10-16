@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { OnboardingSelfieStep } from "./onboarding-selfie-step";
 import { OnboardingFaithStep } from "./onboarding-faith-step";
 import { OnboardingHobbiesStep } from "./onboarding-hobbies-step";
 import { OnboardingRecapStep } from "./onboarding-recap-step";
-import { saveOnboardingStepAction } from "@/lib/actions/profile.actions";
+import { saveOnboardingStepAction, completeOnboardingAction } from "@/lib/actions/profile.actions";
 import { logOnboardingEventAction } from "@/lib/actions/onboarding-events.actions";
 import { trackMetaEventOnce } from "@/lib/meta-pixel";
 import { needsVerificationSubmission as computeNeedsVerificationSubmission, type OnboardingStepKey } from "@/domain/profile-completeness";
@@ -67,20 +67,31 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
     needsVerificationSubmission: !profile.is_staff && computeNeedsVerificationSubmission(profile)
   }));
 
+  // Ordre d'affichage (format app native : essentiel, foi, passions, PUIS
+  // photo + selfie en dernier) — volontairement différent de l'ordre de
+  // reprise `BASE_STEP_KEYS` ci-dessus, qui ne fait que convertir une clé
+  // d'étape en entier stable pour `profiles.onboarding_step` et reste donc
+  // inchangé (recherche par clé, jamais par position : réordonner cette
+  // liste n'invalide aucune reprise déjà enregistrée en base). Mettre
+  // photo+selfie en dernier rend le bouton "Passer" (cf. OnboardingPhotosStep)
+  // réellement utile : une personne qui passe a déjà rempli sa foi et ses
+  // passions, il ne lui manque plus que la photo/vérification pour que son
+  // profil soit visible — elle peut déjà entrer dans l'application en
+  // attendant d'y revenir.
   const stepKeys: StepKey[] = [
     ...(needsEssentialInfo ? (["essential"] as StepKey[]) : []),
-    "photos",
-    ...(needsVerificationSubmission ? (["selfie"] as StepKey[]) : []),
     "faith",
     "hobbies",
+    "photos",
+    ...(needsVerificationSubmission ? (["selfie"] as StepKey[]) : []),
     "recap"
   ];
   const stepLabels = [
     ...(needsEssentialInfo ? ["Tes informations"] : []),
-    "Photos",
-    ...(needsVerificationSubmission ? ["Selfie"] : []),
     "Ma foi",
     "Tes passions",
+    "Photos",
+    ...(needsVerificationSubmission ? ["Selfie"] : []),
     "Récapitulatif"
   ];
 
@@ -159,6 +170,20 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
   const hasEssentialStep = stepKeys.includes("essential");
   const hasSelfieStep = stepKeys.includes("selfie");
 
+  // "Passer" sur l'étape Photo (format app native) : termine l'onboarding
+  // tout de suite, sans photo ni selfie ni soumission pour vérification —
+  // juste de quoi entrer dans l'application et voir à quoi elle ressemble.
+  // Le profil reste visible comme incomplet/non vérifié (bandeau, Mon
+  // Compte) jusqu'à ce que la personne revienne terminer ces étapes. Jamais
+  // proposé à un membre qui ne fait que revisiter cette étape (son
+  // onboarding est déjà terminé, "passer" ne voudrait rien dire).
+  const [isSkippingOnboarding, startSkipTransition] = useTransition();
+  const handleSkipOnboarding = () => {
+    startSkipTransition(async () => {
+      await completeOnboardingAction();
+    });
+  };
+
   // Rendu de l'étape active — identique sur mobile (feuille) et desktop
   // (carte), seul le conteneur visuel diffère ci-dessous.
   const stepContent = (
@@ -172,6 +197,8 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
           photoLimit={profile.is_premium ? 10 : 2}
           announceSelfieStep={needsVerificationSubmission}
           onNext={() => goTo(stepIndex + 1)}
+          onSkip={isRevisit ? undefined : handleSkipOnboarding}
+          isSkipping={isSkippingOnboarding}
         />
       )}
       {currentKey === "selfie" && (

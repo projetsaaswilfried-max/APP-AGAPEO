@@ -33,10 +33,10 @@ export interface AdminOverviewActivityProps {
 // Ordre du tunnel de conversion "premier profil soumis" — reflète l'ordre
 // réel des étapes de l'assistant d'onboarding (cf. OnboardingWizard).
 const FUNNEL_STEPS: { key: string; label: string }[] = [
-  { key: "photos", label: "Photos" },
-  { key: "selfie", label: "Selfie" },
   { key: "faith", label: "Ma foi" },
-  { key: "hobbies", label: "Tes passions" }
+  { key: "hobbies", label: "Tes passions" },
+  { key: "photos", label: "Photos" },
+  { key: "selfie", label: "Selfie" }
 ];
 
 const RANGE_PRESETS = [
