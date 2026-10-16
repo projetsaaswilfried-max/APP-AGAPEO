@@ -20,7 +20,7 @@ export default function HeroVideo({ frameClassName, caption = true }: { frameCla
           <iframe
             className="absolute inset-0 size-full"
             src={`https://www.youtube-nocookie.com/embed/${YT_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
-            title={`${YT_TITLE} — ${YT_AUTHOR}`}
+            title={`${YT_TITLE} | ${YT_AUTHOR}`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen

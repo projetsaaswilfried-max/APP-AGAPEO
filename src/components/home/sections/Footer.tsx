@@ -2,7 +2,7 @@
 
 import { LINKS } from '../lib/ui'
 import StoreButton from '../components/StoreButton'
-import { Logo } from './Navbar'
+import { Logo, homeHref } from './Navbar'
 
 const NAV = [
   { label: 'Accueil', href: '#top' },
@@ -16,13 +16,13 @@ const LEGAL = [
   { label: 'Mentions légales', href: LINKS.legal },
 ]
 
-export default function Footer() {
+export default function Footer({ onHome = true }: { onHome?: boolean } = {}) {
   return (
     <footer className="px-3 pb-3 sm:px-5 sm:pb-5">
       <div className="mx-auto max-w-[1320px] overflow-hidden rounded-[32px] bg-ink px-6 pt-14 pb-1 sm:rounded-[40px] sm:pt-16 text-white sm:px-12 lg:px-16">
         <div className="grid grid-cols-2 gap-12 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
           <div className="col-span-2 lg:col-span-1">
-            <Logo light />
+            <Logo light onHome={onHome} />
             <p className="mt-7 max-w-[440px] font-urbanist text-[26px] leading-[1.15] font-medium sm:text-[28px]">
               Des rencontres chrétiennes pour construire autour de <span className="text-rose-soft">l’essentiel.</span>
             </p>
@@ -39,7 +39,7 @@ export default function Footer() {
             <ul className="mt-5 flex flex-col gap-3">
               {NAV.map((n) => (
                 <li key={n.label}>
-                  <a href={n.href} className="text-[15px] text-white/75 transition-colors hover:text-rose-soft">{n.label}</a>
+                  <a href={homeHref(n.href, onHome)} className="text-[15px] text-white/75 transition-colors hover:text-rose-soft">{n.label}</a>
                 </li>
               ))}
             </ul>

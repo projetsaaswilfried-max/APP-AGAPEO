@@ -51,7 +51,7 @@ export default function Pricing() {
           </Reveal>
           <Reveal delay={0.1}>
             <p className="mx-auto mt-7 max-w-[580px] text-[17px] leading-relaxed text-ink-muted">
-              Crée ton profil, découvre la communauté et commence à rencontrer des célibataires chrétiens — choisis ensuite la durée
+              Crée ton profil, découvre la communauté et commence à rencontrer des célibataires chrétiens. Choisis ensuite la durée
               d’abonnement qui te convient.
             </p>
           </Reveal>

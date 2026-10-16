@@ -166,7 +166,7 @@ export default function InstallModal({ open, onClose }: { open: boolean; onClose
 
             <div className="mx-6 border-t border-line sm:mx-7" />
             <p className="px-6 pt-5 pb-6 text-[13px] leading-relaxed text-ink-muted sm:px-7 sm:pb-7">
-              Cette étape est demandée par Apple lui-même — aucune application externe n’est nécessaire, Agapeo s’installe directement depuis
+              Cette étape est demandée par Apple lui-même : aucune application externe n’est nécessaire, Agapeo s’installe directement depuis
               le site.
             </p>
           </motion.div>

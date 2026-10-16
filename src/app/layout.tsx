@@ -1,24 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/core/providers/app-provider";
 import { SITE_CONFIG } from "@/config/site";
 import { MetaPixel } from "@/components/analytics/meta-pixel";
-
-/** Serif d'accent réservée à la landing publique (titres) — le reste de l'app garde la pile sans-serif système. */
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-landing-serif",
-  display: "swap",
-  axes: ["opsz", "SOFT"]
-});
-
-/** Titres de la landing publique (refonte) — le reste de l'app garde la pile sans-serif système. */
-const bricolage = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-landing-heading",
-  display: "swap"
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_CONFIG.url),
@@ -87,7 +71,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`antialiased ${fraunces.variable} ${bricolage.variable}`}>
+    <html lang="fr" className="antialiased">
       {/*
         `min-h-dvh` (hauteur de viewport DYNAMIQUE) plutôt que `min-h-full`
         (= 100%, calculé comme `100vh`) : sur mobile, la barre d'adresse du

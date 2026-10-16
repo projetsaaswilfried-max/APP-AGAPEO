@@ -14,9 +14,15 @@ const NAV: NavLink[] = [
   { label: 'Témoignages', href: '#temoignages' },
 ]
 
-export function Logo({ light = false, compact = false, className }: { light?: boolean; compact?: boolean; className?: string }) {
+/** Ancres de la landing (#tarifs…) : telles quelles sur l'accueil, préfixées par / ailleurs (pages légales) pour y ramener. */
+export function homeHref(href: string, onHome: boolean) {
+  if (onHome || !href.startsWith('#')) return href
+  return href === '#top' ? '/' : `/${href}`
+}
+
+export function Logo({ light = false, compact = false, className, onHome = true }: { light?: boolean; compact?: boolean; className?: string; onHome?: boolean }) {
   return (
-    <a href="#top" className={cn('flex items-center gap-2.5', className)} aria-label="AGAPEO — accueil">
+    <a href={homeHref('#top', onHome)} className={cn('flex items-center gap-2.5', className)} aria-label="Accueil AGAPEO">
       <img src="/images/home/logo.png" alt="" className={cn('object-contain transition-all duration-500 ease-out-soft', compact ? 'size-7' : 'size-9')} />
       <span
         className={cn(
@@ -31,7 +37,7 @@ export function Logo({ light = false, compact = false, className }: { light?: bo
   )
 }
 
-export default function Navbar({ links = NAV, announce = true }: { links?: NavLink[]; announce?: boolean } = {}) {
+export default function Navbar({ links = NAV, announce = true, onHome = true }: { links?: NavLink[]; announce?: boolean; onHome?: boolean } = {}) {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
 
@@ -58,8 +64,8 @@ export default function Navbar({ links = NAV, announce = true }: { links?: NavLi
       >
         <span className="size-1.5 shrink-0 rounded-full bg-rose" />
         <span>
-          <span className="hidden sm:inline">AGAPEO est disponible sur Google Play — </span>
-          <span className="sm:hidden">Disponible sur Google Play — </span>
+          <span className="hidden sm:inline">AGAPEO est disponible sur Google Play. </span>
+          <span className="sm:hidden">Disponible sur Google Play. </span>
           <span className="font-semibold text-white underline-offset-4 group-hover:underline">Télécharger</span>
           <span className="hidden font-semibold text-white sm:inline"> maintenant</span>
         </span>
@@ -84,13 +90,13 @@ export default function Navbar({ links = NAV, announce = true }: { links?: NavLi
               : 'max-w-[1240px] bg-white/45 py-2 pr-2 pl-4 shadow-[0_10px_30px_-18px_rgb(204_28_84/0.35)] ring-white/70 sm:pl-5',
           )}
         >
-          <Logo compact={scrolled} />
+          <Logo compact={scrolled} onHome={onHome} />
 
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigation principale">
             {links.map((n) => (
               <a
                 key={n.href}
-                href={n.href}
+                href={homeHref(n.href, onHome)}
                 className={cn(
                   'rounded-full py-2 font-medium text-ink/70 transition-all duration-500 hover:bg-blush hover:text-ink',
                   scrolled ? 'px-3 text-[13.5px]' : 'px-4 text-[14px]',
@@ -138,7 +144,7 @@ export default function Navbar({ links = NAV, announce = true }: { links?: NavLi
             transition={{ duration: 0.7, ease: EASE }}
           >
             <div className="flex items-center justify-between">
-              <Logo light />
+              <Logo light onHome={onHome} />
               <button onClick={() => setOpen(false)} className="grid size-11 place-items-center rounded-full bg-white/10" aria-label="Fermer le menu">
                 <Icon icon={Cancel01Icon} size={20} />
               </button>
@@ -147,7 +153,7 @@ export default function Navbar({ links = NAV, announce = true }: { links?: NavLi
               {links.map((n, i) => (
                 <motion.a
                   key={n.href}
-                  href={n.href}
+                  href={homeHref(n.href, onHome)}
                   onClick={() => setOpen(false)}
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}

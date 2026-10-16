@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { LandingNavbar } from "@/components/landing/landing-navbar";
-import { LandingFooter } from "@/components/landing/landing-footer";
+import { HOME_ROOT_CLASS } from "@/components/home/fonts";
+import Navbar from "@/components/home/sections/Navbar";
+import Footer from "@/components/home/sections/Footer";
 
 export const metadata: Metadata = {
   title: "Normes de sécurité des enfants",
@@ -10,12 +11,12 @@ export const metadata: Metadata = {
 
 export default function ChildSafetyStandardsPage() {
   return (
-    <main className="min-h-screen bg-white selection:bg-[#E83E75] selection:text-white">
-      <LandingNavbar />
+    <main className={`${HOME_ROOT_CLASS} min-h-screen bg-white overflow-x-clip`}>
+      <Navbar onHome={false} />
 
-      <div className="pt-40 pb-24">
+      <div className="pt-10 pb-24 sm:pt-14">
         <div className="max-w-3xl mx-auto px-6">
-          <h1 className="text-4xl md:text-5xl tracking-tight text-zinc-900 font-bricolage font-semibold mb-8">
+          <h1 className="text-4xl md:text-5xl tracking-tight text-zinc-900 font-urbanist font-medium mb-8">
             Normes de sécurité des enfants
           </h1>
           <p className="text-zinc-500 font-light mb-12">
@@ -69,7 +70,7 @@ export default function ChildSafetyStandardsPage() {
         </div>
       </div>
 
-      <LandingFooter />
+      <Footer onHome={false} />
     </main>
   );
 }
