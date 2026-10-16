@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../components/home/home.css";
 
 @font-face {
   font-family: 'Product Sans';
@@ -188,12 +189,13 @@ body {
 /* Beaucoup de composants utilisent des tailles arbitraires (text-[10px]...)
    qui ne passent pas par l'échelle --text-* ci-dessus. On relève ici les
    plus petites pour rester cohérent avec la lecture "medium" demandée,
-   sans avoir à modifier chaque composant un par un. */
-.text-\[9px\],
-.text-\[10px\] {
+   sans avoir à modifier chaque composant un par un. La landing publique
+   (.home-root) en est exclue : ses tailles sont calibrées par le design. */
+.text-\[9px\]:not(.home-root *),
+.text-\[10px\]:not(.home-root *) {
   font-size: 0.75rem !important;
 }
-.text-\[11px\] {
+.text-\[11px\]:not(.home-root *) {
   font-size: 0.8125rem !important;
 }
 

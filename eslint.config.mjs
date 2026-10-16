@@ -20,6 +20,15 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "off",
     },
   },
+  {
+    // Landing publique portée depuis le projet Vite "AGAPEO 🩷/SITE" : gardée
+    // au plus près de la source du design (images statiques de /public en
+    // <img>) pour pouvoir y reporter facilement les prochaines retouches.
+    files: ["src/components/home/**"],
+    rules: {
+      "@next/next/no-img-element": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

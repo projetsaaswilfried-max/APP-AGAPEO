@@ -1,0 +1,120 @@
+/* ───────────────────────────────────────────────
+   Landing publique (src/components/home) — portée depuis la landing Vite
+   (dossier "AGAPEO 🩷/SITE", src/index.css). Importé par globals.css.
+
+   Règle 60-30-10 :
+   60 % ivoire / blanc  → fonds et cartes
+   30 % rose poudré     → surfaces secondaires (sections, puces, cartes douces)
+   10 % framboise       → CTA, mots-clés, icônes
+   L'encre #0E131B est la couleur du texte et de quelques blocs d'ancrage.
+
+   Écarts volontaires avec l'original, pour ne pas entrer en collision avec
+   les tokens de l'app (globals.css) :
+   - `muted` → `ink-muted` (l'app définit déjà `muted` comme fond gris) ;
+   - `font-display` → `font-urbanist`, `font-sans` → `.home-root` (l'app
+     utilise `font-display` partout avec Product Sans) ;
+   - rounded-xl / 2xl / md → valeurs arbitraires (l'app redéfinit l'échelle) ;
+   - styles de base (police, sélection, focus, reduced-motion) limités à
+     `.home-root` au lieu de `body` / `*`.
+   ─────────────────────────────────────────────── */
+@theme {
+  --color-paper: #fffaf7;
+  --color-cream: #fbf3ee;
+  --color-blush: #fce8ef;
+  --color-blush-2: #f8d6e2;
+  --color-rose: #e83e75;
+  --color-rose-deep: #cc1c54;
+  --color-rose-soft: #fe70b2;
+  --color-ink: #0e131b;
+  --color-ink-2: #1a202b;
+  --color-ink-muted: #5d6270;
+  --color-line: rgb(14 19 27 / 0.09);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-marquee: marquee var(--marquee-duration, 40s) linear infinite;
+  --animate-spin-slow: spin 22s linear infinite;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+@layer base {
+  .home-root {
+    font-family: var(--nf-jakarta), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    color: var(--color-ink);
+    text-rendering: optimizeLegibility;
+  }
+
+  .home-root ::selection {
+    background: var(--color-rose);
+    color: white;
+  }
+
+  .home-root :focus-visible {
+    outline: 2px solid var(--color-rose);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+@utility font-urbanist {
+  font-family: var(--nf-urbanist), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.035em;
+}
+
+/* Mots-clés des titres : la touche framboise (les 10 %) */
+@utility title-accent {
+  color: var(--color-rose);
+}
+
+/* Verre dépoli : panneaux posés sur des photos (jamais sur un fond uni) */
+@utility glass {
+  background: rgb(255 255 255 / 0.62);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgb(255 255 255 / 0.7);
+  box-shadow: 0 24px 48px -24px rgb(14 19 27 / 0.35);
+}
+
+@utility glass-dark {
+  background: rgb(14 19 27 / 0.38);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  color: white;
+}
+
+/* Portrait des témoignages : demi-cercle exact en haut (ratio 4/4.4 puis 4/5) ; en bas, 40 px = 24 px (carte en verre) + 16 px d'écart.
+   Les rayons verticaux sont en % de la hauteur pour que le navigateur ne les réduise pas. */
+@utility portrait-arch {
+  border-radius: 50% 50% 40px 40px / 45.45% 45.45% 40px 40px;
+  @media (width >= 40rem) {
+    border-radius: 50% 50% 40px 40px / 40% 40% 40px 40px;
+  }
+}
+
+/* Arche de vitrail : forme récurrente, clin d'œil à l'église */
+@utility arch {
+  border-radius: 999px 999px 32px 32px;
+}
+
+@utility pause-on-hover {
+  &:hover { animation-play-state: paused; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-root *, .home-root *::before, .home-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
