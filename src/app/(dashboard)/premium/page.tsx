@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { Check, X, Crown, AlertCircle, Smartphone, CreditCard } from "lucide-react";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { Check, X, Crown, AlertCircle, Smartphone, CreditCard, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const initialState: PremiumCheckoutState = undefined;
@@ -178,6 +179,58 @@ function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
   );
 }
 
+interface CompactPlanTileProps {
+  planKey: PremiumPlanKey;
+  recommended?: boolean;
+  isCurrentPlan: boolean;
+  isExpiringSoon: boolean;
+  daysUntilExpiry: number | null;
+  pending: boolean;
+  onOpenPaymentMethod: (plan: PremiumPlanKey) => void;
+}
+
+/**
+ * Mobile uniquement (format app native : premium_plan_page.dart) — les
+ * avantages Premium sont affichés UNE SEULE FOIS au-dessus (cf.
+ * `sharedBenefitsCard` dans le rendu), ces lignes compactes ne répètent donc
+ * que label/prix/statut, jamais la liste des 9 avantages (contrairement aux
+ * `PremiumPlanCard` desktop ci-dessus, inchangées).
+ */
+function CompactPlanTile({ planKey, recommended, isCurrentPlan, isExpiringSoon, daysUntilExpiry, pending, onOpenPaymentMethod }: CompactPlanTileProps) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenPaymentMethod(planKey)}
+      disabled={pending}
+      className={cn(
+        "w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-left transition-colors",
+        recommended ? "border-primary border-2" : "border-border/60"
+      )}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">{PREMIUM_PLANS[planKey].label}</span>
+          {recommended && (
+            <span className="text-[10px] font-semibold text-primary-foreground bg-primary px-1.5 py-0.5 rounded-full shrink-0">Recommandé</span>
+          )}
+          {isCurrentPlan && (
+            <span className="text-[10px] font-semibold text-primary px-1.5 py-0.5 rounded-full bg-primary/12 shrink-0">Plan actuel</span>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {isCurrentPlan && isExpiringSoon && daysUntilExpiry !== null
+            ? daysUntilExpiry <= 0
+              ? "Expire aujourd'hui — renouvelle-le"
+              : `Expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? "s" : ""} — renouvelle-le`
+            : PRICE_NOTES[planKey]}
+        </p>
+      </div>
+      <span className="text-sm font-semibold text-foreground shrink-0">{PREMIUM_PLANS[planKey].priceFcfaLabel}</span>
+      <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+    </button>
+  );
+}
+
 export default function PremiumPage() {
   const { profile } = useSession();
   const isPremium = profile.subscription_status === "ACTIVE";
@@ -256,6 +309,140 @@ export default function PremiumPage() {
   // plan gratuit tel quel (jamais la carte restreinte) — cf. FREE_FEATURES.
   const freeCardFeatures = profile.payment_required ? RESTRICTED_FEATURES : FREE_FEATURES;
 
+  // Partagées entre le rendu mobile et desktop ci-dessous — contenu identique, seul le conteneur diffère.
+  const freeCard = (
+    <Card variant="base" className="p-6 space-y-5 border-border/60 shadow-2xs flex flex-col">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-display font-semibold text-foreground tracking-tight">Gratuit</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">L&apos;essentiel pour commencer ta recherche.</p>
+        </div>
+        {!isPremium && !isExpired && (
+          <Badge variant="status" className="text-xs shrink-0">
+            Plan actuel
+          </Badge>
+        )}
+      </div>
+
+      <ul className="space-y-2.5 flex-1">
+        {freeCardFeatures.map(({ label, included }) => (
+          <li key={label} className="flex items-start gap-2.5 text-xs">
+            {included ? (
+              <Check size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+            ) : (
+              <X size={15} className="text-muted-foreground/50 shrink-0 mt-0.5" />
+            )}
+            <span className={included ? "text-foreground/90" : "text-muted-foreground/70 line-through"}>{label}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
+        {isPremium
+          ? "Inclus dans ton accès actif."
+          : profile.payment_required
+            ? "Débloque ton accès pour tout retrouver."
+            : "Choisis un plan ci-contre pour débloquer plus."}
+      </p>
+    </Card>
+  );
+
+  const paymentMethodContent = (
+    <div className="space-y-3">
+      <Button
+        type="button"
+        variant="primary"
+        className="w-full justify-start"
+        isLoading={pending}
+        leftIcon={<Smartphone size={16} />}
+        onClick={handleChooseMobileMoney}
+      >
+        Mobile Money — Moov, Wave, MTN, Celtiis...
+      </Button>
+      <form action={action} onSubmit={() => setSelectedPaymentMethod("CARD")}>
+        <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
+        <input type="hidden" name="paymentMethod" value="CARD" />
+        <Button type="submit" variant="outline" className="w-full justify-start" isLoading={pending} leftIcon={<CreditCard size={16} />}>
+          Carte bancaire
+        </Button>
+      </form>
+    </div>
+  );
+
+  const phoneFormContent = (
+    <form action={action} className="space-y-3">
+      <input type="hidden" name="plan" value={selectedPlan} />
+      <input type="hidden" name="paymentMethod" value={selectedPaymentMethod} />
+      <p className="text-xs text-muted-foreground">
+        Un numéro de téléphone est requis par notre prestataire de paiement pour finaliser ton abonnement.
+      </p>
+      <div className="grid grid-cols-[9.5rem_1fr] gap-2">
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-foreground pl-1">Indicatif</label>
+          <select
+            name="phoneCountryCode"
+            required
+            defaultValue=""
+            className="w-full h-11 rounded-xl border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="" disabled>
+              —
+            </option>
+            {PHONE_COUNTRY_CODES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Input label="Numéro de téléphone" name="phone" placeholder="0102030405" error={state?.errors?.phone?.[0]} required />
+      </div>
+      <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
+        Continuer
+      </Button>
+    </form>
+  );
+
+  const legacyCard = legacyCurrentPlanKey && (
+    <Card variant="base" className="p-6 space-y-5 flex flex-col relative overflow-hidden border-primary/30 shadow-accent-glow">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-display font-semibold text-foreground tracking-tight flex items-center gap-2">
+            <Crown size={18} className="text-primary" /> {PREMIUM_PLANS[legacyCurrentPlanKey].label}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{PRICE_NOTES[legacyCurrentPlanKey]}</p>
+        </div>
+        <Badge variant="premium" className="text-xs shrink-0">
+          <Crown size={12} className="mr-1" /> Plan actuel
+        </Badge>
+      </div>
+
+      {daysUntilExpiry !== null && (
+        <div className="text-center py-3 rounded-2xl bg-secondary/50 border border-border/40">
+          <p className="text-2xl font-display font-bold text-foreground tabular-nums">
+            -{Math.max(daysUntilExpiry, 0)}{" "}
+            <span className="text-sm font-normal text-muted-foreground">
+              jour{Math.max(daysUntilExpiry, 0) > 1 ? "s" : ""} restant{Math.max(daysUntilExpiry, 0) > 1 ? "s" : ""}
+            </span>
+          </p>
+        </div>
+      )}
+
+      <ul className="space-y-2.5 flex-1">
+        {PREMIUM_FEATURES.map((label) => (
+          <li key={label} className="flex items-start gap-2.5 text-xs text-foreground/90">
+            <Check size={15} className="text-primary shrink-0 mt-0.5" />
+            <span>{label}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
+        Ce plan n&apos;est plus proposé à l&apos;achat — choisis l&apos;un des plans ci-contre pour renouveler ton accès à son échéance.
+      </p>
+    </Card>
+  );
+
   return (
     <div className="space-y-6 w-full pb-16 select-none">
       <div className="border-b border-border/60 pb-4">
@@ -276,82 +463,47 @@ export default function PremiumPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Carte Gratuit */}
-        <Card variant="base" className="p-6 space-y-5 border-border/60 shadow-2xs flex flex-col">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-display font-semibold text-foreground tracking-tight">Gratuit</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">L&apos;essentiel pour commencer ta recherche.</p>
-            </div>
-            {!isPremium && !isExpired && (
-              <Badge variant="status" className="text-xs shrink-0">
-                Plan actuel
-              </Badge>
-            )}
-          </div>
+      {/* Mobile : avantages Premium affichés une seule fois + formules en
+          lignes compactes (format app native : premium_plan_page.dart) —
+          jamais la carte complète répétée 4 fois sur un écran étroit.
+          Cartes Gratuit/plan retiré inchangées, juste empilées. */}
+      <div className="md:hidden space-y-5">
+        {freeCard}
+        {legacyCard}
 
-          <ul className="space-y-2.5 flex-1">
-            {freeCardFeatures.map(({ label, included }) => (
-              <li key={label} className="flex items-start gap-2.5 text-xs">
-                {included ? (
-                  <Check size={15} className="text-emerald-600 shrink-0 mt-0.5" />
-                ) : (
-                  <X size={15} className="text-muted-foreground/50 shrink-0 mt-0.5" />
-                )}
-                <span className={included ? "text-foreground/90" : "text-muted-foreground/70 line-through"}>{label}</span>
+        <Card variant="base" className="p-5 space-y-3 border-border/60 shadow-2xs">
+          <h2 className="text-sm font-display font-semibold text-foreground tracking-tight">Avantages Premium</h2>
+          <ul className="space-y-2">
+            {PREMIUM_FEATURES.map((label) => (
+              <li key={label} className="flex items-start gap-2.5 text-xs text-foreground/90">
+                <Check size={14} className="text-primary shrink-0 mt-0.5" />
+                <span>{label}</span>
               </li>
             ))}
           </ul>
-
-          <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
-            {isPremium
-              ? "Inclus dans ton accès actif."
-              : profile.payment_required
-                ? "Débloque ton accès pour tout retrouver."
-                : "Choisis un plan ci-contre pour débloquer plus."}
-          </p>
         </Card>
 
-        {legacyCurrentPlanKey && (
-          <Card variant="base" className="p-6 space-y-5 flex flex-col relative overflow-hidden border-primary/30 shadow-accent-glow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-display font-semibold text-foreground tracking-tight flex items-center gap-2">
-                  <Crown size={18} className="text-primary" /> {PREMIUM_PLANS[legacyCurrentPlanKey].label}
-                </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{PRICE_NOTES[legacyCurrentPlanKey]}</p>
-              </div>
-              <Badge variant="premium" className="text-xs shrink-0">
-                <Crown size={12} className="mr-1" /> Plan actuel
-              </Badge>
-            </div>
+        <div className="space-y-2.5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">Choisis ta formule</h2>
+          {PURCHASABLE_PLAN_KEYS.map((planKey) => (
+            <CompactPlanTile
+              key={planKey}
+              planKey={planKey}
+              recommended={planKey === "QUARTERLY"}
+              isCurrentPlan={isPremium && currentPlanKey === planKey}
+              isExpiringSoon={isExpiringSoon}
+              daysUntilExpiry={daysUntilExpiry}
+              pending={pending}
+              onOpenPaymentMethod={handleOpenPaymentMethod}
+            />
+          ))}
+        </div>
+      </div>
 
-            {daysUntilExpiry !== null && (
-              <div className="text-center py-3 rounded-2xl bg-secondary/50 border border-border/40">
-                <p className="text-2xl font-display font-bold text-foreground tabular-nums">
-                  -{Math.max(daysUntilExpiry, 0)}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    jour{Math.max(daysUntilExpiry, 0) > 1 ? "s" : ""} restant{Math.max(daysUntilExpiry, 0) > 1 ? "s" : ""}
-                  </span>
-                </p>
-              </div>
-            )}
-
-            <ul className="space-y-2.5 flex-1">
-              {PREMIUM_FEATURES.map((label) => (
-                <li key={label} className="flex items-start gap-2.5 text-xs text-foreground/90">
-                  <Check size={15} className="text-primary shrink-0 mt-0.5" />
-                  <span>{label}</span>
-                </li>
-              ))}
-            </ul>
-
-            <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
-              Ce plan n&apos;est plus proposé à l&apos;achat — choisis l&apos;un des plans ci-contre pour renouveler ton accès à son échéance.
-            </p>
-          </Card>
-        )}
+      {/* Desktop : grille de cartes complètes inchangée. */}
+      <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-6">
+        {freeCard}
+        {legacyCard}
 
         {PURCHASABLE_PLAN_KEYS.map((planKey) => (
           <PremiumPlanCard
@@ -367,74 +519,48 @@ export default function PremiumPage() {
         ))}
       </div>
 
-      <Modal
-        isOpen={paymentMethodModalPlan !== null}
-        onClose={() => setPaymentMethodModalPlan(null)}
-        title="Comment veux-tu payer ?"
-        description={paymentMethodModalPlan ? `${PREMIUM_PLANS[paymentMethodModalPlan].label} — ${PREMIUM_PLANS[paymentMethodModalPlan].priceFcfaLabel}` : undefined}
-        maxWidth="sm"
-      >
-        <div className="space-y-3">
-          <Button
-            type="button"
-            variant="primary"
-            className="w-full justify-start"
-            isLoading={pending}
-            leftIcon={<Smartphone size={16} />}
-            onClick={handleChooseMobileMoney}
-          >
-            Mobile Money — Moov, Wave, MTN, Celtiis...
-          </Button>
-          {/* Repli Chariow si SasPay n'est pas le processeur Mobile Money actif — jamais affiché, soumis via handleChooseMobileMoney. */}
-          <form ref={mobileMoneyFallbackFormRef} action={action} className="hidden">
-            <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
-            <input type="hidden" name="paymentMethod" value="MOBILE_MONEY" />
-          </form>
-          <form action={action} onSubmit={() => setSelectedPaymentMethod("CARD")}>
-            <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
-            <input type="hidden" name="paymentMethod" value="CARD" />
-            <Button type="submit" variant="outline" className="w-full justify-start" isLoading={pending} leftIcon={<CreditCard size={16} />}>
-              Carte bancaire
-            </Button>
-          </form>
-        </div>
-      </Modal>
+      {/* "Comment veux-tu payer ?" : feuille sur mobile, modale centrée sur desktop — même contenu, mêmes actions. */}
+      <div className="md:hidden">
+        <BottomSheet
+          isOpen={paymentMethodModalPlan !== null}
+          onClose={() => setPaymentMethodModalPlan(null)}
+          title="Comment veux-tu payer ?"
+          description={paymentMethodModalPlan ? `${PREMIUM_PLANS[paymentMethodModalPlan].label} — ${PREMIUM_PLANS[paymentMethodModalPlan].priceFcfaLabel}` : undefined}
+        >
+          {paymentMethodContent}
+        </BottomSheet>
+      </div>
+      <div className="hidden md:block">
+        <Modal
+          isOpen={paymentMethodModalPlan !== null}
+          onClose={() => setPaymentMethodModalPlan(null)}
+          title="Comment veux-tu payer ?"
+          description={paymentMethodModalPlan ? `${PREMIUM_PLANS[paymentMethodModalPlan].label} — ${PREMIUM_PLANS[paymentMethodModalPlan].priceFcfaLabel}` : undefined}
+          maxWidth="sm"
+        >
+          {paymentMethodContent}
+        </Modal>
+      </div>
+
+      {/* Repli Chariow si SasPay n'est pas le processeur Mobile Money actif — jamais affiché, soumis via handleChooseMobileMoney, partagé par les deux UI ci-dessus. */}
+      <form ref={mobileMoneyFallbackFormRef} action={action} className="hidden">
+        <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
+        <input type="hidden" name="paymentMethod" value="MOBILE_MONEY" />
+      </form>
 
       <MobileMoneyCheckoutModal plan={nativeMobileMoneyPlan} onClose={() => setNativeMobileMoneyPlan(null)} />
 
-      <Modal isOpen={isPhoneModalOpen} onClose={() => setIsPhoneModalOpen(false)} title="Un dernier détail" maxWidth="sm">
-        <form action={action} className="space-y-3">
-          <input type="hidden" name="plan" value={selectedPlan} />
-          <input type="hidden" name="paymentMethod" value={selectedPaymentMethod} />
-          <p className="text-xs text-muted-foreground">
-            Un numéro de téléphone est requis par notre prestataire de paiement pour finaliser ton abonnement.
-          </p>
-          <div className="grid grid-cols-[9.5rem_1fr] gap-2">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-foreground pl-1">Indicatif</label>
-              <select
-                name="phoneCountryCode"
-                required
-                defaultValue=""
-                className="w-full h-11 rounded-xl border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="" disabled>
-                  —
-                </option>
-                {PHONE_COUNTRY_CODES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Input label="Numéro de téléphone" name="phone" placeholder="0102030405" error={state?.errors?.phone?.[0]} required />
-          </div>
-          <Button type="submit" variant="primary" className="w-full" isLoading={pending} leftIcon={<Crown size={15} />}>
-            Continuer
-          </Button>
-        </form>
-      </Modal>
+      {/* "Un dernier détail" (capture du téléphone) : feuille sur mobile, modale centrée sur desktop. */}
+      <div className="md:hidden">
+        <BottomSheet isOpen={isPhoneModalOpen} onClose={() => setIsPhoneModalOpen(false)} title="Un dernier détail">
+          {phoneFormContent}
+        </BottomSheet>
+      </div>
+      <div className="hidden md:block">
+        <Modal isOpen={isPhoneModalOpen} onClose={() => setIsPhoneModalOpen(false)} title="Un dernier détail" maxWidth="sm">
+          {phoneFormContent}
+        </Modal>
+      </div>
     </div>
   );
 }
