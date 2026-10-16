@@ -110,6 +110,14 @@ function DiscoverPageContent() {
   const [verificationReason, setVerificationReason] = useState("contacter ce membre");
   const [otherProfilesPage, setOtherProfilesPage] = useState(1);
   const otherProfilesSectionRef = useRef<HTMLDivElement>(null);
+  // Mobile : pas de pagination par clic, défilement infini (comme l'app
+  // native — discover_body.dart charge la suite en approchant du bas de la
+  // liste). Liste cumulée indépendante de la pagination desktop ci-dessus,
+  // qui reste inchangée (page courante uniquement + boutons de pages).
+  const [mobileOthers, setMobileOthers] = useState<RecommendedProfileItem[]>([]);
+  const [mobileOthersPage, setMobileOthersPage] = useState(1);
+  const [isMobileLoadingMore, setIsMobileLoadingMore] = useState(false);
+  const mobileSentinelRef = useRef<HTMLDivElement>(null);
   const [isPremiumOfferOpen, setIsPremiumOfferOpen] = useState(false);
   // Seule condition : ne pas avoir d'abonnement actif (ni être staff) — pas
   // de condition de profil complet/vérifié, contrairement à PremiumUpsellBanner :
@@ -130,11 +138,30 @@ function DiscoverPageContent() {
       setRecommendedProfiles(data.recommended);
       setOtherProfilesPageItems(data.otherPage);
       setOtherProfilesTotalCount(data.otherTotalCount);
+      // Même réponse réutilisée pour redémarrer la liste cumulée mobile —
+      // évite un second appel réseau identique pour la toute première page.
+      setMobileOthers(data.otherPage);
+      setMobileOthersPage(1);
     } catch (err) {
       console.error(err);
       setIsError(true);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMoreMobileOthers = async () => {
+    if (isMobileLoadingMore || mobileOthers.length >= otherProfilesTotalCount) return;
+    setIsMobileLoadingMore(true);
+    try {
+      const nextPage = mobileOthersPage + 1;
+      const data = await discoverService.getDiscoverPage(filters, nextPage, OTHER_PROFILES_PAGE_SIZE);
+      setMobileOthers((prev) => [...prev, ...data.otherPage]);
+      setMobileOthersPage(nextPage);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsMobileLoadingMore(false);
     }
   };
 
@@ -149,6 +176,23 @@ function DiscoverPageContent() {
     fetchProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, otherProfilesPage]);
+
+  // Défilement infini mobile : charge la suite dès que la sentinelle en bas
+  // de liste approche du viewport (marge 400px, même seuil que l'app
+  // native) — jamais de clic "page suivante" sur mobile.
+  useEffect(() => {
+    const sentinel = mobileSentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreMobileOthers();
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mobileOthers, mobileOthersPage, filters]);
 
   // Popup Premium à CHAQUE chargement de Découvrir (premier affichage,
   // pagination "Autres profils", changement de filtre) — décision du
@@ -218,6 +262,16 @@ function DiscoverPageContent() {
   const handleSendMessage = (profileId: string) => {
     const target = recommendedProfiles.find((p) => p.profile.id === profileId) ?? otherProfilesPageItems.find((p) => p.profile.id === profileId);
     requestInvitation(profileId, target?.profile.firstName ?? "ce membre");
+  };
+
+  const handleInspectProfile = (prof: RecommendedProfileItem) => {
+    if (!canViewProfiles) {
+      setPremiumReason("consulter les profils");
+      setIsPremiumRequiredOpen(true);
+      return;
+    }
+    setSelectedProfile(prof);
+    setIsInspectorOpen(true);
   };
 
   const otherProfilesTotalPages = Math.max(1, Math.ceil(otherProfilesTotalCount / OTHER_PROFILES_PAGE_SIZE));
@@ -309,6 +363,7 @@ function DiscoverPageContent() {
             filters={filters}
             onChangeFilters={setFilters}
             onResetFilters={() => setFilters(DEFAULT_FILTERS)}
+            onClose={() => setIsFilterOpen(false)}
             isPremium={canUseAdvancedFilters}
             onRequirePremium={() => {
               setPremiumReason("débloquer les filtres avancés");
@@ -392,15 +447,7 @@ function DiscoverPageContent() {
                 item={item}
                 canView={canViewProfiles}
                 canInteract={canInteract}
-                onInspectProfile={(prof) => {
-                  if (!canViewProfiles) {
-                    setPremiumReason("consulter les profils");
-                    setIsPremiumRequiredOpen(true);
-                    return;
-                  }
-                  setSelectedProfile(prof);
-                  setIsInspectorOpen(true);
-                }}
+                onInspectProfile={handleInspectProfile}
                 onToggleFavorite={handleToggleFavorite}
                 onToggleLike={handleToggleLike}
                 onSendMessage={handleSendMessage}
@@ -417,22 +464,37 @@ function DiscoverPageContent() {
             Autres profils ({otherProfilesTotalCount})
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Mobile : défilement infini, jamais de pagination par clic (comme l'app native). */}
+          <div className="md:hidden grid grid-cols-1 gap-6">
+            {mobileOthers.map((item) => (
+              <DiscoverProfileCard
+                key={item.profile.id}
+                item={item}
+                canView={canViewProfiles}
+                canInteract={canInteract}
+                onInspectProfile={handleInspectProfile}
+                onToggleFavorite={handleToggleFavorite}
+                onToggleLike={handleToggleLike}
+                onSendMessage={handleSendMessage}
+                onRequireVerification={handleRequireVerification}
+              />
+            ))}
+            {mobileOthers.length < otherProfilesTotalCount && (
+              <div ref={mobileSentinelRef} className="flex justify-center py-6">
+                {isMobileLoadingMore && <RefreshCw size={18} className="text-muted-foreground animate-spin" />}
+              </div>
+            )}
+          </div>
+
+          {/* Desktop : grille + pagination par clic, inchangé. */}
+          <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-6">
             {otherProfilesPageItems.map((item) => (
               <DiscoverProfileCard
                 key={item.profile.id}
                 item={item}
                 canView={canViewProfiles}
                 canInteract={canInteract}
-                onInspectProfile={(prof) => {
-                  if (!canViewProfiles) {
-                    setPremiumReason("consulter les profils");
-                    setIsPremiumRequiredOpen(true);
-                    return;
-                  }
-                  setSelectedProfile(prof);
-                  setIsInspectorOpen(true);
-                }}
+                onInspectProfile={handleInspectProfile}
                 onToggleFavorite={handleToggleFavorite}
                 onToggleLike={handleToggleLike}
                 onSendMessage={handleSendMessage}
@@ -441,7 +503,9 @@ function DiscoverPageContent() {
             ))}
           </div>
 
-          <Pagination currentPage={otherProfilesPage} totalPages={otherProfilesTotalPages} onPageChange={handleOtherProfilesPageChange} />
+          <div className="hidden md:block">
+            <Pagination currentPage={otherProfilesPage} totalPages={otherProfilesTotalPages} onPageChange={handleOtherProfilesPageChange} />
+          </div>
         </div>
       )}
 

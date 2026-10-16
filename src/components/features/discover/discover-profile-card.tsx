@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { VerifiedMemberBadge } from "@/components/ui/verified-member-badge";
 import { MARITAL_STATUS_LABELS } from "@/domain/marital-status";
-import { Bookmark, Heart, MapPin, MessageSquare, Users, Ruler } from "lucide-react";
+import { Bookmark, Heart, MapPin, MessageSquare, Users, Ruler, BadgeCheck } from "lucide-react";
 import { cn, maskForPreview } from "@/lib/utils";
 
 interface DiscoverProfileCardProps {
@@ -52,7 +52,71 @@ export function DiscoverProfileCard({
   const handleMessage = () => (canInteract ? onSendMessage(profile.id) : onRequireVerification("contacter ce membre"));
 
   return (
-    <Card variant="interactive" className="p-5 flex flex-col justify-between h-full select-none group border-border/60 shadow-2xs">
+    <>
+      {/* Mobile : carte photo plein cadre 4:5 + bandeau identité, format de l'app native — desktop inchangé ci-dessous. */}
+      <div
+        onClick={handleInspect}
+        className="md:hidden relative rounded-[28px] overflow-hidden border border-border/60 shadow-soft select-none cursor-pointer bg-card"
+      >
+        <div className="relative aspect-4/5 bg-secondary">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={profile.avatarUrl || undefined} alt={displayName} className="absolute inset-0 w-full h-full object-cover" />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "linear-gradient(to bottom, transparent 55%, rgba(26,20,32,0.45) 100%)" }}
+          />
+        </div>
+
+        <div className="p-4 pt-3.5 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-base font-display font-semibold tracking-tight text-foreground truncate">
+                {displayName}
+                {displayAge ? `, ${displayAge}` : ""}
+              </h3>
+              {profile.badges.some((b) => b.code === "VERIFIED_FAITH") && (
+                <BadgeCheck size={16} className="text-primary shrink-0 fill-primary/15" />
+              )}
+            </div>
+            {(displayCity || displayCountry) && (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                {displayCity ? `${displayCity} · ` : ""}
+                {displayCountry}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLike();
+            }}
+            className={cn(
+              "w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition-colors",
+              isLiked ? "bg-primary/12 text-primary" : "bg-secondary text-muted-foreground"
+            )}
+            title={isLiked ? "Retirer le like" : "Liker ce profil"}
+          >
+            <Heart size={17} className={cn(isLiked && "fill-current")} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleFavorite();
+            }}
+            className={cn(
+              "w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition-colors",
+              isFavorite ? "bg-accent/12 text-accent" : "bg-secondary text-muted-foreground"
+            )}
+            title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+          >
+            <Bookmark size={17} className={cn(isFavorite && "fill-current")} />
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop : carte inchangée. */}
+      <Card variant="interactive" className="hidden md:flex p-5 flex-col justify-between h-full select-none group border-border/60 shadow-2xs">
       <div className="space-y-4" onClick={handleInspect}>
         <div className="flex items-start justify-between gap-3">
           <div className="relative shrink-0">
@@ -173,5 +237,6 @@ export function DiscoverProfileCard({
         </Button>
       </div>
     </Card>
+    </>
   );
 }

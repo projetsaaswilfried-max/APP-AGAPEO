@@ -52,32 +52,32 @@ function AdvancedField({ isPremium, onRequirePremium, children }: AdvancedFieldP
 export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose, isPremium, onRequirePremium }: FilterPanelProps) {
   const update = (patch: Partial<DiscoverFilterCriteria>) => onChangeFilters({ ...filters, ...patch });
 
-  return (
-    <Card variant="base" className="p-5 space-y-5 border-border/60 shadow-2xs select-none bg-card">
-      <div className="flex items-center justify-between border-b border-border/60 pb-3">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal size={16} className="text-primary" />
-          <h3 className="text-sm font-display font-semibold text-foreground tracking-tight">
-            Filtres de Recherche
-          </h3>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onResetFilters}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-          >
-            <RefreshCw size={12} /> Réinitialiser
-          </button>
-          {onClose && (
-            <button type="button" onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded-lg">
-              <X size={16} />
-            </button>
-          )}
-        </div>
+  const header = (
+    <div className="flex items-center justify-between border-b border-border/60 pb-3">
+      <div className="flex items-center gap-2">
+        <SlidersHorizontal size={16} className="text-primary" />
+        <h3 className="text-sm font-display font-semibold text-foreground tracking-tight">Filtres de Recherche</h3>
       </div>
 
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onResetFilters}
+          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+        >
+          <RefreshCw size={12} /> Réinitialiser
+        </button>
+        {onClose && (
+          <button type="button" onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded-lg">
+            <X size={16} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const fields = (
+    <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="space-y-2">
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
@@ -211,6 +211,25 @@ export function FilterPanel({ filters, onChangeFilters, onResetFilters, onClose,
           />
         </AdvancedField>
       </div>
-    </Card>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile : feuille glissant depuis le bas (format de l'app native). */}
+      <div className="md:hidden fixed inset-0 z-50">
+        <div className="absolute inset-0 bg-foreground/45 backdrop-blur-sm" onClick={onClose} />
+        <div className="absolute bottom-0 inset-x-0 max-h-[85vh] overflow-y-auto bg-card rounded-t-[28px] shadow-soft p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] select-none animate-in slide-in-from-bottom duration-300">
+          {header}
+          <div className="pt-5 space-y-5">{fields}</div>
+        </div>
+      </div>
+
+      {/* Desktop : panneau inline inchangé. */}
+      <Card variant="base" className="hidden md:block p-5 space-y-5 border-border/60 shadow-2xs select-none bg-card">
+        {header}
+        {fields}
+      </Card>
+    </>
   );
 }
