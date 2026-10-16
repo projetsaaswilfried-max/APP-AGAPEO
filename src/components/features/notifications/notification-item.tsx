@@ -99,8 +99,10 @@ export function NotificationItem({
         </p>
       </div>
 
-      {/* Actions au survol : Marquer comme lu / Supprimer */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      {/* Marquer comme lu / Supprimer : toujours visibles sur mobile (pas de
+          survol sur un écran tactile, ces boutons seraient sinon totalement
+          inatteignables) — au survol seulement sur desktop, inchangé. */}
+      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
         {!notification.isRead && (
           <button
             onClick={(e) => {
