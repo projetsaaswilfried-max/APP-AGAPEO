@@ -36,7 +36,7 @@ const FUNNEL_STEPS: { key: string; label: string }[] = [
   { key: "photos", label: "Photos" },
   { key: "selfie", label: "Selfie" },
   { key: "faith", label: "Ma foi" },
-  { key: "preferences", label: "Préférences" }
+  { key: "hobbies", label: "Tes passions" }
 ];
 
 const RANGE_PRESETS = [

@@ -23,8 +23,8 @@ export function isProfileComplete(
   );
 }
 
-/** Les 5 étapes navigables de l'assistant d'onboarding (cf. onboarding-wizard.tsx) — partagé pour que le renvoi vers une étape précise reste cohérent entre le bandeau, l'action de soumission et le wizard lui-même. */
-export type OnboardingStepKey = "essential" | "photos" | "selfie" | "faith" | "preferences";
+/** Les étapes navigables de l'assistant d'onboarding (cf. onboarding-wizard.tsx) — partagé pour que le renvoi vers une étape précise reste cohérent entre le bandeau, l'action de soumission et le wizard lui-même. "recap" n'est jamais une cible de renvoi (on ne corrige jamais un champ manquant EN y allant), elle existe ici seulement pour partager le même type que les autres étapes dans le wizard. */
+export type OnboardingStepKey = "essential" | "photos" | "selfie" | "faith" | "hobbies" | "recap";
 
 export interface MissingProfileStep {
   step: OnboardingStepKey;
@@ -41,7 +41,7 @@ export function getMissingProfileSteps(
   }
   if (!profile.avatar_url) missing.push({ step: "photos", label: "une photo de profil" });
   if (!profile.church_denomination) missing.push({ step: "faith", label: "ta confession chrétienne" });
-  if (!profile.why_marriage) missing.push({ step: "preferences", label: "ta vision du mariage" });
+  if (!profile.why_marriage) missing.push({ step: "faith", label: "ta vision du mariage" });
   return missing;
 }
 

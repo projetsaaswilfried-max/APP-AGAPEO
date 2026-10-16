@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { OnboardingStepFooter } from "./onboarding-step-footer";
 import { completeEssentialInfoAction } from "@/lib/actions/profile.actions";
 import { SUPPORTED_COUNTRIES } from "@/config/countries";
 import { AlertCircle } from "lucide-react";
@@ -47,11 +47,9 @@ export function OnboardingEssentialInfoStep({ onNext }: OnboardingEssentialInfoS
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-display font-semibold text-foreground">Tes informations essentielles</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Encore quelques informations avant de commencer — elles ne pourront plus être modifiées ensuite.
-        </p>
+      <div className="hidden md:block">
+        <h2 className="text-lg font-display font-semibold text-foreground">Parle-nous de toi</h2>
+        <p className="text-sm text-muted-foreground mt-1">Genre, âge et pays : verrouillés après validation.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -106,11 +104,7 @@ export function OnboardingEssentialInfoStep({ onNext }: OnboardingEssentialInfoS
         </div>
       )}
 
-      <div className="flex justify-end pt-2">
-        <Button variant="primary" size="lg" onClick={handleContinue} isLoading={isPending}>
-          Continuer
-        </Button>
-      </div>
+      <OnboardingStepFooter onSaveAndNext={handleContinue} isSaving={isPending} />
     </div>
   );
 }

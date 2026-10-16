@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { DenominationSelect } from "@/components/features/profile/denomination-select";
 import { resolveDenomination } from "@/config/denomination-options";
 import { OnboardingStepFooter } from "./onboarding-step-footer";
@@ -18,17 +18,16 @@ interface OnboardingFaithStepProps {
 export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaithStepProps) {
   const [denomination, setDenomination] = useState(profile.church_denomination ?? "");
   const [maritalStatus, setMaritalStatus] = useState<MaritalStatusType | "">(profile.marital_status ?? "");
-  const [heightCm, setHeightCm] = useState(profile.height_cm ? String(profile.height_cm) : "");
+  const [whyMarriage, setWhyMarriage] = useState(profile.why_marriage ?? "");
   const [isPending, startTransition] = useTransition();
   const [showErrors, setShowErrors] = useState(false);
-  const isComplete = Boolean(denomination.trim()) && Boolean(maritalStatus);
+  const isComplete = Boolean(denomination.trim()) && Boolean(maritalStatus) && Boolean(whyMarriage.trim());
 
   const handleSaveAndNext = () => {
     if (!isComplete) {
       setShowErrors(true);
       return;
     }
-    const parsedHeight = heightCm.trim() ? Number(heightCm) : null;
     // Réécrit vers l'orthographe canonique à CHAQUE enregistrement, même si
     // la personne n'a pas retouché le menu déroulant — sinon une ancienne
     // saisie libre reconnue et déjà affichée normalisée à l'écran (ex:
@@ -39,7 +38,7 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
       await updateProfileAction({
         church_denomination: normalizedDenomination || null,
         marital_status: maritalStatus || null,
-        height_cm: parsedHeight && parsedHeight >= 120 && parsedHeight <= 230 ? parsedHeight : null
+        why_marriage: whyMarriage || null
       });
       onNext();
     });
@@ -47,11 +46,9 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-display font-semibold text-foreground">Ma foi & ma situation</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          L&apos;essentiel pour te présenter à la communauté — confession et situation matrimoniale sont obligatoires, la taille est facultative.
-        </p>
+      <div className="hidden md:block">
+        <h2 className="text-lg font-display font-semibold text-foreground">Ta foi</h2>
+        <p className="text-sm text-muted-foreground mt-1">Confession, situation et pourquoi tu cherches le mariage.</p>
       </div>
 
       <DenominationSelect
@@ -80,16 +77,15 @@ export function OnboardingFaithStep({ profile, onNext, onBack }: OnboardingFaith
         {showErrors && !maritalStatus && <p className="text-xs text-destructive font-medium pl-1">Champ obligatoire</p>}
       </div>
 
-      <Input
-        label="Taille (en cm)"
-        type="number"
-        inputMode="numeric"
-        min={120}
-        max={230}
-        placeholder="Ex : 175"
-        value={heightCm}
-        onChange={(e) => setHeightCm(e.target.value)}
-      />
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-foreground">Pourquoi recherches-tu le mariage ? *</label>
+        <Textarea
+          value={whyMarriage}
+          onChange={(e) => setWhyMarriage(e.target.value)}
+          maxLength={1000}
+          error={showErrors && !whyMarriage.trim() ? "Champ obligatoire" : undefined}
+        />
+      </div>
 
       <OnboardingStepFooter onSaveAndNext={handleSaveAndNext} onBack={onBack} isSaving={isPending} />
     </div>

@@ -84,9 +84,17 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
         ...prev.marriageVision,
         familyVision: updated.familyVision,
         desiredChildrenCount: updated.desiredChildrenCount,
-        timelineYears: updated.marriageTimeline
+        timelineYears: updated.marriageTimeline,
+        coreValues: updated.coreValues
       },
-      preferences: { ...prev.preferences, desiredValues: updated.desiredValues }
+      preferences: {
+        ...prev.preferences,
+        desiredValues: updated.desiredValues,
+        desiredAgeMin: updated.desiredAgeMin,
+        desiredAgeMax: updated.desiredAgeMax,
+        desiredMaritalStatuses: updated.desiredMaritalStatuses,
+        desiredCountries: updated.desiredCountries
+      }
     }));
     await updateProfileAction({
       qualities: updated.qualities,
@@ -94,7 +102,12 @@ function ProfilePageClientInner({ initialProfile, initialPhotos }: ProfilePageCl
       family_vision: updated.familyVision || null,
       desired_children_count: updated.desiredChildrenCount || null,
       marriage_timeline: updated.marriageTimeline || null,
-      desired_values: updated.desiredValues
+      desired_values: updated.desiredValues,
+      core_values: updated.coreValues,
+      desired_age_min: updated.desiredAgeMin,
+      desired_age_max: updated.desiredAgeMax,
+      desired_marital_statuses: updated.desiredMaritalStatuses,
+      desired_countries: updated.desiredCountries
     });
   };
 

@@ -28,10 +28,13 @@ export function OnboardingStepFooter({
   skipLabel = "Plus tard"
 }: OnboardingStepFooterProps) {
   return (
-    <div className="flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center pt-2 gap-3">
+    <div className="sticky bottom-0 bg-card pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] -mx-5 px-5 border-t border-border/40 md:static md:bg-transparent md:pt-2 md:pb-0 md:-mx-0 md:px-0 md:border-0 flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3">
       <div className="flex items-center gap-2">
+        {/* Masqué sur mobile : la flèche de retour en haut de l'écran (format
+            app native) couvre déjà ce rôle là-bas — desktop n'a pas cette
+            flèche, "Retour" y reste donc le seul moyen de revenir en arrière. */}
         {onBack && (
-          <Button variant="outline" size="lg" onClick={onBack} disabled={isSaving || isSkipping} className="flex-1 sm:flex-none">
+          <Button variant="outline" size="lg" onClick={onBack} disabled={isSaving || isSkipping} className="hidden md:inline-flex">
             Retour
           </Button>
         )}

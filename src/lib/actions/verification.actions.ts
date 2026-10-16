@@ -29,7 +29,7 @@ import type { ProfileRow } from "@/lib/supabase/database.types";
  */
 export interface SubmitVerificationResult {
   error?: string;
-  /** Étape de l'onboarding où renvoyer la personne pour corriger ce qui manque (cf. onboarding-preferences-step.tsx). */
+  /** Étape de l'onboarding où renvoyer la personne pour corriger ce qui manque (cf. onboarding-recap-step.tsx). */
   missingStep?: OnboardingStepKey;
   success?: true;
 }

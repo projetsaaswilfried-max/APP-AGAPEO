@@ -20,8 +20,11 @@ export default async function OnboardingLayout({ children }: { children: React.R
 
   return (
     <SessionProvider user={user} profile={profile}>
-      <div className="min-h-screen bg-background flex items-center justify-center p-4 md:p-8">
-        <div className="w-full max-w-2xl">{children}</div>
+      {/* Mobile : le wizard gère lui-même son propre plein écran (fond
+          sombre + feuille, format app native) — pas de centrage/padding ici
+          qui l'enfermerait dans une boîte. Desktop inchangé. */}
+      <div className="min-h-screen bg-background md:flex md:items-center md:justify-center md:p-8">
+        <div className="w-full md:max-w-2xl">{children}</div>
       </div>
     </SessionProvider>
   );

@@ -55,7 +55,7 @@ export function OnboardingSelfieStep({ userId, hasPendingSelfie, onNext, onBack 
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="hidden md:block">
         <h2 className="text-lg font-display font-semibold text-foreground">Confirme que c&apos;est bien toi</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Un selfie en direct, comparé à tes photos par notre équipe — c&apos;est ce qui protège tout le monde des faux

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { OnboardingStepFooter } from "./onboarding-step-footer";
 import { PhotoManager } from "@/components/features/profile/photo-manager";
 import { AlertCircle } from "lucide-react";
 import type { ProfilePhotoRow, VerificationStatus } from "@/lib/supabase/database.types";
@@ -37,11 +37,10 @@ export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationS
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="hidden md:block">
         <h2 className="text-lg font-display font-semibold text-foreground">Tes photos *</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Ajoute au moins une vraie photo depuis ton ordinateur — obligatoire pour continuer. La première ajoutée
-          devient ta photo principale.
+          Ajoute au moins une vraie photo — obligatoire pour continuer. La première ajoutée devient ta photo principale.
           {announceSelfieStep && " Juste après, on te demandera un selfie en direct pour confirmer que c'est bien toi."}
         </p>
       </div>
@@ -65,11 +64,7 @@ export function OnboardingPhotosStep({ userId, initialPhotos, photoVerificationS
         </div>
       )}
 
-      <div className="flex justify-end pt-2">
-        <Button variant="primary" size="lg" onClick={handleContinue} className="w-full sm:w-auto">
-          Continuer
-        </Button>
-      </div>
+      <OnboardingStepFooter onSaveAndNext={handleContinue} />
     </div>
   );
 }
