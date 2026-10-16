@@ -21,7 +21,11 @@ export function useInstallAvailability() {
   }, []);
 
   const alreadyInstalled = isStandalone || standaloneOnMount;
-  const available = !alreadyInstalled && (platform === "android" || platform === "ios" || platform === "mac-safari" || canInstall);
+  // "ios" volontairement exclu pour l'instant : pas encore d'application
+  // disponible sur cette plateforme (seul Android l'est, via le Play Store) —
+  // à réintégrer dans cette condition le jour où ça change, le reste du
+  // flux (bouton, modale d'instructions) est déjà prêt et inchangé.
+  const available = !alreadyInstalled && (platform === "android" || platform === "mac-safari" || canInstall);
 
   return { available, platform, canInstall, promptInstall };
 }
