@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/layout/app-shell";
 import { SessionProvider } from "@/core/providers/session-provider";
-import { requireSession } from "@/lib/supabase/session";
+import { requireMemberViewSession } from "@/lib/supabase/session";
 
 // Espace membre connecté : jamais indexé (contenu privé, profils, messages).
 export const metadata: Metadata = {
@@ -21,10 +21,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, profile } = await requireSession();
+  // Équipe : profil réécrit selon le mode aperçu abonné / non-abonné (cf. requireMemberViewSession).
+  const { user, profile, realProfile, previewMode } = await requireMemberViewSession();
 
   return (
-    <SessionProvider user={user} profile={profile}>
+    <SessionProvider user={user} profile={profile} realProfile={realProfile} previewMode={previewMode}>
       <AppShell>{children}</AppShell>
     </SessionProvider>
   );

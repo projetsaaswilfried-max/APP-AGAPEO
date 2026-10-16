@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireSession } from "@/lib/supabase/session";
+import { requireMemberViewSession } from "@/lib/supabase/session";
 import { createClient } from "@/lib/supabase/server";
 import { mapProfileRowToUserProfile } from "@/domain/mappers/profile.mapper";
 import { mapPostRowToFeedPublication } from "@/domain/mappers/feed.mapper";
@@ -13,7 +13,7 @@ import type { ProfileRow, PostRow, PostMediaRow } from "@/lib/supabase/database.
 
 export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { user, profile: viewerRow } = await requireSession();
+  const { user, profile: viewerRow } = await requireMemberViewSession();
 
   if (id === user.id) {
     redirect("/profile");

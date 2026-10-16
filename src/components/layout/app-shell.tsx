@@ -19,6 +19,7 @@ import { IncompleteProfileBanner } from "./incomplete-profile-banner";
 import { PremiumUpsellBanner } from "./premium-upsell-banner";
 import { PremiumWelcomeNudge } from "@/components/features/premium/premium-welcome-nudge";
 import { AgapeoLogo } from "@/components/ui/logo";
+import { PreviewModeSwitch } from "./preview-mode-switch";
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Home,
@@ -64,7 +65,9 @@ function AppShellContent({ children }: AppShellProps) {
   useRestoreScrollMemory(pathname);
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground antialiased">
+    // Menu et header partagent le même fond (bg-card) ; le contenu est posé
+    // sur un panneau gris (bg-background) à coin supérieur gauche arrondi.
+    <div className="min-h-screen flex bg-card text-foreground antialiased">
       {/* Sidebar Desktop */}
       <Sidebar
         isCollapsed={isSidebarCollapsed}
@@ -132,6 +135,7 @@ function AppShellContent({ children }: AppShellProps) {
               </nav>
 
               <div className="p-4 border-t border-border/60">
+                <PreviewModeSwitch className="mb-3 justify-between" layoutId="preview-mode-pill-drawer" />
                 <div className="flex items-center gap-3 p-2.5 rounded-xl bg-secondary/40 border border-border/40">
                   <div className="w-9 h-9 rounded-full bg-slate-900 text-white dark:bg-white dark:text-black font-semibold text-xs flex items-center justify-center overflow-hidden">
                     {profile.avatar_url ? (
@@ -161,24 +165,27 @@ function AppShellContent({ children }: AppShellProps) {
       {/* Main Viewport Workspace */}
       <div className={cn("flex-1 flex flex-col min-w-0 min-h-screen md:pb-0", isConversationOpen ? "pb-0" : "pb-16")}>
         <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
-        <IncompleteProfileBanner />
-        <PremiumUpsellBanner />
-        <PremiumWelcomeNudge />
 
-        <main className="flex-1 w-full px-5 py-4 md:py-6 lg:py-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: TRANSITION_EASE }}
-              className="h-full flex flex-col"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
-        </main>
+        <div className="flex-1 flex flex-col bg-background md:rounded-tl-[40px]">
+          <IncompleteProfileBanner />
+          <PremiumUpsellBanner />
+          <PremiumWelcomeNudge />
+
+          <main className="flex-1 w-full px-5 py-4 md:py-6 lg:py-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease: TRANSITION_EASE }}
+                className="h-full flex flex-col"
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </main>
+        </div>
       </div>
 
       {/* Bottom Navigation Mobile */}

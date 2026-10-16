@@ -23,6 +23,9 @@ import { getInitials } from "@/domain/badges";
 import { signOutAction } from "@/lib/actions/auth.actions";
 import { useUnreadCounts } from "@/core/providers/unread-counts-provider";
 import { saveScrollForCurrentPage } from "@/core/hooks/use-scroll-memory";
+import { canUsePreviewMode } from "@/domain/preview-mode";
+import { cn } from "@/lib/utils";
+import { PreviewModeSwitch } from "./preview-mode-switch";
 
 interface HeaderProps {
   onOpenMobileMenu?: () => void;
@@ -33,7 +36,8 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   const router = useRouter();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, profile } = useSession();
+  const { user, profile, realProfile } = useSession();
+  const canPreview = canUsePreviewMode(realProfile);
   const initials = getInitials(profile.first_name, profile.last_name);
   const { unreadNotifications } = useUnreadCounts();
 
@@ -74,7 +78,15 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   const pageTitle = currentNavItem ? currentNavItem.title : "Tableau de Bord";
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 md:px-6 bg-card/85 backdrop-blur-xl border-b border-border/40 select-none md:rounded-bl-[30px]">
+    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 md:px-6 bg-card border-b border-border/40 md:border-b-0 select-none">
+      {/* Coin intérieur arrondi (desktop) : le blanc du header et du menu
+          s'arrondit sur le panneau gris du contenu (cf. AppShell) — gardé ici,
+          dans le header collant, pour que l'arrondi reste net même quand le
+          contenu défile dessous. */}
+      <span aria-hidden className="pointer-events-none absolute left-0 top-full hidden md:block size-10 overflow-hidden">
+        <span className="absolute left-0 top-0 size-20 rounded-tl-[40px] shadow-[0_0_0_40px_hsl(var(--card))]" />
+      </span>
+
       {/* Zone Gauche : Mobile Toggle + Titre de Vue */}
       <div className="flex items-center gap-3">
         <button
@@ -95,7 +107,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
       </div>
 
       {/* Zone Centrale : recherche de profils (redirige vers Découvrir avec le filtre appliqué) */}
-      <form onSubmit={handleSearchSubmit} className="hidden sm:flex items-center flex-1 max-w-md mx-6">
+      <form onSubmit={handleSearchSubmit} className={cn("items-center flex-1 max-w-md mx-6", canPreview ? "hidden lg:flex" : "hidden sm:flex")}>
         <div className="w-full flex items-center gap-2.5 px-4 py-2 bg-secondary/60 focus-within:bg-card border border-border/40 focus-within:ring-2 focus-within:ring-ring rounded-full transition-all duration-200">
           <HugeIcon icon={Search01Icon} size={15} className="text-muted-foreground shrink-0" />
           <input
@@ -110,6 +122,8 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
 
       {/* Zone Droite : Notifications & Profil Utilisateur */}
       <div className="flex items-center gap-2">
+        <PreviewModeSwitch className="hidden md:flex mr-1" layoutId="preview-mode-pill-header" />
+
         <Link
           href="/notifications"
           onClick={saveScrollForCurrentPage}
@@ -197,14 +211,14 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
                     <HugeIcon icon={HelpCircleIcon} size={14} className="text-muted-foreground" />
                     <span>Support</span>
                   </Link>
-                  {profile.role !== "USER" && (
+                  {realProfile.role !== "USER" && (
                     <Link
                       href="/admin"
                       onClick={() => setIsProfileMenuOpen(false)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-secondary rounded-lg transition-colors"
                     >
                       <HugeIcon icon={SecurityValidationIcon} size={14} className="text-primary" />
-                      <span>{profile.role === "MODERATOR" ? "Modération" : "Administration"}</span>
+                      <span>{realProfile.role === "MODERATOR" ? "Modération" : "Administration"}</span>
                     </Link>
                   )}
                 </div>

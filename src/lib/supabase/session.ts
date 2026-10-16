@@ -1,8 +1,10 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "./server";
 import type { ProfileRow, ProfileRestrictedRow } from "./database.types";
+import { PREVIEW_MODE_COOKIE, applyPreviewMode, canUsePreviewMode, parsePreviewMode } from "@/domain/preview-mode";
 
 /**
  * Profil de session = `profiles` (public) fusionné avec `profile_restricted`
@@ -60,6 +62,26 @@ export async function requireSession() {
     redirect("/payment-required");
   }
   return { user, profile: profile! };
+}
+
+/**
+ * Session telle que l'interface membre (dashboard) doit l'afficher : pour
+ * l'équipe, le profil est réécrit selon le mode aperçu choisi (cookie posé
+ * par setPreviewModeAction). `realProfile` garde les vrais droits (lien
+ * Administration, commutateur d'aperçu). Les gardes staff (requireStaffSession…)
+ * passent toujours par requireSession et ne sont donc jamais affectées.
+ */
+export async function requireMemberViewSession() {
+  const { user, profile } = await requireSession();
+  const previewMode = canUsePreviewMode(profile)
+    ? parsePreviewMode((await cookies()).get(PREVIEW_MODE_COOKIE)?.value)
+    : null;
+  return {
+    user,
+    profile: previewMode ? applyPreviewMode(profile, previewMode) : profile,
+    realProfile: profile,
+    previewMode
+  };
 }
 
 /** À utiliser dans les layouts/pages réservées aux modérateurs/administrateurs. */
