@@ -395,7 +395,10 @@ function MessagesPageContent() {
 
   return (
     <div className={cn("space-y-4 w-full select-none", isMobileChatOpen ? "pb-0" : "pb-16")}>
-      <div className={cn("border-b border-border/40 pb-3", isMobileChatOpen && "hidden md:block")}>
+      {/* Desktop uniquement : titre de page + sous-titre — sur mobile, l'app
+          native n'affiche qu'un simple "Messages" (déjà couvert par le
+          fil d'Ariane du header global), jamais ce bandeau. */}
+      <div className="hidden md:block border-b border-border/40 pb-3">
         <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Messagerie Privée & Échanges</h1>
         <p className="text-xs text-muted-foreground mt-0.5">Discutez en toute sérénité avec vos contacts.</p>
       </div>
@@ -406,22 +409,24 @@ function MessagesPageContent() {
         app-shell.tsx) — on récupère ici cet espace en réduisant d'autant la
         hauteur soustraite (13rem -> 6rem, header d'app 4rem + marges), pour
         que la discussion occupe vraiment tout l'écran disponible, comme
-        WhatsApp. Desktop conserve la mise en page à deux colonnes d'origine.
+        WhatsApp. Desktop conserve la mise en page à deux colonnes d'origine,
+        avec sa carte bordée — sur mobile, la liste est à plat, sans carte,
+        comme le CustomScrollView de l'app native (messages_body.dart).
       */}
       <div
         className={cn(
-          "min-h-[520px] bg-card border border-border/40 rounded-3xl overflow-hidden shadow-soft flex",
+          "min-h-[520px] md:bg-card md:border md:border-border/40 md:rounded-3xl overflow-hidden md:shadow-soft flex",
           isMobileChatOpen ? "h-[calc(100dvh-6rem)] md:h-[calc(100dvh-13rem)]" : "h-[calc(100dvh-13rem)]"
         )}
       >
         <div
           className={cn(
-            "w-full md:w-80 border-r border-border/40 flex flex-col bg-card shrink-0 transition-all duration-200",
+            "w-full md:w-80 md:border-r md:border-border/40 flex flex-col md:bg-card shrink-0 transition-all duration-200",
             isMobileChatOpen ? "hidden md:flex" : "flex"
           )}
         >
-          <div className="p-4 border-b border-border/40 space-y-3">
-            <h2 className="text-sm font-display font-semibold text-foreground tracking-tight">Discussions ({conversations.length})</h2>
+          <div className="p-4 md:border-b md:border-border/40 space-y-3">
+            <h2 className="hidden md:block text-sm font-display font-semibold text-foreground tracking-tight">Discussions ({conversations.length})</h2>
             <SearchInput
               placeholder="Rechercher une discussion..."
               value={searchQuery}

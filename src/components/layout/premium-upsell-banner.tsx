@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import { Crown, ArrowRight } from "lucide-react";
 import { useSession } from "@/core/providers/session-provider";
@@ -11,17 +11,19 @@ import { cn } from "@/lib/utils";
 function PremiumUpsellBannerContent() {
   const { profile } = useSession();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   // On laisse la priorité au bandeau "profil incomplet"/"à soumettre" — pas
   // deux bandeaux à la fois (cf. incomplete-profile-banner.tsx).
   const pendingSubmission = !profile.is_staff && needsVerificationSubmission(profile);
   if (!isProfileComplete(profile) || pendingSubmission || profile.subscription_status === "ACTIVE" || pathname === "/onboarding") return null;
 
-  const isMobileConversationOpen = pathname === "/messages" && Boolean(searchParams.get("conversation"));
+  // Sur mobile, Messagerie n'affiche jamais ce bandeau (liste ou discussion
+  // ouverte) — cf. le même choix dans incomplete-profile-banner.tsx. Toujours
+  // visible en version bureau.
+  const hideOnMobile = pathname === "/messages";
 
   return (
-    <div className={cn("px-5 pt-4 select-none", isMobileConversationOpen && "hidden md:block")}>
+    <div className={cn("px-5 pt-4 select-none", hideOnMobile && "hidden md:block")}>
       <div className="flex flex-wrap items-center gap-4 rounded-3xl bg-accent-subtle/80 border border-accent/20 px-5 py-3.5 shadow-soft">
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0 shadow-accent-glow">
           <Crown size={18} />

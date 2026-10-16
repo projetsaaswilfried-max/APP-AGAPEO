@@ -62,6 +62,12 @@ export function ConversationListItem({
               {participant.firstName} {participant.lastName}
             </span>
             {isFavorite && <Pin size={11} className="text-accent shrink-0 fill-current" />}
+            {/* Puce "Invitation" (format app native) — uniquement sur mobile, pour une invitation reçue (pas la mienne). */}
+            {isPendingInvite && !initiatedByMe && (
+              <span className="md:hidden shrink-0 text-[10px] font-semibold text-primary bg-primary/14 px-1.5 py-0.5 rounded-full">
+                Invitation
+              </span>
+            )}
           </div>
           {lastMessage && (
             <span className="text-[10px] text-muted-foreground shrink-0 font-medium">

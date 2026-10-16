@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { UserCheck, ShieldCheck, ArrowRight } from "lucide-react";
 import { useSession } from "@/core/providers/session-provider";
 import { isProfileComplete, getMissingProfileFields, needsVerificationSubmission } from "@/domain/profile-completeness";
@@ -13,7 +13,6 @@ const TOTAL_STEPS = 4;
 function IncompleteProfileBannerContent() {
   const { profile } = useSession();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const missingFields = !isProfileComplete(profile);
   // Profil complet (infos + photo) mais jamais soumis pour validation — quitté
@@ -25,14 +24,16 @@ function IncompleteProfileBannerContent() {
 
   if ((!missingFields && !pendingSubmission) || pathname === "/onboarding") return null;
 
-  // Sur mobile, une discussion ouverte occupe tout l'écran : on laisse
-  // uniquement la conversation visible, sans bandeau au-dessus. Le bandeau
-  // reste toujours visible en version bureau (vue partagée liste + discussion).
-  const isMobileConversationOpen = pathname === "/messages" && Boolean(searchParams.get("conversation"));
+  // Sur mobile, Messagerie n'affiche jamais ce bandeau (liste ou discussion
+  // ouverte) — l'app native gère les restrictions via le type de compte, pas
+  // par un renvoi vers la soumission de profil au-dessus des messages. Le
+  // bandeau reste toujours visible en version bureau (vue partagée liste +
+  // discussion).
+  const hideOnMobile = pathname === "/messages";
 
   if (pendingSubmission) {
     return (
-      <div className={cn("px-5 pt-4 select-none", isMobileConversationOpen && "hidden md:block")}>
+      <div className={cn("px-5 pt-4 select-none", hideOnMobile && "hidden md:block")}>
         <div className="flex flex-wrap items-center gap-4 rounded-3xl bg-accent-subtle/80 border border-accent/20 px-5 py-3.5 shadow-soft">
           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0 shadow-accent-glow">
             <ShieldCheck size={18} />
@@ -61,7 +62,7 @@ function IncompleteProfileBannerContent() {
   const done = TOTAL_STEPS - missing.length;
 
   return (
-    <div className={cn("px-5 pt-4 select-none", isMobileConversationOpen && "hidden md:block")}>
+    <div className={cn("px-5 pt-4 select-none", hideOnMobile && "hidden md:block")}>
       <div className="flex flex-wrap items-center gap-4 rounded-3xl bg-accent-subtle/80 border border-accent/20 px-5 py-3.5 shadow-soft">
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0 shadow-accent-glow">
           <UserCheck size={18} />
