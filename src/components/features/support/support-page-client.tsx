@@ -66,7 +66,7 @@ export function SupportPageClient() {
 
   return (
     <div className="flex h-full min-h-0 rounded-2xl border border-border/60 overflow-hidden bg-card">
-      <div className={cn("w-full sm:w-72 shrink-0 border-r border-border/60 overflow-y-auto p-3 space-y-3", isMobilePanelOpen && "hidden sm:block")}>
+      <div className={cn("w-full md:w-72 shrink-0 border-r border-border/60 overflow-y-auto p-3 space-y-3", isMobilePanelOpen && "hidden md:block")}>
         {!hasOpenTicket && (
           <button
             type="button"
@@ -79,10 +79,10 @@ export function SupportPageClient() {
         <SupportTicketHistory tickets={tickets} activeTicketId={selectedTicket?.id} onSelect={handleSelectTicket} />
       </div>
 
-      <div className={cn("flex-1 min-w-0 p-3 flex-col min-h-0", isMobilePanelOpen ? "flex" : "hidden sm:flex")}>
+      <div className={cn("flex-1 min-w-0 p-3 flex-col min-h-0", isMobilePanelOpen ? "flex" : "hidden md:flex")}>
         <button
           onClick={() => setIsMobilePanelOpen(false)}
-          className="sm:hidden flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground pb-2 shrink-0"
+          className="md:hidden flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground pb-2 shrink-0"
         >
           <ArrowLeft size={14} /> Retour à mes dossiers
         </button>

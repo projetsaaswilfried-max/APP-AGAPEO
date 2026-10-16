@@ -169,7 +169,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   // Mobile uniquement (liste groupée façon app native) : quelle ligne est
   // dépliée sous elle pour afficher son contenu — jamais plusieurs à la fois.
-  const [mobileExpanded, setMobileExpanded] = useState<"blocked" | null>(null);
+  const [mobileExpanded, setMobileExpanded] = useState<"blocked" | "legal" | null>(null);
   const needsVerification = profile.photoVerificationStatus !== "VERIFIED" && !sessionProfile.is_staff;
 
   useEffect(() => {
@@ -244,7 +244,21 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
         <SettingsGroup title="Aide">
           <SettingsRow icon={<Download size={16} />} label="Exporter mes données" onClick={handleExport} disabled={isExporting} />
           <SettingsRow icon={<HelpCircle size={16} />} label="Support" href="/support" />
-          <SettingsRow icon={<FileText size={16} />} label="Mentions légales" href="/charter" />
+          <SettingsRow
+            icon={<FileText size={16} />}
+            label="Mentions légales"
+            showChevron={false}
+            onClick={() => setMobileExpanded(mobileExpanded === "legal" ? null : "legal")}
+          />
+          {mobileExpanded === "legal" && (
+            <div className="bg-secondary/30 divide-y divide-border/30">
+              <SettingsRow label="CGU / CGV" href="/cgv" />
+              <SettingsRow label="Politique de confidentialité" href="/politique-de-confidentialite" />
+              <SettingsRow label="Mentions légales" href="/mentions-legales" />
+              <SettingsRow label="Charte d'éthique" href="/charter" />
+              <SettingsRow label="Normes de sécurité des enfants" href="/normes-securite-enfants" />
+            </div>
+          )}
         </SettingsGroup>
 
         <SettingsGroup title="Sécurité">
