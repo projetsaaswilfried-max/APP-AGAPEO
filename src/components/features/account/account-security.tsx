@@ -12,7 +12,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Avatar } from "@/components/ui/avatar";
-import { ShieldCheck, ShieldQuestion, Lock, LogOut, Trash2, KeyRound, Mail, AlertCircle, CheckCircle2, Clock, Download, UserX } from "lucide-react";
+import { SettingsGroup, SettingsRow } from "@/components/features/profile/settings-row";
+import {
+  ShieldCheck,
+  ShieldQuestion,
+  Lock,
+  LogOut,
+  Trash2,
+  KeyRound,
+  Mail,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Download,
+  UserX,
+  HelpCircle,
+  FileText
+} from "lucide-react";
 import { changePasswordAction, changeEmailAction, signOutAction, type FormState } from "@/lib/actions/auth.actions";
 import { deleteAccountAction, exportMyDataAction } from "@/lib/actions/profile.actions";
 
@@ -98,24 +114,21 @@ interface BlockedProfile {
  * bloqué dans les deux sens) : impossible de revoir cette personne "depuis
  * la discussion" puisque la discussion elle-même a disparu. C'est donc ici,
  * dans un espace toujours accessible, que se fait le déblocage.
+ *
+ * État remonté dans `AccountSecurity` (plutôt que local à ce composant) —
+ * la version mobile (liste groupée façon app native) a besoin de savoir s'il
+ * y a au moins un profil bloqué pour décider d'afficher ou non la ligne
+ * "Comptes bloqués", avant même que cette carte ne soit montée.
  */
-function BlockedUsersCard() {
-  const [blocked, setBlocked] = useState<BlockedProfile[] | null>(null);
-  const [unblockingId, setUnblockingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    getBlockedProfilesAction().then((result) => {
-      if (result.success) setBlocked(result.profiles as BlockedProfile[]);
-    });
-  }, []);
-
-  const handleUnblock = async (id: string) => {
-    setUnblockingId(id);
-    await unblockUserAction(id);
-    setBlocked((prev) => prev?.filter((p) => p.id !== id) ?? null);
-    setUnblockingId(null);
-  };
-
+function BlockedUsersCard({
+  blocked,
+  unblockingId,
+  onUnblock
+}: {
+  blocked: BlockedProfile[] | null;
+  unblockingId: string | null;
+  onUnblock: (id: string) => void;
+}) {
   if (!blocked || blocked.length === 0) return null;
 
   return (
@@ -131,7 +144,7 @@ function BlockedUsersCard() {
               <Avatar size="sm" src={p.avatar_url ?? undefined} fallback={p.first_name.charAt(0)} />
               <span className="text-xs font-medium text-foreground">{p.first_name}</span>
             </div>
-            <Button variant="outline" size="sm" onClick={() => handleUnblock(p.id)} isLoading={unblockingId === p.id}>
+            <Button variant="outline" size="sm" onClick={() => onUnblock(p.id)} isLoading={unblockingId === p.id}>
               Débloquer
             </Button>
           </div>
@@ -152,6 +165,25 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [state, action, pending] = useActionState(changePasswordAction, initialState);
   const [emailState, emailAction, emailPending] = useActionState(changeEmailAction, initialState);
+  const [blocked, setBlocked] = useState<BlockedProfile[] | null>(null);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
+  // Mobile uniquement (liste groupée façon app native) : quelle ligne est
+  // dépliée sous elle pour afficher son contenu — jamais plusieurs à la fois.
+  const [mobileExpanded, setMobileExpanded] = useState<"blocked" | null>(null);
+  const needsVerification = profile.photoVerificationStatus !== "VERIFIED" && !sessionProfile.is_staff;
+
+  useEffect(() => {
+    getBlockedProfilesAction().then((result) => {
+      if (result.success) setBlocked(result.profiles as BlockedProfile[]);
+    });
+  }, []);
+
+  const handleUnblock = async (id: string) => {
+    setUnblockingId(id);
+    await unblockUserAction(id);
+    setBlocked((prev) => prev?.filter((p) => p.id !== id) ?? null);
+    setUnblockingId(null);
+  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -189,9 +221,67 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
   };
 
   return (
-    <div className="space-y-6 select-none">
+    <>
+      {/* Mobile : liste groupée façon app native (3 groupes : Compte / Aide /
+          Sécurité) — mêmes actions/modales que desktop ci-dessous, juste
+          présentées comme des lignes tappables plutôt que des cartes avec
+          boutons. "Déconnexion" n'apparaît pas ici : elle vit désormais au
+          niveau du hub (profile-page-client.tsx), comme dans l'app native. */}
+      <div className="md:hidden space-y-5 select-none">
+        <SettingsGroup title="Compte">
+          {needsVerification && (
+            <SettingsRow
+              icon={<ShieldQuestion size={16} />}
+              label="Vérification"
+              value={profile.photoVerificationStatus === "PENDING" ? "En cours" : profile.photoVerificationStatus === "REJECTED" ? "Refusée" : "À soumettre"}
+              href="/onboarding"
+            />
+          )}
+          <SettingsRow icon={<Mail size={16} />} label="Changer l'adresse email" onClick={() => setIsEmailModalOpen(true)} />
+          <SettingsRow icon={<KeyRound size={16} />} label="Changer le mot de passe" onClick={() => setIsPasswordModalOpen(true)} />
+        </SettingsGroup>
+
+        <SettingsGroup title="Aide">
+          <SettingsRow icon={<Download size={16} />} label="Exporter mes données" onClick={handleExport} disabled={isExporting} />
+          <SettingsRow icon={<HelpCircle size={16} />} label="Support" href="/support" />
+          <SettingsRow icon={<FileText size={16} />} label="Mentions légales" href="/charter" />
+        </SettingsGroup>
+
+        <SettingsGroup title="Sécurité">
+          {blocked && blocked.length > 0 && (
+            <>
+              <SettingsRow
+                icon={<UserX size={16} />}
+                label="Comptes bloqués"
+                value={`${blocked.length}`}
+                showChevron={false}
+                onClick={() => setMobileExpanded(mobileExpanded === "blocked" ? null : "blocked")}
+              />
+              {mobileExpanded === "blocked" && (
+                <div className="px-4 py-3 space-y-2 bg-secondary/30">
+                  {blocked.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar size="sm" src={p.avatar_url ?? undefined} fallback={p.first_name.charAt(0)} />
+                        <span className="text-xs font-medium text-foreground">{p.first_name}</span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => handleUnblock(p.id)} isLoading={unblockingId === p.id}>
+                        Débloquer
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+          <SettingsRow icon={<Trash2 size={16} />} label="Supprimer mon compte" danger onClick={() => setIsDeleteModalOpen(true)} />
+        </SettingsGroup>
+      </div>
+
+      {/* Desktop : piles de cartes inchangées. */}
+      <div className="hidden md:block space-y-6 select-none">
       <VerificationStatusCard profile={profile} />
-      <BlockedUsersCard />
+      <BlockedUsersCard blocked={blocked} unblockingId={unblockingId} onUnblock={handleUnblock} />
 
       <Card variant="base" className="p-6 space-y-6 border-border/60 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-4">
@@ -286,7 +376,9 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
           </Button>
         </div>
       </Card>
+      </div>
 
+      {/* Modales partagées entre mobile et desktop (déclenchées par les deux UI ci-dessus). */}
       <Modal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
@@ -405,6 +497,6 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
           </div>
         )}
       </Modal>
-    </div>
+    </>
   );
 }
