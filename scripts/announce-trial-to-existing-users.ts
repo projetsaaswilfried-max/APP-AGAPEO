@@ -40,7 +40,13 @@ loadEnvLocal();
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const RESEND_API_KEY = process.env.RESEND_API_KEY!;
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.agapeo.love";
+// En dur, jamais via process.env : .env.local pointe vers localhost pour le
+// développement (NEXT_PUBLIC_SITE_URL=http://localhost:3000) et l'aurait
+// emporté sur n'importe quel fallback, puisque la variable est bel et bien
+// définie — exactement l'incident déjà vécu sur un envoi à 10k destinataires
+// (cf. feedback_hardcode_prod_url_in_scripts). Ce script écrit toujours de
+// vrais liens dans de vrais emails : l'URL ne doit jamais dépendre de l'environnement local.
+const SITE_URL = "https://www.agapeo.love";
 const AGAPEO_SYSTEM_PROFILE_ID = "8d736a66-2597-4f48-b70b-08e6f7059c89";
 
 const isExecute = process.argv.includes("--execute");
