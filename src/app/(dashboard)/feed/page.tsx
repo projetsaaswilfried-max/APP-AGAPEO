@@ -253,8 +253,10 @@ export default function HomePage() {
   return (
     // Ordinateur (lg+) : rubriques en colonne verticale à gauche, la rubrique
     // choisie remplace le fil à droite. Mobile/tablette : onglets horizontaux.
-    <div className="w-full pb-16 select-none lg:grid lg:grid-cols-[13.5rem_minmax(0,42rem)] lg:justify-center lg:gap-8">
-      <nav aria-label="Rubriques du fil" className="hidden lg:block">
+    // Flex (et non grille) : rubriques à largeur fixe à gauche, fil centré à côté — les
+    // deux restent côte à côte même si une règle utilitaire venait à manquer.
+    <div className="w-full pb-16 select-none lg:flex lg:items-start lg:justify-center lg:gap-8">
+      <nav aria-label="Rubriques du fil" className="hidden lg:block w-[13.5rem] shrink-0 self-stretch">
         <div className="sticky top-24 space-y-1">
           <p className="px-3.5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Rubriques</p>
           {CATEGORY_TABS.map((tab) => {
@@ -286,7 +288,7 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <div className="space-y-6 max-w-2xl mx-auto w-full min-w-0">
+      <div className="space-y-6 max-w-2xl mx-auto lg:mx-0 w-full min-w-0">
         <div className="flex flex-col space-y-4">
           <PageHeader title="Fil d'actualité" description="Enseignements, témoignages et conseils partagés par l'équipe Agapeo." />
 

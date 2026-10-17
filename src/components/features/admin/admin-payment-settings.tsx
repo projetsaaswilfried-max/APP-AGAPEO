@@ -41,7 +41,7 @@ export function AdminPaymentSettings({ initialProvider, updatedAt }: { initialPr
           Détermine quel agrégateur encaisse les paiements Mobile Money (Moov, Wave, MTN, Celtiis...) à partir de
           maintenant. Le paiement par carte reste toujours géré par Chariow : SasPay ne le propose pas encore, aucun
           réglage possible sur ce point. Les abonnements déjà actifs ne sont jamais affectés, quel que soit le
-          processeur qui les a encaissés à l'origine.
+          processeur qui les a encaissés à l&apos;origine.
         </p>
       </div>
 
@@ -111,7 +111,7 @@ export function AdminPaymentSettings({ initialProvider, updatedAt }: { initialPr
         <p className="text-xs text-muted-foreground leading-relaxed">
           À partir de la confirmation, tout nouveau paiement Mobile Money passera par{" "}
           {pendingProvider ? PAYMENT_PROVIDER_LABELS[pendingProvider] : ""}. Le paiement par carte continue de passer
-          par Chariow sans changement. Les paiements déjà en cours sur l'ancien processeur ne sont pas affectés :
+          par Chariow sans changement. Les paiements déjà en cours sur l&apos;ancien processeur ne sont pas affectés :
           laisse-les se terminer normalement avant de rebasculer si besoin.
         </p>
       </Modal>
