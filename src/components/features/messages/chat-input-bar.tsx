@@ -173,7 +173,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
   };
 
   return (
-    <div className="p-3 bg-card/90 backdrop-blur-md border-t border-border/40 relative select-none">
+    <div className="p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3 bg-card/90 backdrop-blur-md border-t border-border/40 relative select-none">
       <input type="file" ref={imageInputRef} onChange={handleImageFileChange} accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" />
       <input type="file" ref={videoInputRef} onChange={handleVideoFileChange} accept="video/mp4,video/webm,video/quicktime" className="hidden" />
       <input
@@ -232,7 +232,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <HugeIcon icon={VoiceIcon} size={13} className="text-primary" /> Note vocale
               </span>
-              <span className="text-[10px] text-muted-foreground font-mono">{formatRecordingTime(recorder.recordedDurationSeconds)}</span>
+              <span className="text-[10px] text-muted-foreground tabular-nums">{formatRecordingTime(recorder.recordedDurationSeconds)}</span>
             </div>
           </div>
 
@@ -263,7 +263,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
 
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-semibold text-foreground truncate">{pendingFile.file.name}</span>
-              <span className="text-[10px] text-muted-foreground font-mono">{(pendingFile.file.size / (1024 * 1024)).toFixed(2)} MB</span>
+              <span className="text-[10px] text-muted-foreground tabular-nums">{(pendingFile.file.size / (1024 * 1024)).toFixed(2)} MB</span>
             </div>
           </div>
 
@@ -337,7 +337,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
                 className="w-2 h-2 rounded-full bg-destructive shrink-0 transition-transform duration-75"
                 style={{ transform: `scale(${1 + recorder.audioLevel * 1.8})` }}
               />
-              <span className="text-xs font-mono tabular-nums text-foreground shrink-0">{formatRecordingTime(recorder.elapsedSeconds)}</span>
+              <span className="text-xs tabular-nums text-foreground shrink-0">{formatRecordingTime(recorder.elapsedSeconds)}</span>
               {recorder.elapsedSeconds >= 2 && !recorder.hasDetectedSound ? (
                 <span className="text-[11px] text-destructive font-medium truncate">Aucun son détecté — vérifie ton micro</span>
               ) : (

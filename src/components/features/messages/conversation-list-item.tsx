@@ -37,10 +37,10 @@ export function ConversationListItem({
     <div
       onClick={onSelect}
       className={cn(
-        "flex items-center gap-3 p-3.5 rounded-2xl cursor-pointer transition-all duration-200 select-none group border border-transparent",
+        "flex items-center gap-3 p-3 md:p-3.5 rounded-2xl cursor-pointer transition-all duration-200 select-none group border",
         isActive
           ? "bg-accent-subtle text-foreground font-semibold border-accent/30 shadow-soft"
-          : "hover:bg-secondary/50 text-foreground/90"
+          : "bg-card md:bg-transparent border-border/40 md:border-transparent shadow-2xs md:shadow-none active:bg-secondary/60 md:hover:bg-secondary/50 text-foreground/90"
       )}
     >
       {/* Avatar avec indicateur En ligne et Badge */}

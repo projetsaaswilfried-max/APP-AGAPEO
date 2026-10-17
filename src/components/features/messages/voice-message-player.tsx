@@ -258,7 +258,7 @@ export function VoiceMessagePlayer({ url, durationSeconds, mimeType, isCurrentUs
 
       <div
         className={cn(
-          "pl-10 text-[10px] font-mono tabular-nums",
+          "pl-10 text-[10px] tabular-nums",
           isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground/80"
         )}
       >

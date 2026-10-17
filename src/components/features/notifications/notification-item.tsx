@@ -89,7 +89,7 @@ export function NotificationItem({
               <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" title="Non lu" />
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
             {notification.timeLabel}
           </span>
         </div>

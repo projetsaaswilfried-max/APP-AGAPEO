@@ -49,7 +49,7 @@ export function FileAttachment({ title, subtitle, fileSizeBytes, url, className 
         <p className="text-xs font-semibold text-foreground truncate">{title}</p>
         {subtitle && <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>}
         {fileSizeBytes && (
-          <p className="text-[10px] text-muted-foreground font-mono">{formatSize(fileSizeBytes)}</p>
+          <p className="text-[10px] text-muted-foreground tabular-nums">{formatSize(fileSizeBytes)}</p>
         )}
       </div>
       <button

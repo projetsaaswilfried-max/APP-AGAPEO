@@ -416,7 +416,8 @@ function MessagesPageContent() {
       <div
         className={cn(
           "min-h-[520px] md:bg-card md:border md:border-border/40 md:rounded-3xl overflow-hidden md:shadow-soft flex",
-          isMobileChatOpen ? "h-[calc(100dvh-6rem)] md:h-[calc(100dvh-13rem)]" : "h-[calc(100dvh-13rem)]"
+          // Discussion ouverte sur mobile : plein écran (le header de l'app est masqué, cf. AppShell).
+          isMobileChatOpen ? "h-dvh md:h-[calc(100dvh-13rem)]" : "h-[calc(100dvh-13rem)]"
         )}
       >
         <div
@@ -425,18 +426,18 @@ function MessagesPageContent() {
             isMobileChatOpen ? "hidden md:flex" : "flex"
           )}
         >
-          <div className="p-4 md:border-b md:border-border/40 space-y-3">
+          <div className="pb-3 md:p-4 md:border-b md:border-border/40 space-y-3">
             <h2 className="hidden md:block text-sm font-display font-semibold text-foreground tracking-tight">Discussions ({conversations.length})</h2>
             <SearchInput
               placeholder="Rechercher une discussion..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onClear={() => setSearchQuery("")}
-              className="text-xs h-9 bg-secondary/60 rounded-full"
+              className="text-xs h-10 md:h-9 bg-card md:bg-secondary/60 rounded-full shadow-2xs md:shadow-none"
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          <div className="flex-1 overflow-y-auto md:p-2 space-y-2 md:space-y-1">
             {isLoadingConvs && (
               <div className="space-y-2 p-2">
                 {[1, 2, 3].map((i) => (
@@ -474,7 +475,7 @@ function MessagesPageContent() {
         >
           {activeConv ? (
             <>
-              <div className="relative z-20 flex items-center justify-between px-5 h-16 bg-card/90 backdrop-blur-md border-b border-border/40 shrink-0">
+              <div className="relative z-20 flex items-center justify-between px-3 md:px-5 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] md:h-16 md:pt-0 bg-card border-b border-border/40 shrink-0">
                 <div className="flex items-center gap-3">
                   <button onClick={handleBackToList} className="p-2 text-muted-foreground hover:text-foreground md:hidden rounded-full hover:bg-secondary">
                     <ArrowLeft size={18} />
@@ -647,7 +648,7 @@ function MessagesPageContent() {
                     </div>
                   ) : null}
 
-                  <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto p-4">
+                  <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto px-3 py-3 md:p-4">
                     {isLoadingMessages ? (
                       <div className="space-y-3 p-4">
                         <Skeleton className="h-10 w-2/3 rounded-2xl" />
@@ -657,7 +658,7 @@ function MessagesPageContent() {
                     ) : messages.length === 0 ? (
                       <EmptyState icon={<MessageSquare size={24} />} title="Aucun message" description="Envoie le premier message de cette conversation." />
                     ) : (
-                      <div ref={messagesContentRef} className="space-y-2">
+                      <div ref={messagesContentRef} className="space-y-1">
                         {messages.map((msg) => (
                           <MessageBubble
                             key={msg.id}

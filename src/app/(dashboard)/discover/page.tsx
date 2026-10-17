@@ -7,6 +7,7 @@ import { RecommendedProfileItem, DiscoverFilterCriteria } from "@/domain/types/d
 import { discoverService } from "@/domain/services/discover.service";
 import { PremiumRequiredError, VerificationRequiredError } from "@/domain/errors";
 import { DiscoverProfileCard } from "@/components/features/discover/discover-profile-card";
+import { DiscoverSwipeStack } from "@/components/features/discover/discover-swipe-stack";
 import { FilterPanel } from "@/components/features/discover/filter-panel";
 import { ProfileDrawerInspector } from "@/components/features/discover/profile-drawer-inspector";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
@@ -110,14 +111,13 @@ function DiscoverPageContent() {
   const [verificationReason, setVerificationReason] = useState("contacter ce membre");
   const [otherProfilesPage, setOtherProfilesPage] = useState(1);
   const otherProfilesSectionRef = useRef<HTMLDivElement>(null);
-  // Mobile : pas de pagination par clic, défilement infini (comme l'app
-  // native — discover_body.dart charge la suite en approchant du bas de la
-  // liste). Liste cumulée indépendante de la pagination desktop ci-dessus,
-  // qui reste inchangée (page courante uniquement + boutons de pages).
+  // Mobile : pile de cartes à glisser (DiscoverSwipeStack), alimentée par
+  // une liste cumulée indépendante de la pagination desktop ci-dessus, qui
+  // reste inchangée (page courante uniquement + boutons de pages). La pile
+  // demande la suite elle-même quand elle approche de la fin.
   const [mobileOthers, setMobileOthers] = useState<RecommendedProfileItem[]>([]);
   const [mobileOthersPage, setMobileOthersPage] = useState(1);
   const [isMobileLoadingMore, setIsMobileLoadingMore] = useState(false);
-  const mobileSentinelRef = useRef<HTMLDivElement>(null);
   const [isPremiumOfferOpen, setIsPremiumOfferOpen] = useState(false);
   // Seule condition : ne pas avoir d'abonnement actif (ni être staff) — pas
   // de condition de profil complet/vérifié, contrairement à PremiumUpsellBanner :
@@ -177,23 +177,6 @@ function DiscoverPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, otherProfilesPage]);
 
-  // Défilement infini mobile : charge la suite dès que la sentinelle en bas
-  // de liste approche du viewport (marge 400px, même seuil que l'app
-  // native) — jamais de clic "page suivante" sur mobile.
-  useEffect(() => {
-    const sentinel = mobileSentinelRef.current;
-    if (!sentinel) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadMoreMobileOthers();
-      },
-      { rootMargin: "400px" }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mobileOthers, mobileOthersPage, filters]);
-
   // Popup Premium à CHAQUE chargement de Découvrir (premier affichage,
   // pagination "Autres profils", changement de filtre) — décision du
   // fondateur : aucun plafond ici, contrairement au popup de bienvenue
@@ -209,6 +192,7 @@ function DiscoverPageContent() {
   const updateProfileInLists = (profileId: string, updater: (item: RecommendedProfileItem) => RecommendedProfileItem) => {
     setRecommendedProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? updater(item) : item)));
     setOtherProfilesPageItems((prev) => prev.map((item) => (item.profile.id === profileId ? updater(item) : item)));
+    setMobileOthers((prev) => prev.map((item) => (item.profile.id === profileId ? updater(item) : item)));
   };
 
   const handleToggleFavorite = async (profileId: string) => {
@@ -260,7 +244,10 @@ function DiscoverPageContent() {
   });
 
   const handleSendMessage = (profileId: string) => {
-    const target = recommendedProfiles.find((p) => p.profile.id === profileId) ?? otherProfilesPageItems.find((p) => p.profile.id === profileId);
+    const target =
+      recommendedProfiles.find((p) => p.profile.id === profileId) ??
+      otherProfilesPageItems.find((p) => p.profile.id === profileId) ??
+      mobileOthers.find((p) => p.profile.id === profileId);
     requestInvitation(profileId, target?.profile.firstName ?? "ce membre");
   };
 
@@ -275,6 +262,9 @@ function DiscoverPageContent() {
   };
 
   const otherProfilesTotalPages = Math.max(1, Math.ceil(otherProfilesTotalCount / OTHER_PROFILES_PAGE_SIZE));
+  // Pile mobile : les recommandés d'abord, puis les autres profils (sans doublon).
+  const recommendedIds = new Set(recommendedProfiles.map((item) => item.profile.id));
+  const mobileStackItems = [...recommendedProfiles, ...mobileOthers.filter((item) => !recommendedIds.has(item.profile.id))];
   const handleOtherProfilesPageChange = (page: number) => {
     setOtherProfilesPage(page);
     otherProfilesSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -304,11 +294,11 @@ function DiscoverPageContent() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div>
-          <span className="text-xs font-mono tracking-widest text-muted-foreground uppercase flex items-center gap-1.5">
+          <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase flex items-center gap-1.5">
             <Users size={14} className="text-primary" /> ALLIANCES COMPATIBLES
           </span>
           <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Découvrir des Profils Sérieux</h1>
-          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
+          <p className="hidden md:block text-xs text-muted-foreground leading-relaxed mt-0.5">
             Des membres orientés vers le mariage, sélectionnés selon vos valeurs et vos critères.
           </p>
         </div>
@@ -348,13 +338,9 @@ function DiscoverPageContent() {
       </div>
 
       {bannerContent && (
-        <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
-          {bannerContent.icon}
-          <span>{bannerContent.description}</span>
-          <Link href="/profile?tab=account" className="inline-flex items-center gap-1 font-semibold text-accent hover:underline ml-auto shrink-0">
-            {bannerContent.cta} <ArrowRight size={12} />
-          </Link>
-        </div>
+        <InfoBanner icon={bannerContent.icon} href="/profile?tab=account" cta={bannerContent.cta}>
+          {bannerContent.description}
+        </InfoBanner>
       )}
 
       {isFilterOpen && canUseAdvancedFilters && (
@@ -387,15 +373,9 @@ function DiscoverPageContent() {
       )}
 
       {!isLoading && !isError && scoringGaps.length > 0 && (recommendedProfiles.length > 0 || otherProfilesTotalCount > 0) && (
-        <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
-          <Heart size={14} className="text-accent shrink-0" />
-          <span>
-            Tes scores de compatibilité sont encore incomplets : renseigne {scoringGaps.join(", ")} pour des suggestions plus précises.
-          </span>
-          <Link href="/profile" className="inline-flex items-center gap-1 font-semibold text-accent hover:underline ml-auto shrink-0">
-            Compléter <ArrowRight size={12} />
-          </Link>
-        </div>
+        <InfoBanner icon={<Heart size={14} className="text-accent shrink-0" />} href="/profile" cta="Compléter">
+          Tes scores de compatibilité sont encore incomplets : renseigne {scoringGaps.join(", ")} pour des suggestions plus précises.
+        </InfoBanner>
       )}
 
       {isLoading && (
@@ -429,8 +409,27 @@ function DiscoverPageContent() {
         />
       )}
 
+      {/* Mobile : un profil à la fois, en pile de cartes à glisser. */}
+      {!isLoading && !isError && mobileStackItems.length > 0 && (
+        <div className="md:hidden">
+          <DiscoverSwipeStack
+            items={mobileStackItems}
+            canView={canViewProfiles}
+            canInteract={canInteract}
+            hasMore={mobileOthers.length < otherProfilesTotalCount}
+            isLoadingMore={isMobileLoadingMore}
+            onLoadMore={loadMoreMobileOthers}
+            onInspectProfile={handleInspectProfile}
+            onToggleFavorite={handleToggleFavorite}
+            onToggleLike={handleToggleLike}
+            onSendMessage={handleSendMessage}
+            onRequireVerification={handleRequireVerification}
+          />
+        </div>
+      )}
+
       {!isLoading && !isError && recommendedProfiles.length > 0 && (
-        <div className="space-y-3">
+        <div className="hidden md:block space-y-3">
           <div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <Heart size={13} className="text-accent" /> Recommandée pour vous
@@ -459,32 +458,10 @@ function DiscoverPageContent() {
       )}
 
       {!isLoading && !isError && otherProfilesTotalCount > 0 && (
-        <div ref={otherProfilesSectionRef} className="space-y-3 scroll-mt-20">
+        <div ref={otherProfilesSectionRef} className="hidden md:block space-y-3 scroll-mt-20">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Autres profils ({otherProfilesTotalCount})
           </h2>
-
-          {/* Mobile : défilement infini, jamais de pagination par clic (comme l'app native). */}
-          <div className="md:hidden grid grid-cols-1 gap-6">
-            {mobileOthers.map((item) => (
-              <DiscoverProfileCard
-                key={item.profile.id}
-                item={item}
-                canView={canViewProfiles}
-                canInteract={canInteract}
-                onInspectProfile={handleInspectProfile}
-                onToggleFavorite={handleToggleFavorite}
-                onToggleLike={handleToggleLike}
-                onSendMessage={handleSendMessage}
-                onRequireVerification={handleRequireVerification}
-              />
-            ))}
-            {mobileOthers.length < otherProfilesTotalCount && (
-              <div ref={mobileSentinelRef} className="flex justify-center py-6">
-                {isMobileLoadingMore && <RefreshCw size={18} className="text-muted-foreground animate-spin" />}
-              </div>
-            )}
-          </div>
 
           {/* Desktop : grille + pagination par clic, inchangé. */}
           <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-6">
@@ -539,6 +516,21 @@ function DiscoverPageContent() {
         firstName={pendingInvitation?.firstName ?? ""}
         isSending={isSendingInvitation}
       />
+    </div>
+  );
+}
+
+/** Bandeau d'information (vérification, compatibilité) : texte puis lien en dessous sur mobile, sur une ligne sur ordinateur. */
+function InfoBanner({ icon, href, cta, children }: { icon: ReactNode; href: string; cta: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start md:items-center gap-2.5 px-3.5 py-3 md:px-4 md:py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
+      <span className="mt-0.5 md:mt-0 shrink-0">{icon}</span>
+      <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-1.5 md:gap-3">
+        <span className="leading-snug">{children}</span>
+        <Link href={href} className="inline-flex items-center gap-1 font-semibold text-accent hover:underline md:ml-auto shrink-0 self-start md:self-auto">
+          {cta} <ArrowRight size={12} />
+        </Link>
+      </div>
     </div>
   );
 }

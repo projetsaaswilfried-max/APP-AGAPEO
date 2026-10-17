@@ -164,14 +164,17 @@ function AppShellContent({ children }: AppShellProps) {
 
       {/* Main Viewport Workspace */}
       <div className={cn("flex-1 flex flex-col min-w-0 min-h-screen md:pb-0", isConversationOpen ? "pb-0" : "pb-16")}>
-        <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
+        {/* Discussion ouverte sur mobile : plein écran façon WhatsApp — ni header d'app, ni bandeaux, ni marges. */}
+        <Header onOpenMobileMenu={() => setIsMobileMenuOpen(true)} className={cn(isConversationOpen && "max-md:hidden")} />
 
         <div className="flex-1 flex flex-col bg-background md:rounded-tl-[40px]">
-          <IncompleteProfileBanner />
-          <PremiumUpsellBanner />
-          <PremiumWelcomeNudge />
+          <div className={cn(isConversationOpen && "max-md:hidden")}>
+            <IncompleteProfileBanner />
+            <PremiumUpsellBanner />
+            <PremiumWelcomeNudge />
+          </div>
 
-          <main className="flex-1 w-full px-5 py-4 md:py-6 lg:py-8">
+          <main className={cn("flex-1 w-full md:px-5 md:py-6 lg:py-8", isConversationOpen ? "p-0" : "px-5 py-4")}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={pathname}

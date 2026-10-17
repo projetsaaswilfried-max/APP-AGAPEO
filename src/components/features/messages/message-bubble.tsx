@@ -58,6 +58,10 @@ export function MessageBubble({
     );
   }
 
+  // Message texte simple : l'heure se place au bout de la dernière ligne, comme
+  // WhatsApp, au lieu d'une ligne à part qui alourdit chaque bulle.
+  const hasInlineTime = message.type === "TEXT" && Boolean(message.content) && !message.attachments?.length && !(message.ctaText && message.ctaUrl);
+
   const handleCopy = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(message.content);
@@ -68,7 +72,7 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        "flex flex-col space-y-1 my-1.5 select-none group relative",
+        "flex flex-col my-0.5 select-none group relative",
         isCurrentUser ? "items-end" : "items-start"
       )}
     >
@@ -115,10 +119,10 @@ export function MessageBubble({
         {/* Bulle de Message */}
         <div
           className={cn(
-            "min-w-0 p-3.5 rounded-3xl text-xs space-y-2 leading-relaxed shadow-soft transition-all border",
+            "relative min-w-0 px-3 py-2 rounded-2xl text-sm space-y-1.5 leading-snug shadow-2xs transition-all border",
             isCurrentUser
-              ? "bg-primary text-primary-foreground rounded-br-xs border-primary/20 font-medium"
-              : "bg-card text-foreground rounded-bl-xs border-border/40 font-normal"
+              ? "bg-primary text-primary-foreground rounded-br-md border-primary/20 font-normal"
+              : "bg-card text-foreground rounded-bl-md border-border/40 font-normal"
           )}
         >
           {/* Pièces jointes (Document / Image / Vidéo) */}
@@ -180,7 +184,11 @@ export function MessageBubble({
               contient que le nom de fichier technique (cf. sendFileAttachment), jamais une
               légende saisie par l'utilisateur : on ne l'affiche donc que pour les vrais messages texte. */}
           {message.content && message.type === "TEXT" && (
-            <p className="whitespace-pre-line break-words">{linkifyText(message.content)}</p>
+            <p className="whitespace-pre-line break-words">
+              {linkifyText(message.content)}
+              {/* Réserve la place de l'heure sur la dernière ligne (elle passe à la ligne si le texte la remplit). */}
+              {hasInlineTime && <span aria-hidden className={cn("inline-block h-3", isCurrentUser ? "w-[3.6rem]" : "w-[2.6rem]")} />}
+            </p>
           )}
 
           {/* Bouton d'action — réservé aux messages système (relances Premium, etc.). */}
@@ -198,10 +206,11 @@ export function MessageBubble({
             </Link>
           )}
 
-          {/* Heure et Ticks d'état (✓✓) */}
+          {/* Heure et Ticks d'état (✓✓) — au bout de la dernière ligne pour un texte simple, sinon en dessous. */}
           <div
             className={cn(
-              "flex items-center justify-end gap-1 text-[10px] pt-0.5 font-mono",
+              "flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums",
+              hasInlineTime && "absolute right-3 bottom-2",
               isCurrentUser ? "text-primary-foreground/80" : "text-muted-foreground opacity-80"
             )}
           >

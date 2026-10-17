@@ -29,9 +29,10 @@ import { PreviewModeSwitch } from "./preview-mode-switch";
 
 interface HeaderProps {
   onOpenMobileMenu?: () => void;
+  className?: string;
 }
 
-export function Header({ onOpenMobileMenu }: HeaderProps) {
+export function Header({ onOpenMobileMenu, className }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -78,7 +79,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   const pageTitle = currentNavItem ? currentNavItem.title : "Tableau de Bord";
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 md:px-6 bg-card border-b border-border/40 md:border-b-0 select-none">
+    <header className={cn("sticky top-0 z-20 flex items-center justify-between h-16 px-4 md:px-6 bg-card border-b border-border/40 md:border-b-0 select-none", className)}>
       {/* Coin intérieur arrondi (desktop) : le blanc du header et du menu
           s'arrondit sur le panneau gris du contenu (cf. AppShell) — gardé ici,
           dans le header collant, pour que l'arrondi reste net même quand le
