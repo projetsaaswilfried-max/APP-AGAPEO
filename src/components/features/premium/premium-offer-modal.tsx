@@ -66,13 +66,13 @@ export function PremiumOfferModal({ isOpen, onClose, onSelectPlan }: PremiumOffe
                   <div className="grid grid-cols-1 gap-2">
                     {PURCHASABLE_PLAN_KEYS.map((key) => {
                       const plan = PREMIUM_PLANS[key];
-                      const isRecommended = key === "QUARTERLY";
+                      const isRecommended = key === "MONTHLY";
                       return (
                         <button
                           key={key}
                           onClick={() => onSelectPlan(key)}
                           className={cn(
-                            "w-full flex items-center justify-between gap-3 h-12 px-4 rounded-xl border text-sm font-medium transition-colors",
+                            "w-full flex items-center justify-between gap-3 h-12 px-4 rounded-[12px] border text-sm font-medium transition-colors",
                             isRecommended ? "border-primary border-2 text-foreground" : "border-border text-foreground hover:bg-secondary"
                           )}
                         >

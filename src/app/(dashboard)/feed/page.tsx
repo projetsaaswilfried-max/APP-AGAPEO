@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { FeedPublication, FeedCategory } from "@/domain/types/feed";
 import { feedService } from "@/domain/services/feed.service";
 import { PublicationCard } from "@/components/features/feed/publication-card";
-import { Tabs } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BookOpen, RefreshCw, AlertCircle, LayoutGrid, HeartHandshake, Users, Lightbulb, Quote } from "lucide-react";
@@ -39,6 +38,37 @@ export default function HomePage() {
   const selectCategory = (id: FeedCategory) => {
     if (id === activeCategory) return;
     setActiveCategory(id);
+  };
+
+  // Mobile : la puce active reste visible dans la rangée (défilement horizontal de la rangée seule, jamais de la page).
+  const chipsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = chipsRef.current;
+    const chip = row?.querySelector<HTMLElement>(`[data-category="${activeCategory}"]`);
+    if (!row || !chip) return;
+    row.scrollTo({ left: chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2, behavior: "smooth" });
+  }, [activeCategory]);
+
+  // Mobile : glisser le doigt sur le fil vers la gauche passe à la rubrique
+  // suivante, vers la droite revient à la précédente (geste nettement
+  // horizontal uniquement, pour ne jamais gêner le défilement vertical).
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    touchStartRef.current = target.closest("iframe, video, input, textarea, [data-swipe-ignore]")
+      ? null
+      : { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return;
+    const dx = e.changedTouches[0].clientX - start.x;
+    const dy = e.changedTouches[0].clientY - start.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+    const index = CATEGORY_TABS.findIndex((tab) => tab.id === activeCategory);
+    const next = CATEGORY_TABS[index + (dx < 0 ? 1 : -1)];
+    if (next) selectCategory(next.id as FeedCategory);
   };
   const [publications, setPublications] = useState<FeedPublication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -254,16 +284,34 @@ export default function HomePage() {
         <div className="flex flex-col space-y-4">
           <PageHeader title="Fil d'actualité" description="Enseignements, témoignages et conseils partagés par l'équipe Agapeo." />
 
-          {/* Filtres par Catégorie — mobile/tablette (colonne verticale à gauche sur ordinateur) */}
-          <Tabs
-            variant="pill"
-            tabs={CATEGORY_TABS}
-            activeTabId={activeCategory}
-            onChange={(id) => selectCategory(id as FeedCategory)}
-            className="lg:hidden"
-          />
+          {/* Rubriques — mobile/tablette : puces à icône (colonne verticale à gauche sur ordinateur) */}
+          <div ref={chipsRef} data-swipe-ignore className="lg:hidden -mx-5 px-5 flex gap-2 overflow-x-auto">
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = tab.id === activeCategory;
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  data-category={tab.id}
+                  onClick={() => selectCategory(tab.id as FeedCategory)}
+                  aria-pressed={isActive}
+                  className={cn(
+                    "shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm border transition-colors",
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary font-semibold"
+                      : "bg-card text-muted-foreground border-border/60 font-medium"
+                  )}
+                >
+                  <TabIcon size={15} className="shrink-0" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
+        <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={displayedCategory}
@@ -346,6 +394,7 @@ export default function HomePage() {
           )}
         </motion.div>
         </AnimatePresence>
+        </div>
       </div>
     </div>
   );

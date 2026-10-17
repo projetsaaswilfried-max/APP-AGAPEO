@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { AppNotification } from "@/domain/types/notification";
 import { Avatar } from "@/components/ui/avatar";
 import {
@@ -15,8 +16,8 @@ import {
   UserGroupIcon,
   Megaphone01Icon,
   InformationCircleIcon,
-  Tick01Icon,
   Delete02Icon,
+  ArrowRight01Icon,
   CreditCardNotAcceptIcon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
@@ -50,13 +51,30 @@ export function NotificationItem({
   onDelete
 }: NotificationItemProps) {
   const iconObj = ICON_MAP[notification.iconType] || InformationCircleIcon;
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const content = (
+  // Toucher la notification la déroule (texte complet) et la marque comme lue ;
+  // le lien vers la page concernée apparaît alors en dessous.
+  const handleToggle = () => {
+    setIsExpanded((value) => !value);
+    if (!notification.isRead) onMarkAsRead(notification.id);
+  };
+
+  return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-expanded={isExpanded}
+      onClick={handleToggle}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleToggle();
+        }
+      }}
       className={cn(
-        "flex items-start gap-3.5 p-4 rounded-[16px] border bg-card transition-colors select-none group relative",
-        notification.isRead ? "border-border/50" : "border-accent/35 bg-accent-subtle/40",
-        notification.targetUrl && "hover:bg-secondary/40"
+        "flex items-start gap-3.5 p-4 rounded-[16px] border bg-card transition-colors select-none cursor-pointer",
+        notification.isRead ? "border-border/50" : "border-accent/35 bg-accent-subtle/40"
       )}
     >
       {/* Avatar de l'auteur (avec pastille d'icône) ou icône de catégorie */}
@@ -67,8 +85,9 @@ export function NotificationItem({
             src={notification.actorAvatar}
             fallback={notification.actorName ? notification.actorName.charAt(0) : "A"}
           />
-          <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-card border border-border/50 text-primary">
-            <HugeIcon icon={iconObj} size={10} />
+          {/* Cercle de taille fixe : sans dimensions explicites, la hauteur de ligne de l'icône l'étirait en ovale vertical. */}
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-card border border-border/50 text-primary flex items-center justify-center leading-none">
+            <HugeIcon icon={iconObj} size={11} />
           </div>
         </div>
       ) : (
@@ -79,7 +98,7 @@ export function NotificationItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-3">
-          <span className={cn("text-sm tracking-tight text-foreground", notification.isRead ? "font-medium" : "font-semibold")}>
+          <span className={cn("text-sm tracking-tight text-foreground truncate", notification.isRead ? "font-medium" : "font-semibold")}>
             {notification.title}
           </span>
           <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums shrink-0">
@@ -88,45 +107,50 @@ export function NotificationItem({
           </span>
         </div>
 
-        <p className="text-sm text-muted-foreground leading-relaxed mt-1">{notification.message}</p>
-
-        {/* Marquer comme lu / Supprimer : toujours visibles sur mobile (pas de
-            survol sur un écran tactile), au survol sur ordinateur. */}
-        <div className="flex items-center gap-1 mt-2 -ml-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-          {!notification.isRead && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onMarkAsRead(notification.id);
-              }}
-              className="inline-flex items-center gap-1 px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground rounded-full transition-colors"
-            >
-              <HugeIcon icon={Tick01Icon} size={13} /> Marquer comme lu
-            </button>
-          )}
+        <div className="flex items-start gap-2 mt-1">
+          {/* Replié : une ligne terminée par « … » ; déplié : le texte se déroule (transition de hauteur). */}
+          <p
+            className={cn(
+              "flex-1 min-w-0 text-sm text-muted-foreground leading-relaxed overflow-hidden transition-[max-height] duration-300 ease-out",
+              isExpanded ? "max-h-80" : "max-h-[1.65em] line-clamp-1"
+            )}
+          >
+            {notification.message}
+          </p>
           <button
+            type="button"
             onClick={(e) => {
-              e.preventDefault();
               e.stopPropagation();
               onDelete(notification.id);
             }}
-            className="inline-flex items-center gap-1 px-1.5 py-1 text-xs text-muted-foreground hover:text-destructive rounded-full transition-colors"
+            aria-label="Supprimer la notification"
+            title="Supprimer"
+            className="shrink-0 -mt-0.5 p-1.5 text-muted-foreground/70 hover:text-destructive rounded-full transition-colors"
           >
-            <HugeIcon icon={Delete02Icon} size={13} /> Supprimer
+            <HugeIcon icon={Delete02Icon} size={15} />
           </button>
         </div>
+
+        <AnimatePresence initial={false}>
+          {isExpanded && notification.targetUrl && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden"
+            >
+              <Link
+                href={notification.targetUrl}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 pt-2 text-xs font-semibold text-primary"
+              >
+                Voir <HugeIcon icon={ArrowRight01Icon} size={13} />
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
-
-  if (notification.targetUrl) {
-    return (
-      <Link href={notification.targetUrl} onClick={() => onMarkAsRead(notification.id)} className="block">
-        {content}
-      </Link>
-    );
-  }
-
-  return content;
 }

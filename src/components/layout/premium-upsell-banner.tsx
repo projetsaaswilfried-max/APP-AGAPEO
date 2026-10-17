@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { Crown, ArrowRight } from "lucide-react";
 import { useSession } from "@/core/providers/session-provider";
 import { isProfileComplete, needsVerificationSubmission } from "@/domain/profile-completeness";
+import { PREMIUM_PLANS } from "@/domain/premium-plans";
 import { cn } from "@/lib/utils";
 
 function PremiumUpsellBannerContent() {
@@ -13,37 +14,47 @@ function PremiumUpsellBannerContent() {
   const pathname = usePathname();
 
   // On laisse la priorité au bandeau "profil incomplet"/"à soumettre" — pas
-  // deux bandeaux à la fois (cf. incomplete-profile-banner.tsx).
+  // deux bandeaux à la fois (cf. incomplete-profile-banner.tsx). Jamais sur la
+  // page de paiement elle-même : le membre y est déjà.
   const pendingSubmission = !profile.is_staff && needsVerificationSubmission(profile);
-  if (!isProfileComplete(profile) || pendingSubmission || profile.subscription_status === "ACTIVE" || pathname === "/onboarding") return null;
+  if (
+    !isProfileComplete(profile) ||
+    pendingSubmission ||
+    profile.subscription_status === "ACTIVE" ||
+    pathname === "/onboarding" ||
+    pathname.startsWith("/premium")
+  )
+    return null;
 
   // Sur mobile, Messagerie n'affiche jamais ce bandeau (liste ou discussion
   // ouverte) — cf. le même choix dans incomplete-profile-banner.tsx. Toujours
   // visible en version bureau.
   const hideOnMobile = pathname === "/messages";
 
+  // Tout le bandeau mène au paiement ; l'offre mise en avant est le mensuel.
   return (
     <div className={cn("px-5 pt-4 select-none", hideOnMobile && "hidden md:block")}>
-      <div className="flex flex-wrap items-center gap-4 rounded-3xl bg-accent-subtle/80 border border-accent/20 px-5 py-3.5 shadow-soft">
-        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0 shadow-accent-glow">
+      <Link
+        href="/premium"
+        className="flex items-center gap-3.5 rounded-[18px] bg-accent-subtle px-4 py-3.5 transition-colors hover:bg-accent-subtle/70 active:bg-accent-subtle/60"
+      >
+        <span className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shrink-0">
           <Crown size={18} />
-        </div>
+        </span>
 
-        <div className="flex-1 min-w-0 sm:min-w-[220px]">
-          <p className="text-sm font-semibold text-foreground">Passe Premium</p>
-          <p className="text-xs text-muted-foreground">
-            Contacte en priorité, découvre qui s&apos;intéresse à toi et débloque les filtres avancés.
-          </p>
-        </div>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold text-foreground">Quelqu&apos;un t&apos;attend peut-être déjà ici</span>
+          <span className="block text-xs text-muted-foreground leading-snug mt-0.5">
+            Des célibataires chrétiens prêts à s&apos;engager. Passe Premium pour voir leurs profils et leur écrire.
+          </span>
+        </span>
 
-        <Link
-          href="/premium"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2 shrink-0 shadow-accent-glow"
-        >
-          Découvrir
-          <ArrowRight size={13} />
-        </Link>
-      </div>
+        <span className="hidden sm:flex flex-col items-end shrink-0 text-right">
+          <span className="text-[11px] text-muted-foreground">dès</span>
+          <span className="text-sm font-semibold text-foreground whitespace-nowrap">{PREMIUM_PLANS.MONTHLY.priceFcfaLabel} / mois</span>
+        </span>
+        <ArrowRight size={18} className="shrink-0 text-primary" />
+      </Link>
     </div>
   );
 }

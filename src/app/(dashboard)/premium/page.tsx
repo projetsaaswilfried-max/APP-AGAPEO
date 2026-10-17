@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
-import { Check, X, Crown, AlertCircle, Smartphone, CreditCard, ChevronRight } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Check, X, Crown, AlertCircle, Smartphone, CreditCard, ChevronRight, Heart, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const initialState: PremiumCheckoutState = undefined;
@@ -79,6 +80,34 @@ const BUY_LABELS: Record<PremiumPlanKey, string> = {
   ACCESS: `S'abonner — ${PREMIUM_PLANS.ACCESS.priceFcfaLabel}`
 };
 
+// Page de paiement mobile (membre sans accès actif) : libellés courts du
+// sélecteur de formule et période affichée sous le prix.
+const PLAN_SWITCH_LABELS: Record<PremiumPlanKey, string> = {
+  WEEKLY: "1 semaine",
+  HALF_MONTH: "15 jours",
+  MONTHLY: "Mensuel",
+  QUARTERLY: "Trimestriel",
+  ACCESS: "Accès"
+};
+
+const PLAN_PERIOD_LABELS: Record<PremiumPlanKey, string> = {
+  WEEKLY: "pour 7 jours",
+  HALF_MONTH: "pour 15 jours",
+  MONTHLY: "par mois",
+  QUARTERLY: "pour 3 mois, soit environ 5 832 FCFA/mois",
+  ACCESS: "pour 30 jours"
+};
+
+// Ce que Premium change concrètement dans la recherche — formulé du point de
+// vue du membre (trouver la bonne personne), pas comme une liste technique.
+const MOBILE_CHECKOUT_BENEFITS = [
+  "Consulte tous les profils en entier",
+  "Écris en premier et envoie des invitations illimitées",
+  "Découvre qui s'intéresse à toi",
+  "Ton profil mis en avant dans Découvrir",
+  "Filtres avancés : ville, confession, projet de mariage…"
+];
+
 interface PremiumPlanCardProps {
   planKey: PremiumPlanKey;
   recommended?: boolean;
@@ -95,7 +124,7 @@ function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
       variant="base"
       className={cn(
         "p-6 space-y-5 flex flex-col relative overflow-hidden",
-        recommended ? "border-primary/50 shadow-accent-glow ring-2 ring-primary/25" : "border-primary/30 shadow-accent-glow"
+        recommended ? "border-primary/50 ring-2 ring-primary/25" : "border-primary/30"
       )}
     >
       {recommended && (
@@ -288,7 +317,7 @@ export default function PremiumPage() {
   const handleChooseMobileMoney = () => {
     if (mobileMoneyProvider === "saspay") {
       setPaymentMethodModalPlan(null);
-      setNativeMobileMoneyPlan(paymentMethodModalPlan);
+      setNativeMobileMoneyPlan(selectedPlan);
       return;
     }
     // SasPay indisponible pour le moment : repli sur le flux Chariow existant (redirection).
@@ -311,7 +340,7 @@ export default function PremiumPage() {
 
   // Partagées entre le rendu mobile et desktop ci-dessous — contenu identique, seul le conteneur diffère.
   const freeCard = (
-    <Card variant="base" className="p-6 space-y-5 border-border/60 shadow-2xs flex flex-col">
+    <Card variant="base" className="p-6 space-y-5 border-border/60 flex flex-col">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-display font-semibold text-foreground tracking-tight">Gratuit</h2>
@@ -404,7 +433,7 @@ export default function PremiumPage() {
   );
 
   const legacyCard = legacyCurrentPlanKey && (
-    <Card variant="base" className="p-6 space-y-5 flex flex-col relative overflow-hidden border-primary/30 shadow-accent-glow">
+    <Card variant="base" className="p-6 space-y-5 flex flex-col relative overflow-hidden border-primary/30">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-display font-semibold text-foreground tracking-tight flex items-center gap-2">
@@ -445,16 +474,16 @@ export default function PremiumPage() {
 
   return (
     <div className="space-y-6 w-full pb-16 select-none">
-      <div className="border-b border-border/60 pb-4">
-        <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Mon Plan</h1>
-        <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
-          {isPremium && periodEndLabel
+      <PageHeader
+        title={isPremium ? "Mon Plan" : "Premium"}
+        description={
+          isPremium && periodEndLabel
             ? `Ton accès est actif jusqu'au ${periodEndLabel}.`
             : isExpired
-              ? "Ton accès a expiré — réactive-le pour retrouver toutes tes fonctionnalités."
-              : "Débloque tout le potentiel d'Agapeo."}
-        </p>
-      </div>
+              ? "Ton accès a expiré : réactive-le pour reprendre tes conversations."
+              : "Donne toutes ses chances à ta rencontre."
+        }
+      />
 
       {state?.message && (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">
@@ -467,11 +496,93 @@ export default function PremiumPage() {
           lignes compactes (format app native : premium_plan_page.dart) —
           jamais la carte complète répétée 4 fois sur un écran étroit.
           Cartes Gratuit/plan retiré inchangées, juste empilées. */}
+      {!isPremium && (
+        <div className="md:hidden space-y-5">
+          <div className="rounded-[20px] bg-card border border-border/50 p-5 space-y-4">
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-accent-subtle text-primary">
+              <Heart size={20} className="fill-current" />
+            </span>
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-display font-semibold tracking-tight text-foreground leading-snug">
+                Trouve la personne avec qui bâtir ton foyer
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Des célibataires chrétiens sérieux sont déjà là. Avec Premium, tu peux enfin leur écrire, au lieu de seulement les regarder passer.
+              </p>
+            </div>
+            <ul className="space-y-2.5 pt-1">
+              {MOBILE_CHECKOUT_BENEFITS.map((label) => (
+                <li key={label} className="flex items-start gap-2.5 text-sm text-foreground">
+                  <Check size={16} className="text-primary shrink-0 mt-0.5" />
+                  <span>{label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="rounded-[20px] bg-card border border-border/50 p-5 space-y-5">
+            {/* Choix de la durée */}
+            <div role="radiogroup" aria-label="Durée de l'abonnement" className="grid grid-cols-4 gap-1 p-1 rounded-full bg-secondary">
+              {PURCHASABLE_PLAN_KEYS.map((planKey) => {
+                const isSelected = selectedPlan === planKey;
+                return (
+                  <button
+                    key={planKey}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setSelectedPlan(planKey)}
+                    className={cn(
+                      "h-9 rounded-full text-xs whitespace-nowrap transition-colors",
+                      isSelected ? "bg-primary text-primary-foreground font-semibold" : "text-muted-foreground font-medium"
+                    )}
+                  >
+                    {PLAN_SWITCH_LABELS[planKey]}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="text-center space-y-1">
+              {selectedPlan === "MONTHLY" && (
+                <span className="inline-block text-[11px] font-semibold text-primary bg-accent-subtle px-2.5 py-1 rounded-full">Le plus choisi</span>
+              )}
+              <p className="text-3xl font-display font-bold tracking-tight text-foreground tabular-nums">{PREMIUM_PLANS[selectedPlan].priceFcfaLabel}</p>
+              <p className="text-xs text-muted-foreground">{PLAN_PERIOD_LABELS[selectedPlan]}</p>
+            </div>
+
+            <div className="space-y-2.5">
+              <Button
+                type="button"
+                variant="primary"
+                className="w-full h-12"
+                isLoading={pending}
+                leftIcon={<Smartphone size={17} />}
+                onClick={handleChooseMobileMoney}
+              >
+                Payer par Mobile Money
+              </Button>
+              <form action={action} onSubmit={() => setSelectedPaymentMethod("CARD")}>
+                <input type="hidden" name="plan" value={selectedPlan} />
+                <input type="hidden" name="paymentMethod" value="CARD" />
+                <Button type="submit" variant="outline" className="w-full h-12" isLoading={pending} leftIcon={<CreditCard size={17} />}>
+                  Payer par carte bancaire
+                </Button>
+              </form>
+              <p className="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-muted-foreground">
+                <ShieldCheck size={13} /> Paiement sécurisé · Moov, Wave, MTN, Celtiis, Visa, Mastercard
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPremium && (
       <div className="md:hidden space-y-5">
         {freeCard}
         {legacyCard}
 
-        <Card variant="base" className="p-5 space-y-3 border-border/60 shadow-2xs">
+        <Card variant="base" className="p-5 space-y-3 border-border/60">
           <h2 className="text-sm font-display font-semibold text-foreground tracking-tight">Avantages Premium</h2>
           <ul className="space-y-2">
             {PREMIUM_FEATURES.map((label) => (
@@ -489,7 +600,7 @@ export default function PremiumPage() {
             <CompactPlanTile
               key={planKey}
               planKey={planKey}
-              recommended={planKey === "QUARTERLY"}
+              recommended={planKey === "MONTHLY"}
               isCurrentPlan={isPremium && currentPlanKey === planKey}
               isExpiringSoon={isExpiringSoon}
               daysUntilExpiry={daysUntilExpiry}
@@ -499,6 +610,7 @@ export default function PremiumPage() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Desktop : grille de cartes complètes inchangée. */}
       <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-6">
@@ -544,7 +656,7 @@ export default function PremiumPage() {
 
       {/* Repli Chariow si SasPay n'est pas le processeur Mobile Money actif — jamais affiché, soumis via handleChooseMobileMoney, partagé par les deux UI ci-dessus. */}
       <form ref={mobileMoneyFallbackFormRef} action={action} className="hidden">
-        <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
+        <input type="hidden" name="plan" value={selectedPlan} />
         <input type="hidden" name="paymentMethod" value="MOBILE_MONEY" />
       </form>
 

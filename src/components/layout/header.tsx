@@ -7,7 +7,6 @@ import Link from "next/link";
 import {
   Search01Icon,
   Notification01Icon,
-  Menu01Icon,
   UserIcon,
   Settings01Icon,
   Logout01Icon,
@@ -26,13 +25,13 @@ import { saveScrollForCurrentPage } from "@/core/hooks/use-scroll-memory";
 import { canUsePreviewMode } from "@/domain/preview-mode";
 import { cn } from "@/lib/utils";
 import { PreviewModeSwitch } from "./preview-mode-switch";
+import { AgapeoLogo } from "@/components/ui/logo";
 
 interface HeaderProps {
-  onOpenMobileMenu?: () => void;
   className?: string;
 }
 
-export function Header({ onOpenMobileMenu, className }: HeaderProps) {
+export function Header({ className }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -90,19 +89,10 @@ export function Header({ onOpenMobileMenu, className }: HeaderProps) {
         style={{ background: "radial-gradient(circle at 100% 100%, transparent 39.5px, hsl(var(--card)) 40px)" }}
       />
 
-      {/* Zone Gauche : Mobile Toggle + Titre de Vue */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onOpenMobileMenu}
-          className="p-2 -ml-2 text-muted-foreground hover:text-foreground md:hidden rounded-full hover:bg-secondary transition-colors"
-          aria-label="Ouvrir le menu"
-        >
-          <HugeIcon icon={Menu01Icon} size={20} />
-        </button>
-
-        <div className="flex flex-col">
-          <span className="text-sm text-foreground font-semibold">{pageTitle}</span>
-        </div>
+      {/* Zone Gauche : logo sur mobile (la navigation est dans la barre du bas), nom de la page sur ordinateur. */}
+      <div className="flex items-center">
+        <AgapeoLogo href="/feed" size="sm" className="md:hidden" />
+        <span className="hidden md:inline text-sm text-foreground font-semibold">{pageTitle}</span>
       </div>
 
       {/* Zone Centrale : recherche de profils (redirige vers Découvrir avec le filtre appliqué) */}
@@ -169,6 +159,12 @@ export function Header({ onOpenMobileMenu, className }: HeaderProps) {
                   </p>
                   <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                 </div>
+                {canPreview && (
+                  <div className="px-2 py-2 border-b border-border/60 md:hidden">
+                    <p className="px-1 pb-1.5 text-[11px] text-muted-foreground">Aperçu de l&apos;interface</p>
+                    <PreviewModeSwitch className="justify-between" layoutId="preview-mode-pill-menu" />
+                  </div>
+                )}
                 <div className="py-1">
                   <Link
                     href="/profile"

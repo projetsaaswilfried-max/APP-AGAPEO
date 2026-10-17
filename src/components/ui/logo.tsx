@@ -28,7 +28,7 @@ export function AgapeoSymbol({ className }: { className?: string }) {
         width={700}
         height={733}
         priority
-        className="w-full h-full object-contain filter drop-shadow-sm"
+        className="w-full h-full object-contain"
       />
     </div>
   );

@@ -228,7 +228,7 @@ function SwipeCard({
         style={{ background: "linear-gradient(to bottom, transparent 45%, rgba(20,14,24,0.82) 100%)" }}
       />
 
-      <div className="absolute inset-x-0 bottom-0 p-5 text-white space-y-1.5">
+      <div className="absolute inset-x-0 bottom-0 p-5 text-white">
         <div className="pointer-events-none space-y-1.5">
         <div className="flex items-center gap-1.5">
           <h3 className="text-2xl font-display font-semibold tracking-tight truncate">
@@ -242,20 +242,20 @@ function SwipeCard({
           </p>
         )}
         {description && <p className="text-sm text-white/80 leading-snug line-clamp-2">{description}</p>}
+        <p className="text-xs font-semibold text-white/90 underline underline-offset-4">Voir le profil</p>
         </div>
 
-        {/* Actions sur la photo : favori, like, message */}
-        <div className="flex items-center gap-2.5 pt-3">
+        {/* Actions sur la photo : favori, like, message — une rangée centrée de cercles */}
+        <div className="flex items-center justify-center gap-4 pt-4">
           <PhotoAction label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"} onClick={onFavorite} isActive={isFavorite}>
-            <Bookmark size={19} className={cn(isFavorite && "fill-current")} />
+            <Bookmark size={20} className={cn(isFavorite && "fill-current")} />
           </PhotoAction>
           <PhotoAction label={isLiked ? "Retirer le like" : "Liker ce profil"} onClick={onLike} isActive={isLiked} isPrimary>
-            <Heart size={22} className={cn(isLiked && "fill-current")} />
+            <Heart size={24} className={cn(isLiked && "fill-current")} />
           </PhotoAction>
           <PhotoAction label="Envoyer un message" onClick={onMessage}>
-            <MessageSquare size={19} />
+            <MessageSquare size={20} />
           </PhotoAction>
-          <span className="ml-auto pointer-events-none text-xs font-semibold text-white/90 underline underline-offset-4">Voir le profil</span>
         </div>
       </div>
     </motion.div>
@@ -287,8 +287,8 @@ function PhotoAction({
         onClick();
       }}
       className={cn(
-        "shrink-0 rounded-full flex items-center justify-center transition-all active:scale-90 backdrop-blur-md",
-        isPrimary ? "w-13 h-13" : "w-11 h-11",
+        "flex-none aspect-square p-0 rounded-full flex items-center justify-center transition-transform active:scale-90 backdrop-blur-md",
+        isPrimary ? "size-14" : "size-12",
         isPrimary
           ? isActive
             ? "bg-white text-primary"
