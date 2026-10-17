@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Home01Icon,
+  News01Icon,
   UserGroupIcon,
   UserAdd01Icon,
   Message01Icon,
@@ -26,6 +27,7 @@ import { AgapeoLogo } from "@/components/ui/logo";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICON_MAP: Record<string, any> = {
   Home: Home01Icon,
+  News: News01Icon,
   Users: UserGroupIcon,
   UserPlus: UserAdd01Icon,
   MessageSquare: Message01Icon,
@@ -103,7 +105,7 @@ export function Sidebar({ isCollapsed = false, onToggleCollapse }: SidebarProps)
     >
       {/* Header Branding */}
       <div className="flex items-center justify-between h-16 px-4">
-        <AgapeoLogo href="/feed" size="sm" iconOnly={isCollapsed} />
+        <AgapeoLogo href="/accueil" size="sm" iconOnly={isCollapsed} />
 
         {onToggleCollapse && (
           <button

@@ -2,7 +2,8 @@ import type { createClient } from "@/lib/supabase/server";
 
 /**
  * Décide où atterrir juste après l'établissement d'une session (lien email
- * ou OAuth) : "/feed" est la destination générique — jamais un choix
+ * ou OAuth) : "/accueil" est la destination générique ("/feed", l'ancienne,
+ * reste reconnue pour les liens déjà envoyés par email) — jamais un choix
  * explicite de l'appelant (ex: `/reset-password`, préservé tel quel) — un
  * compte qui n'a pas encore terminé son profil est alors envoyé directement
  * vers `/onboarding` plutôt que sur le fil d'actualité, pour ne pas compter
@@ -13,17 +14,18 @@ export async function resolvePostAuthRedirect(
   userId: string,
   next: string
 ): Promise<string> {
-  if (next !== "/feed") return next;
+  if (next !== "/accueil" && next !== "/feed") return next;
+  const home = "/accueil";
 
   const [{ data: profile }, { data: restricted }] = await Promise.all([
     supabase.from("profiles").select("onboarding_completed, payment_required").eq("id", userId).maybeSingle(),
     supabase.from("profile_restricted").select("subscription_status").eq("id", userId).maybeSingle()
   ]);
-  if (!profile) return next;
+  if (!profile) return home;
 
   // Nouvelle inscription pas encore payée (cf. migration new_signup_payment_required)
   // — passe devant le garde onboarding_completed ci-dessous, avant même la
   // confirmation email ou le premier callback Google OAuth.
   if (profile.payment_required && restricted?.subscription_status !== "ACTIVE") return "/payment-required";
-  return !profile.onboarding_completed ? "/onboarding" : next;
+  return !profile.onboarding_completed ? "/onboarding" : home;
 }

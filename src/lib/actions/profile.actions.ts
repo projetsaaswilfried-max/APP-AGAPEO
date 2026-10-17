@@ -98,7 +98,7 @@ export async function completeOnboardingAction() {
   if (!user) redirect("/login");
 
   await supabase.from("profiles").update({ onboarding_completed: true, onboarding_step: 3 }).eq("id", user.id);
-  redirect("/feed");
+  redirect("/accueil");
 }
 
 export async function saveOnboardingStepAction(step: number) {

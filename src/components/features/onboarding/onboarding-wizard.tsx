@@ -229,7 +229,7 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
 
   const handleMobileBack = () => {
     if (stepIndex === 0) {
-      router.push(isRevisit ? "/profile" : "/feed");
+      router.push(isRevisit ? "/profile" : "/accueil");
     } else {
       goTo(stepIndex - 1);
     }
@@ -269,7 +269,7 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
       <div className="hidden md:block space-y-6">
         <div className="flex justify-end">
           <Link
-            href={isRevisit ? "/profile" : "/feed"}
+            href={isRevisit ? "/profile" : "/accueil"}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
           >
             <X size={14} /> {isRevisit ? "Fermer" : "Revenir plus tard"}

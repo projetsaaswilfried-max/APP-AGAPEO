@@ -91,7 +91,7 @@ export function Header({ className }: HeaderProps) {
 
       {/* Zone Gauche : logo sur mobile (la navigation est dans la barre du bas), nom de la page sur ordinateur. */}
       <div className="flex items-center">
-        <AgapeoLogo href="/feed" size="sm" className="md:hidden" />
+        <AgapeoLogo href="/accueil" size="sm" className="md:hidden" />
         <span className="hidden md:inline text-sm text-foreground font-semibold">{pageTitle}</span>
       </div>
 

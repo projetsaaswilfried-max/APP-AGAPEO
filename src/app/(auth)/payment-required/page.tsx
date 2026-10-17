@@ -19,7 +19,7 @@ export default async function PaymentRequiredPage() {
 
   if (!user || !profile) redirect("/login");
   if (!profile.payment_required || profile.subscription_status === "ACTIVE") {
-    redirect(profile.onboarding_completed ? "/feed" : "/onboarding");
+    redirect(profile.onboarding_completed ? "/accueil" : "/onboarding");
   }
 
   return <PaymentRequiredView />;

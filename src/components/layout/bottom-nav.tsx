@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Home01Icon,
+  News01Icon,
   UserGroupIcon,
   Message01Icon,
   Notification01Icon,
@@ -19,6 +20,7 @@ import { saveScrollForCurrentPage } from "@/core/hooks/use-scroll-memory";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICON_MAP: Record<string, any> = {
   Home: Home01Icon,
+  News: News01Icon,
   Users: UserGroupIcon,
   MessageSquare: Message01Icon,
   Bell: Notification01Icon,
@@ -59,11 +61,11 @@ export function BottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { unreadMessages, unreadNotifications } = useUnreadCounts();
-  // "Mon Profil" et "Premium" restent accessibles depuis le menu (avatar du
-  // header, tiroir mobile) — la barre du bas est réservée aux 4 actions
-  // principales pour éviter le débordement.
+  // 4 actions principales : Accueil, Découvrir, Messages, Fil. "Mon Profil"
+  // et "Premium" sont dans le menu de l'avatar du header, les notifications
+  // derrière sa cloche — la barre du bas ne déborde jamais.
   const navigation = withUnreadBadges(unreadMessages, unreadNotifications).filter(
-    (item) => item.id !== "profile" && item.id !== "premium"
+    (item) => item.id !== "profile" && item.id !== "premium" && item.id !== "notifications"
   );
 
   // Une conversation ouverte occupe tout l'écran sur mobile (cf. messages

@@ -20,7 +20,7 @@ const VERIFY_TIMEOUT_MS = 8000;
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/feed";
+  const next = searchParams.get("next") ?? "/accueil";
 
   if (code) {
     const supabase = await createClient();

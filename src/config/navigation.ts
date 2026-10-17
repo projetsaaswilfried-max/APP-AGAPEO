@@ -9,10 +9,18 @@ export interface NavigationItem {
 
 export const MAIN_NAVIGATION: NavigationItem[] = [
   {
-    id: "feed",
+    id: "home",
     title: "Accueil",
-    href: "/feed",
+    href: "/accueil",
     iconName: "Home",
+    isExact: true
+  },
+  {
+    // Le fil garde son URL historique (/feed) : les liens de partage de publications (/feed#post-…) restent valides.
+    id: "feed",
+    title: "Fil",
+    href: "/feed",
+    iconName: "News",
     isExact: true
   },
   {

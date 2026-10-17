@@ -79,7 +79,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && (pathname === "/" || pathname === "/bienvenue" || pathname === "/login" || pathname === "/register")) {
-    return NextResponse.redirect(new URL("/feed", request.url));
+    return NextResponse.redirect(new URL("/accueil", request.url));
   }
 
   return response;

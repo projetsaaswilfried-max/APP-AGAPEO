@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
         // Espace membre/admin, pages transactionnelles et routes techniques :
         // jamais indexées (contenu privé et/ou sans intérêt pour la recherche).
         disallow: [
+          "/accueil",
           "/feed",
           "/messages",
           "/notifications",
