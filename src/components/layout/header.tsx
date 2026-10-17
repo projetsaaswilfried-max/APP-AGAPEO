@@ -84,9 +84,11 @@ export function Header({ onOpenMobileMenu, className }: HeaderProps) {
           s'arrondit sur le panneau gris du contenu (cf. AppShell) — gardé ici,
           dans le header collant, pour que l'arrondi reste net même quand le
           contenu défile dessous. */}
-      <span aria-hidden className="pointer-events-none absolute left-0 top-full hidden md:block size-10 overflow-hidden">
-        <span className="absolute left-0 top-0 size-20 rounded-tl-[40px] shadow-[0_0_0_40px_hsl(var(--card))]" />
-      </span>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-0 top-full hidden md:block size-10"
+        style={{ background: "radial-gradient(circle at 100% 100%, transparent 39.5px, hsl(var(--card)) 40px)" }}
+      />
 
       {/* Zone Gauche : Mobile Toggle + Titre de Vue */}
       <div className="flex items-center gap-3">
@@ -99,11 +101,7 @@ export function Header({ onOpenMobileMenu, className }: HeaderProps) {
         </button>
 
         <div className="flex flex-col">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-            <span>Agapeo</span>
-            <span>/</span>
-            <span className="text-foreground font-semibold">{pageTitle}</span>
-          </div>
+          <span className="text-sm text-foreground font-semibold">{pageTitle}</span>
         </div>
       </div>
 

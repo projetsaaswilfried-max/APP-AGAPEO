@@ -10,6 +10,7 @@ import { ConversationListItem } from "@/components/features/messages/conversatio
 import { MessageBubble } from "@/components/features/messages/message-bubble";
 import { ChatInputBar, PendingFilePayload, PendingVoicePayload } from "@/components/features/messages/chat-input-bar";
 import { SearchInput } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { Avatar } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -395,13 +396,12 @@ function MessagesPageContent() {
 
   return (
     <div className={cn("space-y-4 w-full select-none", isMobileChatOpen ? "pb-0" : "pb-16")}>
-      {/* Desktop uniquement : titre de page + sous-titre — sur mobile, l'app
-          native n'affiche qu'un simple "Messages" (déjà couvert par le
-          fil d'Ariane du header global), jamais ce bandeau. */}
-      <div className="hidden md:block border-b border-border/40 pb-3">
-        <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Messagerie Privée & Échanges</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Discutez en toute sérénité avec vos contacts.</p>
-      </div>
+      {/* Titre + sous-titre — masqués sur mobile une fois une discussion ouverte (plein écran). */}
+      <PageHeader
+        title="Messages"
+        description="Tes discussions privées avec les membres."
+        className={cn(isMobileChatOpen && "hidden md:flex")}
+      />
 
       {/*
         Une fois une conversation ouverte sur mobile, la barre de nav du bas
@@ -415,7 +415,7 @@ function MessagesPageContent() {
       */}
       <div
         className={cn(
-          "min-h-[520px] md:bg-card md:border md:border-border/40 md:rounded-3xl overflow-hidden md:shadow-soft flex",
+          "min-h-[520px] md:bg-card md:border md:border-border/40 md:rounded-[18px] overflow-hidden flex",
           // Discussion ouverte sur mobile : plein écran (le header de l'app est masqué, cf. AppShell).
           isMobileChatOpen ? "h-dvh md:h-[calc(100dvh-13rem)]" : "h-[calc(100dvh-13rem)]"
         )}
@@ -427,21 +427,22 @@ function MessagesPageContent() {
           )}
         >
           <div className="pb-3 md:p-4 md:border-b md:border-border/40 space-y-3">
-            <h2 className="hidden md:block text-sm font-display font-semibold text-foreground tracking-tight">Discussions ({conversations.length})</h2>
+            <h2 className="hidden md:block text-sm font-semibold text-foreground tracking-tight">Discussions ({conversations.length})</h2>
             <SearchInput
               placeholder="Rechercher une discussion..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onClear={() => setSearchQuery("")}
-              className="text-xs h-10 md:h-9 bg-card md:bg-secondary/60 rounded-full shadow-2xs md:shadow-none"
+              className="text-sm md:text-xs h-11 md:h-9 bg-card md:bg-secondary/60 rounded-full border border-border/50 md:border-transparent"
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto md:p-2 space-y-2 md:space-y-1">
+          {/* Mobile : liste groupée (un fond blanc, des séparateurs) ; ordinateur : colonne à plat. */}
+          <div className="flex-1 overflow-y-auto md:p-2 md:space-y-0.5">
             {isLoadingConvs && (
-              <div className="space-y-2 p-2">
+              <div className="bg-card md:bg-transparent rounded-[16px] border border-border/50 md:border-0 divide-y divide-border/50 md:divide-y-0">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 p-2">
+                  <div key={i} className="flex items-center gap-3 px-4 py-3 md:px-3">
                     <Skeleton className="h-10 w-10 rounded-full shrink-0" />
                     <div className="space-y-2 flex-1">
                       <Skeleton className="h-3.5 w-3/4" />
@@ -460,10 +461,13 @@ function MessagesPageContent() {
               />
             )}
 
-            {!isLoadingConvs &&
-              filteredConversations.map((conv) => (
-                <ConversationListItem key={conv.id} conversation={conv} isActive={conv.id === activeConvId} onSelect={() => handleSelectConversation(conv.id)} />
-              ))}
+            {!isLoadingConvs && filteredConversations.length > 0 && (
+              <div className="bg-card rounded-[16px] border border-border/50 divide-y divide-border/50 overflow-hidden md:bg-transparent md:border-0 md:rounded-none md:divide-y-0 md:overflow-visible md:space-y-0.5">
+                {filteredConversations.map((conv) => (
+                  <ConversationListItem key={conv.id} conversation={conv} isActive={conv.id === activeConvId} onSelect={() => handleSelectConversation(conv.id)} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -484,7 +488,7 @@ function MessagesPageContent() {
                   <button
                     type="button"
                     onClick={() => setIsProfileOptionsOpen(true)}
-                    className="flex items-center gap-3 min-w-0 rounded-2xl -mx-1.5 -my-1 px-1.5 py-1 hover:bg-secondary/70 active:scale-[0.98] transition-all"
+                    className="flex items-center gap-3 min-w-0 rounded-[14px] -mx-1.5 -my-1 px-1.5 py-1 hover:bg-secondary/70 active:scale-[0.98] transition-all"
                   >
                     <Avatar
                       size="md"
@@ -517,7 +521,7 @@ function MessagesPageContent() {
                   {isHeaderMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setIsHeaderMenuOpen(false)} />
-                      <div className="absolute right-0 mt-1 w-56 p-1.5 bg-card border border-border/40 rounded-2xl shadow-soft z-50 text-xs">
+                      <div className="absolute right-0 mt-1 w-56 p-1.5 bg-card border border-border/40 rounded-[14px] z-50 text-xs">
                         <button
                           onClick={handleToggleFavoriteConversation}
                           className="w-full flex items-center gap-2 px-3 py-2 text-foreground hover:bg-secondary rounded-lg"
@@ -593,14 +597,14 @@ function MessagesPageContent() {
               ) : (
                 <>
                   {!activeConv.isSystemBroadcast && matchError && (
-                    <div className="mx-4 mt-3 flex items-center gap-2 p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">
+                    <div className="mx-4 mt-3 flex items-center gap-2 p-2.5 rounded-[12px] bg-destructive/10 border border-destructive/30 text-xs text-destructive">
                       <AlertCircle size={14} className="shrink-0" />
                       {matchError}
                     </div>
                   )}
 
                   {activeConv.isSystemBroadcast ? null : activeMatch?.status === "ACCEPTED" ? (
-                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-[14px] bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
                       <span className="flex items-center gap-1.5 font-medium">
                         <Heart size={14} className="fill-current text-accent shrink-0" /> Vous êtes en couple sur Agapeo !
                       </span>
@@ -614,7 +618,7 @@ function MessagesPageContent() {
                       </button>
                     </div>
                   ) : activeMatch?.status === "PENDING" && activeMatch.recipient_id === user.id ? (
-                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-[14px] bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
                       <span className="flex items-center gap-1.5 font-medium">
                         <Heart size={14} className="text-accent shrink-0" /> {activeConv.participant.firstName} te propose un match !
                       </span>
@@ -628,14 +632,14 @@ function MessagesPageContent() {
                       </div>
                     </div>
                   ) : activeMatch?.status === "PENDING" ? (
-                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-secondary/60 border border-border/40 text-xs text-muted-foreground">
+                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-[14px] bg-secondary/60 border border-border/40 text-xs text-muted-foreground">
                       <span>En attente de la réponse de {activeConv.participant.firstName}...</span>
                       <button type="button" onClick={handleCancelMatch} disabled={isMatchBusy} className="shrink-0 text-xs font-semibold text-destructive hover:underline">
                         Annuler
                       </button>
                     </div>
                   ) : !profile.is_matched ? (
-                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-2xl bg-secondary/40 border border-border/40 text-xs text-foreground">
+                    <div className="mx-4 mt-3 flex items-center justify-between gap-3 p-3 rounded-[14px] bg-secondary/40 border border-border/40 text-xs text-foreground">
                       <span>Vous vous sentez prêts à passer à l&apos;étape suivante ?</span>
                       <button
                         type="button"
@@ -651,9 +655,9 @@ function MessagesPageContent() {
                   <div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="flex-1 overflow-y-auto px-3 py-3 md:p-4">
                     {isLoadingMessages ? (
                       <div className="space-y-3 p-4">
-                        <Skeleton className="h-10 w-2/3 rounded-2xl" />
-                        <Skeleton className="h-12 w-1/2 ml-auto rounded-2xl" />
-                        <Skeleton className="h-10 w-3/4 rounded-2xl" />
+                        <Skeleton className="h-10 w-2/3 rounded-[14px]" />
+                        <Skeleton className="h-12 w-1/2 ml-auto rounded-[14px]" />
+                        <Skeleton className="h-10 w-3/4 rounded-[14px]" />
                       </div>
                     ) : messages.length === 0 ? (
                       <EmptyState icon={<MessageSquare size={24} />} title="Aucun message" description="Envoie le premier message de cette conversation." />
@@ -675,14 +679,14 @@ function MessagesPageContent() {
                   </div>
 
                   {sendError && (
-                    <div className="mx-4 mb-2 flex items-center gap-2 p-2.5 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">
+                    <div className="mx-4 mb-2 flex items-center gap-2 p-2.5 rounded-[12px] bg-destructive/10 border border-destructive/30 text-xs text-destructive">
                       <AlertCircle size={14} className="shrink-0" />
                       {sendError}
                     </div>
                   )}
 
                   {activeConv.isSystemBroadcast ? (
-                    <div className="mx-4 mb-4 flex flex-col items-center gap-2 p-4 rounded-2xl bg-secondary/50 border border-border/40 text-center">
+                    <div className="mx-4 mb-4 flex flex-col items-center gap-2 p-4 rounded-[14px] bg-secondary/50 border border-border/40 text-center">
                       <p className="text-xs text-muted-foreground">
                         Message automatique de l&apos;équipe Agapeo — tu ne peux pas répondre directement ici.
                       </p>
@@ -695,7 +699,7 @@ function MessagesPageContent() {
                   ) : (
                     <>
                       {!canSendMessages && (
-                        <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-2xl bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                        <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-[14px] bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
                           <span>Passe Premium pour répondre à tes messages.</span>
                           <button
                             type="button"
@@ -732,7 +736,7 @@ function MessagesPageContent() {
                   action={
                     <Link
                       href={isProfileComplete(profile) ? "/discover" : "/onboarding"}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2 shadow-accent-glow"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:opacity-95 transition-opacity rounded-full px-4 py-2"
                     >
                       {isProfileComplete(profile) ? "Aller à Découvrir" : "Compléter mon profil"}
                     </Link>
@@ -893,7 +897,7 @@ function MessagesPageContent() {
 
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<div className="h-[calc(100dvh-13rem)] min-h-[520px] bg-card border border-border/60 rounded-3xl animate-pulse" />}>
+    <Suspense fallback={<div className="h-[calc(100dvh-13rem)] min-h-[520px] bg-card border border-border/60 rounded-[18px] animate-pulse" />}>
       <MessagesPageContent />
     </Suspense>
   );

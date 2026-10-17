@@ -238,7 +238,7 @@ export function VoiceMessagePlayer({ url, durationSeconds, mimeType, isCurrentUs
             );
           })}
           <span
-            className="absolute w-2.5 h-2.5 rounded-full bg-sky-400 ring-2 ring-white/50 shadow-sm pointer-events-none"
+            className="absolute w-2.5 h-2.5 rounded-full bg-sky-400 ring-2 ring-white/50 pointer-events-none"
             style={{ left: `${Math.min(100, progress * 100)}%`, transform: "translateX(-50%)" }}
           />
         </div>

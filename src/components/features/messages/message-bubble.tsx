@@ -51,7 +51,7 @@ export function MessageBubble({
   if (message.type === "SYSTEM") {
     return (
       <div className="flex justify-center my-3 select-none">
-        <div className="px-4 py-1.5 rounded-full bg-secondary/60 border border-border/40 text-[11px] text-muted-foreground font-medium text-center max-w-md">
+        <div className="px-3.5 py-1.5 rounded-full bg-card border border-border/50 text-[11px] text-muted-foreground font-medium text-center max-w-md">
           {message.content}
         </div>
       </div>
@@ -89,7 +89,7 @@ export function MessageBubble({
             {isMenuOpen && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setIsMenuOpen(false)} />
-                <div className="absolute right-0 bottom-6 w-36 p-1.5 bg-card border border-border/40 rounded-2xl shadow-soft z-40 text-xs">
+                <div className="absolute right-0 bottom-6 w-36 p-1.5 bg-card border border-border/40 rounded-[14px] z-40 text-xs">
                   <button
                     onClick={() => {
                       handleCopy();
@@ -119,10 +119,10 @@ export function MessageBubble({
         {/* Bulle de Message */}
         <div
           className={cn(
-            "relative min-w-0 px-3 py-2 rounded-2xl text-sm space-y-1.5 leading-snug shadow-2xs transition-all border",
+            "relative min-w-0 px-3 py-2 rounded-[18px] text-sm space-y-1.5 leading-snug transition-colors",
             isCurrentUser
-              ? "bg-primary text-primary-foreground rounded-br-md border-primary/20 font-normal"
-              : "bg-card text-foreground rounded-bl-md border-border/40 font-normal"
+              ? "bg-primary text-primary-foreground rounded-br-[6px]"
+              : "bg-card text-foreground rounded-bl-[6px] border border-border/50"
           )}
         >
           {/* Pièces jointes (Document / Image / Vidéo) */}
@@ -148,7 +148,7 @@ export function MessageBubble({
                         e.stopPropagation();
                         setLightboxUrl(att.url);
                       }}
-                      className="rounded-2xl overflow-hidden max-w-xs border border-border/40 shadow-xs cursor-pointer"
+                      className="rounded-[14px] overflow-hidden max-w-xs border border-border/40 cursor-pointer"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={att.url} alt="Image jointe" className="w-full h-auto object-cover" />
@@ -157,7 +157,7 @@ export function MessageBubble({
                 }
                 if (att.type === "VIDEO") {
                   return (
-                    <div key={att.id} className="rounded-2xl overflow-hidden max-w-xs border border-border/40 bg-black shadow-xs">
+                    <div key={att.id} className="rounded-[14px] overflow-hidden max-w-xs border border-border/40 bg-black">
                       <video src={att.url} controls className="w-full h-auto max-h-64" />
                     </div>
                   );

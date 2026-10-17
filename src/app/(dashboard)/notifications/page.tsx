@@ -1,47 +1,34 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { AppNotification, NotificationCategory } from "@/domain/types/notification";
+import { AppNotification } from "@/domain/types/notification";
 import { notificationService } from "@/domain/services/notification.service";
 import { NotificationItem } from "@/components/features/notifications/notification-item";
-import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Bell, CheckCheck, ArrowLeft } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { Bell, CheckCheck } from "lucide-react";
 
-const CATEGORY_TABS = [
-  { id: "ALL", label: "Toutes" },
-  { id: "UNREAD", label: "Non lues" },
-  { id: "MESSAGES", label: "Messages" },
-  { id: "PROFILE", label: "Profil" },
-  { id: "PUBLICATIONS", label: "Publications" },
-  { id: "RECOMMENDATIONS", label: "Recommandations" },
-  { id: "PLATFORM", label: "Plateforme" }
-];
-
+// Toutes les notifications au même endroit — plus d'onglets par catégorie
+// (demande du fondateur), seulement un regroupement par période.
 export default function NotificationsPage() {
-  const router = useRouter();
-  const [activeCategory, setActiveCategory] = useState<NotificationCategory>("ALL");
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchNotifications = async (category: NotificationCategory) => {
-    setIsLoading(true);
-    try {
-      const data = await notificationService.getNotifications(category);
-      setNotifications(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchNotifications(activeCategory);
-  }, [activeCategory]);
+    const fetchNotifications = async () => {
+      setIsLoading(true);
+      try {
+        setNotifications(await notificationService.getNotifications("ALL"));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
 
   const handleMarkAsRead = async (id: string) => {
     setNotifications((prev) =>
@@ -66,62 +53,32 @@ export default function NotificationsPage() {
   const weekItems = notifications.filter((n) => n.groupLabel === "THIS_WEEK");
   const olderItems = notifications.filter((n) => n.groupLabel === "OLDER");
 
+  const groups = [
+    { label: "Aujourd'hui", items: todayItems },
+    { label: "Cette semaine", items: weekItems },
+    { label: "Plus ancien", items: olderItems }
+  ].filter((group) => group.items.length > 0);
+
   return (
-    <div className="space-y-6 max-w-3xl mx-auto w-full pb-16 select-none">
-      {/* Sticky sous le Header (h-16) : toujours visible sans avoir à
-          remonter, quelle que soit la longueur de la liste de notifications. */}
-      <div className="sticky top-16 z-10 py-3 bg-background/95 backdrop-blur-md">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft size={15} /> Retour
-        </button>
-      </div>
-
-      {/* En-tête sans le mot 'RUBRIQUE' */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
-        <div>
-          <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground flex items-center gap-2">
-            Centre de Notifications
-            {unreadCount > 0 && (
-              <span className="text-xs font-semibold text-accent-foreground bg-accent px-2 py-0.5 rounded-full">
-                {unreadCount} non lues
-              </span>
-            )}
-          </h1>
-          <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
-            Retrouvez en toute clarté l&apos;historique des interactions, messages et mises à jour concernant votre compte.
-          </p>
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleMarkAllAsRead}
-          disabled={unreadCount === 0}
-          leftIcon={<CheckCheck size={15} />}
-          className="shrink-0"
-        >
-          Tout marquer comme lu
-        </Button>
-      </div>
-
-      <div className="overflow-x-auto pb-1 no-scrollbar">
-        <Tabs
-          variant="pill"
-          tabs={CATEGORY_TABS}
-          activeTabId={activeCategory}
-          onChange={(id) => setActiveCategory(id as NotificationCategory)}
-        />
-      </div>
+    <div className="space-y-8 max-w-2xl mx-auto w-full pb-16 select-none">
+      <PageHeader
+        title="Notifications"
+        description={unreadCount > 0 ? `${unreadCount} non lue${unreadCount > 1 ? "s" : ""}` : "Tu es à jour."}
+        action={
+          unreadCount > 0 ? (
+            <Button variant="outline" size="sm" onClick={handleMarkAllAsRead} leftIcon={<CheckCheck size={15} />}>
+              <span className="hidden sm:inline">Tout marquer comme lu</span>
+              <span className="sm:hidden">Tout lu</span>
+            </Button>
+          ) : undefined
+        }
+      />
 
       {isLoading && (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="p-4 bg-card border border-border/60 rounded-2xl flex items-center gap-4">
-              <Skeleton className="h-10 w-10 rounded-2xl shrink-0" />
+            <div key={i} className="p-4 bg-card border border-border/50 rounded-[16px] flex items-center gap-3.5">
+              <Skeleton className="h-10 w-10 rounded-full shrink-0" />
               <div className="space-y-2 flex-1">
                 <Skeleton className="h-4 w-1/3" />
                 <Skeleton className="h-3 w-2/3" />
@@ -134,73 +91,22 @@ export default function NotificationsPage() {
       {!isLoading && notifications.length === 0 && (
         <EmptyState
           icon={<Bell size={28} />}
-          title="Aucune notification dans cette catégorie"
-          description="Les activités de votre compte et les messages importants apparaîtront ici."
-          action={
-            <Button variant="outline" size="sm" onClick={() => setActiveCategory("ALL")}>
-              Voir toutes les notifications
-            </Button>
-          }
+          title="Aucune notification"
+          description="Les activités de ton compte et les messages importants apparaîtront ici."
         />
       )}
 
-      {!isLoading && notifications.length > 0 && (
-        <div className="space-y-6">
-          {todayItems.length > 0 && (
+      {!isLoading &&
+        groups.map((group) => (
+          <section key={group.label} className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">{group.label}</h2>
             <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
-                Aujourd&apos;hui
-              </h3>
-              <div className="space-y-2.5">
-                {todayItems.map((n) => (
-                  <NotificationItem
-                    key={n.id}
-                    notification={n}
-                    onMarkAsRead={handleMarkAsRead}
-                    onDelete={handleDeleteNotification}
-                  />
-                ))}
-              </div>
+              {group.items.map((n) => (
+                <NotificationItem key={n.id} notification={n} onMarkAsRead={handleMarkAsRead} onDelete={handleDeleteNotification} />
+              ))}
             </div>
-          )}
-
-          {weekItems.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
-                Cette semaine
-              </h3>
-              <div className="space-y-2.5">
-                {weekItems.map((n) => (
-                  <NotificationItem
-                    key={n.id}
-                    notification={n}
-                    onMarkAsRead={handleMarkAsRead}
-                    onDelete={handleDeleteNotification}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {olderItems.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
-                Plus ancien
-              </h3>
-              <div className="space-y-2.5">
-                {olderItems.map((n) => (
-                  <NotificationItem
-                    key={n.id}
-                    notification={n}
-                    onMarkAsRead={handleMarkAsRead}
-                    onDelete={handleDeleteNotification}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+          </section>
+        ))}
     </div>
   );
 }

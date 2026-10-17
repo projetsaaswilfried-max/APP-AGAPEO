@@ -146,9 +146,6 @@ export function AuthSlider() {
               <Award size={13} className="text-amber-400" />
             </div>
             <p className="text-xs font-semibold text-white/90">Mariage & Engagements</p>
-            <div className="w-full bg-white/10 h-1.5 rounded-full mt-3 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary to-pink-400 h-full w-[85%] rounded-full" />
-            </div>
           </motion.div>
 
           {/* Card 3: Stacked Background Card 2 */}
@@ -199,7 +196,7 @@ export function AuthSlider() {
         </AnimatePresence>
       </div>
 
-      {/* Segmented Slide Progress Controls (Matching reference image's bottom bars) */}
+      {/* Points de navigation entre les diapositives */}
       <div className="relative z-10 pt-6 flex items-center justify-center gap-2">
         {SLIDES.map((slide, idx) => {
           const isActive = idx === currentIndex;
@@ -210,21 +207,12 @@ export function AuthSlider() {
               className="group relative h-2.5 py-1 flex items-center cursor-pointer transition-all duration-300 focus:outline-none"
               aria-label={`Go to slide ${idx + 1}`}
             >
+              {/* Simples points (pas de barre de progression, règle de design). */}
               <div
-                className={`h-1.5 rounded-full transition-all duration-500 overflow-hidden ${
-                  isActive ? "w-12 bg-white/20" : "w-6 bg-white/20 hover:bg-white/40"
+                className={`w-2 h-2 rounded-full transition-colors duration-300 ${
+                  isActive ? "bg-primary" : "bg-white/25 hover:bg-white/45"
                 }`}
-              >
-                {isActive && (
-                  <motion.div
-                    key={`progress-${currentIndex}`}
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 6, ease: "linear" }}
-                    className="h-full bg-gradient-to-r from-primary to-pink-300 rounded-full"
-                  />
-                )}
-              </div>
+              />
             </button>
           );
         })}

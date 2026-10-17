@@ -24,7 +24,7 @@ export function Toggle({ label, initial }: { label: string; initial: boolean }) 
       {label}
       <span className={cn('relative h-7 w-12 shrink-0 rounded-full transition-colors duration-300', on ? 'bg-rose' : 'bg-ink/15')}>
         <motion.span
-          className="absolute top-1 left-1 size-5 rounded-full bg-white shadow-sm"
+          className="absolute top-1 left-1 size-5 rounded-full bg-white shadow-[0_1px_3px_0_rgb(0_0_0/0.1),0_1px_2px_-1px_rgb(0_0_0/0.1)]"
           animate={{ x: on ? 20 : 0 }}
           transition={{ type: 'spring', stiffness: 500, damping: 32 }}
         />

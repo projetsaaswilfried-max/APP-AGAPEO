@@ -33,17 +33,19 @@ export function ConversationListItem({
   const { participant, lastMessage, unreadCount, isOnline, isTyping, isFavorite, status, initiatedByMe } = conversation;
   const isPendingInvite = status === "PENDING";
 
+  const hasUnread = unreadCount > 0;
+
+  // Mobile : rangée d'une liste groupée (fond blanc commun, séparateurs, cf.
+  // messages/page.tsx). Ordinateur : rangée de la colonne de gauche, surlignée
+  // quand la discussion est ouverte.
   return (
     <div
       onClick={onSelect}
       className={cn(
-        "flex items-center gap-3 p-3 md:p-3.5 rounded-2xl cursor-pointer transition-all duration-200 select-none group border",
-        isActive
-          ? "bg-accent-subtle text-foreground font-semibold border-accent/30 shadow-soft"
-          : "bg-card md:bg-transparent border-border/40 md:border-transparent shadow-2xs md:shadow-none active:bg-secondary/60 md:hover:bg-secondary/50 text-foreground/90"
+        "flex items-center gap-3 px-4 py-3 md:px-3 md:py-2.5 md:rounded-[12px] cursor-pointer transition-colors select-none",
+        isActive ? "md:bg-secondary" : "active:bg-secondary/60 md:hover:bg-secondary/50"
       )}
     >
-      {/* Avatar avec indicateur En ligne et Badge */}
       <div className="relative shrink-0">
         <Avatar
           size="md"
@@ -54,46 +56,39 @@ export function ConversationListItem({
         />
       </div>
 
-      {/* Titre & Aperçu du dernier message */}
-      <div className="flex-1 min-w-0 space-y-0.5">
-        <div className="flex items-center justify-between">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-sm font-semibold tracking-tight text-foreground truncate min-w-0">
+            <span className={cn("text-sm tracking-tight text-foreground truncate min-w-0", hasUnread ? "font-semibold" : "font-medium")}>
               {participant.firstName} {participant.lastName}
             </span>
             {isFavorite && <Pin size={11} className="text-accent shrink-0 fill-current" />}
-            {/* Puce "Invitation" (format app native) — uniquement sur mobile, pour une invitation reçue (pas la mienne). */}
             {isPendingInvite && !initiatedByMe && (
-              <span className="md:hidden shrink-0 text-[10px] font-semibold text-primary bg-primary/14 px-1.5 py-0.5 rounded-full">
-                Invitation
-              </span>
+              <span className="shrink-0 text-[10px] font-semibold text-primary bg-accent-subtle px-1.5 py-0.5 rounded-full">Invitation</span>
             )}
           </div>
           {lastMessage && (
-            <span className="text-[10px] text-muted-foreground shrink-0 font-medium">
+            <span className={cn("text-[11px] shrink-0 tabular-nums", hasUnread ? "text-primary font-semibold" : "text-muted-foreground")}>
               {lastMessage.createdAt}
             </span>
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 mt-0.5">
           {isTyping ? (
-            <span className="text-xs text-accent font-medium italic animate-pulse">
-              est en train d&apos;écrire...
-            </span>
+            <span className="text-xs text-primary font-medium italic">est en train d&apos;écrire...</span>
           ) : isPendingInvite ? (
-            <p className={cn("text-xs truncate font-medium leading-tight", initiatedByMe ? "text-muted-foreground italic" : "text-accent")}>
+            <p className={cn("text-xs truncate", initiatedByMe ? "text-muted-foreground italic" : "text-primary font-medium")}>
               {initiatedByMe ? "Invitation envoyée..." : "Souhaite discuter avec toi"}
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground truncate font-normal leading-tight">
+            <p className={cn("text-xs truncate", hasUnread ? "text-foreground font-medium" : "text-muted-foreground")}>
               {lastMessage ? lastMessagePreview(lastMessage) : "Nouvelle conversation"}
             </p>
           )}
 
-          {/* Badge Message Non Lu */}
-          {unreadCount > 0 && (
-            <span className="flex items-center justify-center text-[10px] font-bold text-accent-foreground bg-accent px-1.5 py-0.2 rounded-full min-w-4 h-4 leading-none shrink-0 shadow-2xs">
+          {hasUnread && (
+            <span className="flex items-center justify-center text-[10px] font-bold text-primary-foreground bg-primary px-1.5 rounded-full min-w-[18px] h-[18px] leading-none shrink-0">
               {unreadCount}
             </span>
           )}

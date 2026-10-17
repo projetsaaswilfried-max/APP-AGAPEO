@@ -7,36 +7,41 @@ interface OnboardingProgressProps {
   onStepClick?: (step: number) => void;
 }
 
+/** Étapes numérotées (pas de barre de progression, règle de design) — cliquables si onStepClick est fourni. */
 export function OnboardingProgress({ currentStep, labels, onStepClick }: OnboardingProgressProps) {
   return (
     <div className="space-y-2 select-none">
-      <div className="flex items-center gap-1.5">
-        {labels.map((label, index) =>
-          onStepClick ? (
+      <div className="flex items-center justify-center gap-2">
+        {labels.map((label, index) => {
+          const className = cn(
+            "w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center transition-colors",
+            index === currentStep
+              ? "bg-primary text-primary-foreground"
+              : index < currentStep
+                ? "bg-accent-subtle text-primary"
+                : "bg-secondary text-muted-foreground"
+          );
+          return onStepClick ? (
             <button
               key={label}
               type="button"
               onClick={() => onStepClick(index)}
               title={label}
               aria-label={`Aller à l'étape ${index + 1} : ${label}`}
-              className={cn(
-                "h-1.5 flex-1 rounded-full transition-colors cursor-pointer",
-                index <= currentStep ? "bg-primary" : "bg-secondary hover:bg-secondary/70"
-              )}
-            />
+              aria-current={index === currentStep ? "step" : undefined}
+              className={cn(className, "cursor-pointer hover:opacity-85")}
+            >
+              {index + 1}
+            </button>
           ) : (
-            <div
-              key={label}
-              className={cn(
-                "h-1.5 flex-1 rounded-full transition-colors",
-                index <= currentStep ? "bg-primary" : "bg-secondary"
-              )}
-            />
-          )
-        )}
+            <span key={label} className={className} aria-current={index === currentStep ? "step" : undefined}>
+              {index + 1}
+            </span>
+          );
+        })}
       </div>
       <p className="text-xs text-muted-foreground text-center">
-        Étape {currentStep + 1} sur {labels.length} — {labels[currentStep]}
+        Étape {currentStep + 1} sur {labels.length} : {labels[currentStep]}
       </p>
     </div>
   );

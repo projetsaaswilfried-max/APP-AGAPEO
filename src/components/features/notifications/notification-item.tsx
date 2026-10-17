@@ -54,13 +54,12 @@ export function NotificationItem({
   const content = (
     <div
       className={cn(
-        "flex items-start gap-4 p-4 rounded-3xl border transition-all duration-200 select-none group relative shadow-soft",
-        notification.isRead
-          ? "bg-card border-border/40 text-foreground/80"
-          : "bg-accent-subtle/60 border-accent/25 text-foreground"
+        "flex items-start gap-3.5 p-4 rounded-[16px] border bg-card transition-colors select-none group relative",
+        notification.isRead ? "border-border/50" : "border-accent/35 bg-accent-subtle/40",
+        notification.targetUrl && "hover:bg-secondary/40"
       )}
     >
-      {/* Icone de Catégorie ou Avatar */}
+      {/* Avatar de l'auteur (avec pastille d'icône) ou icône de catégorie */}
       {notification.actorAvatar ? (
         <div className="relative shrink-0">
           <Avatar
@@ -68,70 +67,62 @@ export function NotificationItem({
             src={notification.actorAvatar}
             fallback={notification.actorName ? notification.actorName.charAt(0) : "A"}
           />
-          <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-card border border-border/40 text-primary shadow-2xs">
-            <HugeIcon icon={iconObj} size={11} />
+          <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-card border border-border/50 text-primary">
+            <HugeIcon icon={iconObj} size={10} />
           </div>
         </div>
       ) : (
-        <div className="p-2.5 rounded-full bg-accent-subtle text-primary border border-accent/20 shrink-0 shadow-2xs">
+        <div className="w-10 h-10 rounded-full bg-accent-subtle text-primary flex items-center justify-center shrink-0">
           <HugeIcon icon={iconObj} size={18} />
         </div>
       )}
 
-      {/* Titre & Description */}
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-foreground tracking-tight">
-              {notification.title}
-            </span>
-            {!notification.isRead && (
-              <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" title="Non lu" />
-            )}
-          </div>
-          <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className={cn("text-sm tracking-tight text-foreground", notification.isRead ? "font-medium" : "font-semibold")}>
+            {notification.title}
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums shrink-0">
+            {!notification.isRead && <span className="w-2 h-2 rounded-full bg-primary" aria-label="Non lu" />}
             {notification.timeLabel}
           </span>
         </div>
 
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          {notification.message}
-        </p>
-      </div>
+        <p className="text-sm text-muted-foreground leading-relaxed mt-1">{notification.message}</p>
 
-      {/* Marquer comme lu / Supprimer : toujours visibles sur mobile (pas de
-          survol sur un écran tactile, ces boutons seraient sinon totalement
-          inatteignables) — au survol seulement sur desktop, inchangé. */}
-      <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
-        {!notification.isRead && (
+        {/* Marquer comme lu / Supprimer : toujours visibles sur mobile (pas de
+            survol sur un écran tactile), au survol sur ordinateur. */}
+        <div className="flex items-center gap-1 mt-2 -ml-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          {!notification.isRead && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onMarkAsRead(notification.id);
+              }}
+              className="inline-flex items-center gap-1 px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground rounded-full transition-colors"
+            >
+              <HugeIcon icon={Tick01Icon} size={13} /> Marquer comme lu
+            </button>
+          )}
           <button
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
-              onMarkAsRead(notification.id);
+              onDelete(notification.id);
             }}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
-            title="Marquer comme lu"
+            className="inline-flex items-center gap-1 px-1.5 py-1 text-xs text-muted-foreground hover:text-destructive rounded-full transition-colors"
           >
-            <HugeIcon icon={Tick01Icon} size={14} />
+            <HugeIcon icon={Delete02Icon} size={13} /> Supprimer
           </button>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(notification.id);
-          }}
-          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors"
-          title="Supprimer"
-        >
-          <HugeIcon icon={Delete02Icon} size={14} />
-        </button>
+        </div>
       </div>
     </div>
   );
 
   if (notification.targetUrl) {
     return (
-      <Link href={notification.targetUrl} onClick={() => onMarkAsRead(notification.id)}>
+      <Link href={notification.targetUrl} onClick={() => onMarkAsRead(notification.id)} className="block">
         {content}
       </Link>
     );

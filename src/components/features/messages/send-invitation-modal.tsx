@@ -47,7 +47,7 @@ export function SendInvitationModal({ isOpen, onClose, onConfirm, firstName, isS
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
-                className="absolute bottom-0 inset-x-0 bg-card rounded-t-[28px] shadow-soft p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] select-none"
+                className="absolute bottom-0 inset-x-0 bg-card rounded-t-[28px] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] select-none"
               >
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="text-base font-display font-semibold text-foreground tracking-tight">

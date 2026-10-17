@@ -237,9 +237,10 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
 
   return (
     <>
-      {/* Mobile : fond sombre + feuille blanche qui remonte, barre de
-          progression segmentée, bouton collé en bas — format exact de
-          l'app native (onboarding_flow_page.dart). Desktop inchangé ci-dessous. */}
+      {/* Mobile : fond sombre + feuille blanche qui remonte, indication
+          "Étape X sur N" (pas de barre de progression, règle de design),
+          bouton collé en bas — inspiré de l'app native
+          (onboarding_flow_page.dart). Desktop inchangé ci-dessous. */}
       <div className="md:hidden fixed inset-0 z-10 flex flex-col bg-foreground">
         <div className="shrink-0 pt-[max(1rem,env(safe-area-inset-top))] px-2 pb-4 flex flex-col gap-3">
           <div className="flex items-center gap-1">
@@ -251,14 +252,9 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
             >
               <ArrowLeft size={20} />
             </button>
-            <div className="flex-1 flex items-center gap-1.5 pr-2">
-              {stepKeys.map((key, index) => (
-                <div
-                  key={key}
-                  className={`h-1 flex-1 rounded-full transition-colors ${index <= stepIndex ? "bg-primary" : "bg-background/25"}`}
-                />
-              ))}
-            </div>
+            <span className="flex-1 pr-3 text-right text-xs font-medium text-background/70">
+              Étape {stepIndex + 1} sur {stepKeys.length}
+            </span>
           </div>
           <div className="px-3 space-y-1">
             <h2 className="font-display font-semibold text-lg text-background tracking-tight">{STEP_CONTENT[currentKey].title}</h2>

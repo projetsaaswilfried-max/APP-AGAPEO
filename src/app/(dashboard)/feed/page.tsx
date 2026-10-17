@@ -7,8 +7,9 @@ import { PublicationCard } from "@/components/features/feed/publication-card";
 import { Tabs } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Megaphone, BookOpen, RefreshCw, AlertCircle, LayoutGrid, HeartHandshake, Users, Lightbulb, Quote } from "lucide-react";
-import { motion } from "framer-motion";
+import { BookOpen, RefreshCw, AlertCircle, LayoutGrid, HeartHandshake, Users, Lightbulb, Quote } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TRANSITION_EASE } from "@/core/animations/variants";
@@ -29,13 +30,14 @@ const CATEGORY_TABS = [
 
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<FeedCategory>("ALL");
-  // Sens du glissement à l'arrivée d'une rubrique : depuis la droite si elle est
-  // plus bas dans la liste que la précédente, depuis la gauche sinon.
-  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
+  // Rubrique dont le contenu est réellement affiché : ne change qu'une fois
+  // ses publications chargées, et c'est ce changement qui déclenche le
+  // glissement vers la gauche (l'ancien contenu reste en place, atténué,
+  // pendant le chargement — plus de squelette qui « mange » l'animation).
+  const [displayedCategory, setDisplayedCategory] = useState<FeedCategory>("ALL");
+  const latestRequestRef = useRef<FeedCategory>("ALL");
   const selectCategory = (id: FeedCategory) => {
     if (id === activeCategory) return;
-    const indexOf = (cat: FeedCategory) => CATEGORY_TABS.findIndex((tab) => tab.id === cat);
-    setSlideDirection(indexOf(id) > indexOf(activeCategory) ? 1 : -1);
     setActiveCategory(id);
   };
   const [publications, setPublications] = useState<FeedPublication[]>([]);
@@ -50,19 +52,25 @@ export default function HomePage() {
   const mobileSentinelRef = useRef<HTMLDivElement>(null);
 
   const fetchPublications = async (category: FeedCategory) => {
+    latestRequestRef.current = category;
     setIsLoading(true);
     setIsError(false);
     try {
       const data = await feedService.getPublications(category);
+      // Clics rapides d'une rubrique à l'autre : seule la dernière demandée s'affiche.
+      if (latestRequestRef.current !== category) return;
       setPublications(data);
+      setDisplayedCategory(category);
       setRecentOffset(RECENT_PAGE_SIZE);
       setHasMoreRecent(true);
     } catch {
-      setIsError(true);
+      if (latestRequestRef.current === category) setIsError(true);
     } finally {
-      setIsLoading(false);
+      if (latestRequestRef.current === category) setIsLoading(false);
     }
   };
+  // Squelette seulement au tout premier chargement ; ensuite l'ancien contenu reste affiché.
+  const isFirstLoad = isLoading && publications.length === 0;
 
   const loadMoreRecent = async () => {
     if (isLoadingMore || !hasMoreRecent) return;
@@ -230,7 +238,7 @@ export default function HomePage() {
                 {isActive && (
                   <motion.span
                     layoutId="feed-category-pill"
-                    className="absolute inset-0 rounded-full bg-card border border-border/50 shadow-2xs"
+                    className="absolute inset-0 rounded-full bg-card border border-border/50"
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
                   />
                 )}
@@ -243,21 +251,8 @@ export default function HomePage() {
       </nav>
 
       <div className="space-y-6 max-w-2xl mx-auto w-full min-w-0">
-        {/* En-tête du Fil d'Actualité Officiel */}
-        <div className="flex flex-col space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-                CERCLE AGAPE
-              </span>
-              <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">
-                Fil d&apos;actualité
-              </h1>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 text-primary text-xs font-medium border border-accent/20">
-              <Megaphone size={13} /> Officiel
-            </div>
-          </div>
+        <div className="flex flex-col space-y-4">
+          <PageHeader title="Fil d'actualité" description="Enseignements, témoignages et conseils partagés par l'équipe Agapeo." />
 
           {/* Filtres par Catégorie — mobile/tablette (colonne verticale à gauche sur ordinateur) */}
           <Tabs
@@ -269,14 +264,15 @@ export default function HomePage() {
           />
         </div>
 
+        <AnimatePresence mode="wait" initial={false}>
         <motion.div
-          key={activeCategory}
-          initial={{ opacity: 0, x: slideDirection * 48 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, ease: TRANSITION_EASE }}
+          key={displayedCategory}
+          initial={{ opacity: 0, x: 56 }}
+          animate={{ opacity: isLoading && !isFirstLoad ? 0.55 : 1, x: 0 }}
+          exit={{ opacity: 0, x: -56 }}
+          transition={{ duration: 0.26, ease: TRANSITION_EASE }}
           className="space-y-6"
         >
-
           {/* État d'Erreur Simulé */}
           {isError && (
             <EmptyState
@@ -292,10 +288,10 @@ export default function HomePage() {
           )}
 
           {/* État de Chargement (Skeleton Loaders) */}
-          {isLoading && !isError && (
+          {isFirstLoad && !isError && (
             <div className="space-y-6">
               {[1, 2].map((i) => (
-                <div key={i} className="p-6 bg-card border border-border/60 rounded-2xl space-y-4 shadow-2xs">
+                <div key={i} className="p-6 bg-card border border-border/60 rounded-[16px] space-y-4">
                   <div className="flex items-center gap-3">
                     <Skeleton className="h-10 w-10 rounded-full" />
                     <div className="space-y-2 flex-1">
@@ -311,7 +307,7 @@ export default function HomePage() {
           )}
 
           {/* Liste des Publications Officiellement Réglées */}
-          {!isLoading && !isError && (
+          {!isFirstLoad && !isError && (
             <>
               {publications.length === 0 ? (
                 <EmptyState
@@ -349,6 +345,7 @@ export default function HomePage() {
             </>
           )}
         </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

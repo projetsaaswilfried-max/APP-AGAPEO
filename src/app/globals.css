@@ -1,6 +1,17 @@
 @import "tailwindcss";
 @import "../components/home/home.css";
 
+/* Règle de design : aucune ombre dans l'interface. Les échelles d'ombres de
+   Tailwind sont retirées du thème, donc shadow-*, inset-shadow-* et
+   drop-shadow-* ne produisent plus rien (shadow-soft / shadow-accent-glow,
+   propres au projet, ont été supprimées aussi). Les surfaces se distinguent
+   par leur fond, une bordure fine ou l'espacement. */
+@theme {
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+}
+
 @font-face {
   font-family: 'Product Sans';
   src: url('/fonts/ProductSans-Light.ttf') format('truetype');
@@ -155,8 +166,6 @@
   --radius-3xl: 1.75rem;
   --radius-full: 9999px;
 
-  --shadow-soft: 0 12px 32px -4px rgba(26, 29, 33, 0.05), 0 4px 12px -2px rgba(26, 29, 33, 0.03);
-  --shadow-accent-glow: 0 8px 20px -4px rgba(254, 112, 178, 0.45);
 }
 
 html {

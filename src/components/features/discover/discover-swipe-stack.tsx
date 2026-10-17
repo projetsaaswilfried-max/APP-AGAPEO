@@ -90,7 +90,7 @@ export function DiscoverSwipeStack({
             <div
               key={behind.profile.id}
               aria-hidden
-              className="absolute inset-0 rounded-[28px] overflow-hidden bg-secondary border border-border/60 shadow-soft transition-transform duration-300"
+              className="absolute inset-0 rounded-[22px] overflow-hidden bg-secondary border border-border/60 transition-transform duration-300"
               style={{ transform: `translateY(${offset * 12}px) scale(${1 - offset * 0.05})` }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -109,13 +109,16 @@ export function DiscoverSwipeStack({
               onSwipeLeft={goNext}
               onSwipeRight={goPrevious}
               onTap={() => onInspectProfile(current)}
+              onFavorite={() => handleFavorite(current)}
+              onLike={() => handleLike(current)}
+              onMessage={() => handleMessage(current)}
             />
           ) : (
             <motion.div
               key="end"
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="absolute inset-0 rounded-[28px] bg-card border border-border/60 shadow-soft flex flex-col items-center justify-center gap-4 p-8 text-center"
+              className="absolute inset-0 rounded-[22px] bg-card border border-border/60 flex flex-col items-center justify-center gap-4 p-8 text-center"
             >
               {isLoadingMore ? (
                 <RefreshCw size={22} className="text-muted-foreground animate-spin" />
@@ -145,42 +148,18 @@ export function DiscoverSwipeStack({
         </AnimatePresence>
       </div>
 
-      {/* Actions : naviguer, favori, like, message */}
-      <div className="flex items-center justify-center gap-3">
-        <StackButton label="Profil précédent" onClick={goPrevious} disabled={index === 0} size="sm">
+      {/* Navigation entre profils (les actions favori / like / message sont sur la photo) */}
+      <div className="flex items-center justify-between gap-3 px-1">
+        <NavButton label="Profil précédent" onClick={goPrevious} disabled={index === 0}>
           <ArrowLeft size={18} />
-        </StackButton>
-        <StackButton
-          label={current?.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-          onClick={() => current && handleFavorite(current)}
-          disabled={!current}
-          isActive={current?.isFavorite}
-        >
-          <Bookmark size={20} className={cn(current?.isFavorite && "fill-current")} />
-        </StackButton>
-        <StackButton
-          label={current?.isLiked ? "Retirer le like" : "Liker ce profil"}
-          onClick={() => current && handleLike(current)}
-          disabled={!current}
-          size="lg"
-          isPrimary
-          isActive={current?.isLiked}
-        >
-          <Heart size={26} className={cn(current?.isLiked && "fill-current")} />
-        </StackButton>
-        <StackButton label="Envoyer un message" onClick={() => current && handleMessage(current)} disabled={!current}>
-          <MessageSquare size={20} />
-        </StackButton>
-        <StackButton label="Profil suivant" onClick={goNext} disabled={isAtEnd} size="sm">
-          <ArrowRight size={18} />
-        </StackButton>
-      </div>
-
-      {items.length > 0 && !isAtEnd && (
-        <p className="text-center text-[11px] text-muted-foreground">
-          Glisse pour passer d&apos;un profil à l&apos;autre · touche la carte pour tout voir
+        </NavButton>
+        <p className="text-center text-[11px] text-muted-foreground leading-snug">
+          {items.length > 0 && !isAtEnd ? "Glisse ou utilise les flèches · touche la photo pour tout voir" : "\u00A0"}
         </p>
-      )}
+        <NavButton label="Profil suivant" onClick={goNext} disabled={isAtEnd}>
+          <ArrowRight size={18} />
+        </NavButton>
+      </div>
     </div>
   );
 }
@@ -191,7 +170,10 @@ function SwipeCard({
   canSeeDetails,
   onSwipeLeft,
   onSwipeRight,
-  onTap
+  onTap,
+  onFavorite,
+  onLike,
+  onMessage
 }: {
   item: RecommendedProfileItem;
   direction: 1 | -1;
@@ -199,8 +181,11 @@ function SwipeCard({
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
   onTap: () => void;
+  onFavorite: () => void;
+  onLike: () => void;
+  onMessage: () => void;
 }) {
-  const { profile } = item;
+  const { profile, isFavorite, isLiked } = item;
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-220, 220], [-9, 9]);
 
@@ -234,7 +219,7 @@ function SwipeCard({
       onDragEnd={handleDragEnd}
       onTap={onTap}
       style={{ x, rotate }}
-      className="absolute inset-0 rounded-[28px] overflow-hidden bg-secondary border border-border/60 shadow-soft cursor-grab active:cursor-grabbing touch-pan-y"
+      className="absolute inset-0 rounded-[22px] overflow-hidden bg-secondary border border-border/60 cursor-grab active:cursor-grabbing touch-pan-y"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={profile.avatarUrl || undefined} alt={displayName} draggable={false} className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
@@ -243,7 +228,8 @@ function SwipeCard({
         style={{ background: "linear-gradient(to bottom, transparent 45%, rgba(20,14,24,0.82) 100%)" }}
       />
 
-      <div className="absolute inset-x-0 bottom-0 p-5 text-white space-y-1.5 pointer-events-none">
+      <div className="absolute inset-x-0 bottom-0 p-5 text-white space-y-1.5">
+        <div className="pointer-events-none space-y-1.5">
         <div className="flex items-center gap-1.5">
           <h3 className="text-2xl font-display font-semibold tracking-tight truncate">
             {displayName}, <span className="font-normal">{displayAge}</span>
@@ -256,29 +242,68 @@ function SwipeCard({
           </p>
         )}
         {description && <p className="text-sm text-white/80 leading-snug line-clamp-2">{description}</p>}
-        <p className="pt-1 text-xs font-semibold text-white/95 underline underline-offset-4">Voir le profil</p>
+        </div>
+
+        {/* Actions sur la photo : favori, like, message */}
+        <div className="flex items-center gap-2.5 pt-3">
+          <PhotoAction label={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"} onClick={onFavorite} isActive={isFavorite}>
+            <Bookmark size={19} className={cn(isFavorite && "fill-current")} />
+          </PhotoAction>
+          <PhotoAction label={isLiked ? "Retirer le like" : "Liker ce profil"} onClick={onLike} isActive={isLiked} isPrimary>
+            <Heart size={22} className={cn(isLiked && "fill-current")} />
+          </PhotoAction>
+          <PhotoAction label="Envoyer un message" onClick={onMessage}>
+            <MessageSquare size={19} />
+          </PhotoAction>
+          <span className="ml-auto pointer-events-none text-xs font-semibold text-white/90 underline underline-offset-4">Voir le profil</span>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-function StackButton({
+/** Bouton posé sur la photo — n'entraîne ni le glissement ni l'ouverture de la fiche. */
+function PhotoAction({
   label,
   onClick,
-  disabled,
-  size = "md",
-  isPrimary,
   isActive,
+  isPrimary,
   children
 }: {
   label: string;
   onClick: () => void;
-  disabled?: boolean;
-  size?: "sm" | "md" | "lg";
-  isPrimary?: boolean;
   isActive?: boolean;
+  isPrimary?: boolean;
   children: React.ReactNode;
 }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        "shrink-0 rounded-full flex items-center justify-center transition-all active:scale-90 backdrop-blur-md",
+        isPrimary ? "w-13 h-13" : "w-11 h-11",
+        isPrimary
+          ? isActive
+            ? "bg-white text-primary"
+            : "bg-primary text-primary-foreground"
+          : isActive
+            ? "bg-white text-primary"
+            : "bg-white/20 text-white border border-white/30"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function NavButton({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <button
       type="button"
@@ -286,19 +311,7 @@ function StackButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={cn(
-        "shrink-0 rounded-full flex items-center justify-center shadow-soft border transition-all active:scale-90 disabled:opacity-35 disabled:active:scale-100",
-        size === "sm" && "w-11 h-11",
-        size === "md" && "w-13 h-13",
-        size === "lg" && "w-16 h-16",
-        isPrimary
-          ? isActive
-            ? "bg-card text-primary border-primary/40"
-            : "bg-primary text-primary-foreground border-primary"
-          : isActive
-            ? "bg-accent-subtle text-accent border-accent/30"
-            : "bg-card text-foreground border-border/60"
-      )}
+      className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center bg-card text-foreground border border-border/60 transition-all active:scale-90 disabled:opacity-35 disabled:active:scale-100"
     >
       {children}
     </button>

@@ -140,7 +140,7 @@ export default function InstallModal({ open, onClose }: { open: boolean; onClose
                   onClick={() => setDevice(d)}
                   className={cn('relative rounded-full py-1.5 text-[13px] font-semibold transition-colors', device === d ? 'text-ink' : 'text-ink/50 hover:text-ink')}
                 >
-                  {device === d && <motion.span layoutId="install-device" className="absolute inset-0 rounded-full bg-white shadow-sm ring-1 ring-line" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
+                  {device === d && <motion.span layoutId="install-device" className="absolute inset-0 rounded-full bg-white shadow-[0_1px_3px_0_rgb(0_0_0/0.1),0_1px_2px_-1px_rgb(0_0_0/0.1)] ring-1 ring-line" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
                   <span className="relative">{d === 'ios' ? 'iPhone / iPad' : 'Mac'}</span>
                 </button>
               ))}

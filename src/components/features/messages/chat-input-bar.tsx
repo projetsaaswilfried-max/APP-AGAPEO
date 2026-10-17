@@ -185,7 +185,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
       />
 
       {fileError && (
-        <div className="mb-2 p-2.5 rounded-2xl bg-destructive/10 border border-destructive/30 flex items-center justify-between text-xs text-destructive">
+        <div className="mb-2 p-2.5 rounded-[14px] bg-destructive/10 border border-destructive/30 flex items-center justify-between text-xs text-destructive">
           <div className="flex items-center gap-2">
             <HugeIcon icon={AlertCircleIcon} size={15} />
             <span>{fileError}</span>
@@ -194,21 +194,21 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
       )}
 
       {recorder.errorMessage && (
-        <div className="mb-2 p-2.5 rounded-2xl bg-destructive/10 border border-destructive/30 flex items-center gap-2 text-xs text-destructive">
+        <div className="mb-2 p-2.5 rounded-[14px] bg-destructive/10 border border-destructive/30 flex items-center gap-2 text-xs text-destructive">
           <HugeIcon icon={AlertCircleIcon} size={15} />
           <span>{recorder.errorMessage}</span>
         </div>
       )}
 
       {recorder.status === "transcoding" && (
-        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-2xl flex items-center gap-3 animate-in fade-in duration-150">
+        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-[14px] flex items-center gap-3 animate-in fade-in duration-150">
           <HugeIcon icon={Loading03Icon} size={18} className="text-primary shrink-0 animate-spin" />
           <span className="text-xs font-medium text-foreground">Conversion audio en cours…</span>
         </div>
       )}
 
       {recorder.status === "recorded" && recorder.recordedBlob && (
-        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in duration-150">
+        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-[14px] flex items-center justify-between gap-3 animate-in fade-in duration-150">
           <div className="flex items-center gap-3 min-w-0">
             {recorder.recordedPreviewUrl && (
               <audio
@@ -223,7 +223,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               type="button"
               onClick={togglePreviewPlayback}
               disabled={!recorder.recordedPreviewUrl}
-              className="p-2.5 rounded-2xl bg-card border border-border/40 text-primary shrink-0 hover:bg-secondary transition-colors disabled:opacity-50"
+              className="p-2.5 rounded-[14px] bg-card border border-border/40 text-primary shrink-0 hover:bg-secondary transition-colors disabled:opacity-50"
               title={isPreviewPlaying ? "Mettre en pause" : "Écouter avant d'envoyer"}
             >
               <HugeIcon icon={isPreviewPlaying ? PauseIcon : PlayIcon} size={18} />
@@ -248,15 +248,15 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
       )}
 
       {pendingFile && (
-        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-2xl flex items-center justify-between gap-3 animate-in fade-in duration-150">
+        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-[14px] flex items-center justify-between gap-3 animate-in fade-in duration-150">
           <div className="flex items-center gap-3 min-w-0">
             {pendingFile.type === "IMAGE" && pendingFile.previewUrl ? (
-              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-black border border-border/40 shrink-0">
+              <div className="w-12 h-12 rounded-[14px] overflow-hidden bg-black border border-border/40 shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={pendingFile.previewUrl} alt="Aperçu" className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="p-2.5 rounded-2xl bg-card border border-border/40 text-primary shrink-0">
+              <div className="p-2.5 rounded-[14px] bg-card border border-border/40 text-primary shrink-0">
                 {pendingFile.type === "VIDEO" ? <HugeIcon icon={Video01Icon} size={20} /> : <HugeIcon icon={File01Icon} size={20} />}
               </div>
             )}
@@ -281,7 +281,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
       {showAttachmentMenu && (
         <>
           <div className="fixed inset-0 z-20" onClick={() => setShowAttachmentMenu(false)} />
-          <div className="absolute bottom-16 left-4 right-4 sm:right-auto p-2 bg-card border border-border/40 rounded-3xl shadow-soft z-30 animate-in fade-in duration-150 sm:w-56 max-w-full">
+          <div className="absolute bottom-16 left-4 right-4 sm:right-auto p-2 bg-card border border-border/40 rounded-[18px] z-30 animate-in fade-in duration-150 sm:w-56 max-w-full">
             <div className="flex flex-col gap-0.5">
               <button
                 type="button"
@@ -365,7 +365,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               onClick={recorder.stopRecording}
               size="icon"
               variant="primary"
-              className="h-10 w-10 rounded-full shrink-0 shadow-accent-glow"
+              className="h-10 w-10 rounded-full shrink-0"
               title="Arrêter l'enregistrement"
             >
               <HugeIcon icon={StopIcon} size={15} />
@@ -407,7 +407,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               type="submit"
               size="icon"
               variant="primary"
-              className="h-10 w-10 rounded-full shrink-0 shadow-accent-glow disabled:opacity-40"
+              className="h-10 w-10 rounded-full shrink-0 disabled:opacity-40"
               title={hasContentToSend ? "Envoyer" : "Enregistrer une note vocale"}
               disabled={(!hasContentToSend && !onSendVoiceMessage) || recorder.status === "transcoding"}
               onClick={(e) => {

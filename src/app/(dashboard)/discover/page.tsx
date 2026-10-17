@@ -17,6 +17,7 @@ import { VerificationRequiredModal } from "@/components/features/discover/verifi
 import { SendInvitationModal } from "@/components/features/messages/send-invitation-modal";
 import { useSendInvitation } from "@/core/hooks/use-send-invitation";
 import { SearchInput } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -292,16 +293,8 @@ function DiscoverPageContent() {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-4">
-        <div>
-          <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase flex items-center gap-1.5">
-            <Users size={14} className="text-primary" /> ALLIANCES COMPATIBLES
-          </span>
-          <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Découvrir des Profils Sérieux</h1>
-          <p className="hidden md:block text-xs text-muted-foreground leading-relaxed mt-0.5">
-            Des membres orientés vers le mariage, sélectionnés selon vos valeurs et vos critères.
-          </p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <PageHeader title="Découvrir" description="Des membres orientés vers le mariage, choisis selon tes valeurs." />
 
         <div className="flex items-center gap-2 w-full md:w-auto">
           <SearchInput
@@ -315,7 +308,7 @@ function DiscoverPageContent() {
               setPremiumReason("utiliser la recherche");
               setIsPremiumRequiredOpen(true);
             }}
-            className="flex-1 md:w-72 text-xs h-10 bg-card shadow-2xs"
+            className="flex-1 md:w-72 text-xs h-10 bg-card"
           />
 
           <Button
@@ -373,15 +366,23 @@ function DiscoverPageContent() {
       )}
 
       {!isLoading && !isError && scoringGaps.length > 0 && (recommendedProfiles.length > 0 || otherProfilesTotalCount > 0) && (
-        <InfoBanner icon={<Heart size={14} className="text-accent shrink-0" />} href="/profile" cta="Compléter">
-          Tes scores de compatibilité sont encore incomplets : renseigne {scoringGaps.join(", ")} pour des suggestions plus précises.
-        </InfoBanner>
+        <Link
+          href="/profile"
+          title={`À renseigner : ${scoringGaps.join(", ")}`}
+          className="inline-flex max-w-full items-center gap-2 rounded-full bg-accent-subtle px-3.5 py-2 text-xs text-foreground hover:bg-accent-subtle/70 transition-colors"
+        >
+          <Heart size={13} className="shrink-0 text-primary" />
+          <span className="truncate">Affine tes scores de compatibilité</span>
+          <span className="inline-flex shrink-0 items-center gap-0.5 font-semibold text-primary">
+            Compléter <ArrowRight size={12} />
+          </span>
+        </Link>
       )}
 
       {isLoading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="p-6 bg-card border border-border/60 rounded-3xl space-y-4 shadow-2xs">
+            <div key={i} className="p-6 bg-card border border-border/60 rounded-[20px] space-y-4">
               <div className="flex items-center gap-4">
                 <Skeleton className="h-16 w-16 rounded-full shrink-0" />
                 <div className="space-y-2 flex-1">
@@ -523,7 +524,7 @@ function DiscoverPageContent() {
 /** Bandeau d'information (vérification, compatibilité) : texte puis lien en dessous sur mobile, sur une ligne sur ordinateur. */
 function InfoBanner({ icon, href, cta, children }: { icon: ReactNode; href: string; cta: string; children: ReactNode }) {
   return (
-    <div className="flex items-start md:items-center gap-2.5 px-3.5 py-3 md:px-4 md:py-2.5 rounded-2xl bg-accent/10 border border-accent/25 text-xs text-foreground">
+    <div className="flex items-start md:items-center gap-2.5 px-3.5 py-3 md:px-4 md:py-2.5 rounded-[14px] bg-accent-subtle text-xs text-foreground">
       <span className="mt-0.5 md:mt-0 shrink-0">{icon}</span>
       <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-1.5 md:gap-3">
         <span className="leading-snug">{children}</span>
