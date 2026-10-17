@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/client";
 import { mapPostRowToFeedPublication, mapCommentRow, buildCommentTree } from "@/domain/mappers/feed.mapper";
 import { uploadPostMedia, PLATFORM_MAX_UPLOAD_BYTES } from "@/lib/storage";
 import type { PostRow, ProfileRow, PostCommentRow, PostMediaRow } from "@/lib/supabase/database.types";
+import { getSessionUser } from "@/lib/supabase/session-user";
 
 export interface PersonalPublicationInput {
   title?: string;
@@ -40,7 +41,7 @@ class FeedServiceSupabase implements IFeedService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
 
     const postIds = rows.map((r) => r.id);
     const authorIds = [...new Set(rows.map((r) => r.author_id))];
@@ -187,7 +188,7 @@ class FeedServiceSupabase implements IFeedService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) throw new Error("Session expirée.");
 
     const { data, error } = await supabase
@@ -215,7 +216,7 @@ class FeedServiceSupabase implements IFeedService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) throw new Error("Session expirée.");
 
     const { error } = await supabase.from("posts").update({ content, title: title || null }).eq("id", id);
@@ -259,7 +260,7 @@ class FeedServiceSupabase implements IFeedService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) throw new Error("Session expirée.");
 
     const { data: existing } = await supabase.from("post_likes").select("post_id").eq("post_id", id).eq("user_id", user.id).maybeSingle();
@@ -279,7 +280,7 @@ class FeedServiceSupabase implements IFeedService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) throw new Error("Session expirée.");
 
     const { data: existing } = await supabase
@@ -304,7 +305,7 @@ class FeedServiceSupabase implements IFeedService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) throw new Error("Session expirée.");
 
     const { data, error } = await supabase
@@ -342,7 +343,7 @@ class FeedServiceSupabase implements IFeedService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return;
     await supabase.from("post_shares").insert({ post_id: id, user_id: user.id });
   }

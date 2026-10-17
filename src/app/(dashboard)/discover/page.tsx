@@ -23,6 +23,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
 import { useSession } from "@/core/providers/session-provider";
+import { readPageCache, writePageCache } from "@/core/cache/page-cache";
+import type { DiscoverPageResult } from "@/domain/types/discover";
 import { getScoringGaps } from "@/domain/profile-completeness";
 import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, ArrowRight, Clock, ShieldAlert } from "lucide-react";
 
@@ -131,11 +133,24 @@ function DiscoverPageContent() {
     setIsVerificationRequiredOpen(true);
   };
 
+  const applyDiscoverPage = (data: DiscoverPageResult) => {
+    setRecommendedProfiles(data.recommended);
+    setOtherProfilesPageItems(data.otherPage);
+    setOtherProfilesTotalCount(data.otherTotalCount);
+    setMobileOthers(data.otherPage);
+    setMobileOthersPage(1);
+  };
+
   const fetchProfiles = async () => {
-    setIsLoading(true);
+    // Déjà vue avec ces filtres et cette page : affichage immédiat, puis rafraîchissement silencieux.
+    const cacheKey = `discover:${profile.id}:${JSON.stringify(filters)}:${otherProfilesPage}`;
+    const cached = readPageCache<DiscoverPageResult>(cacheKey);
+    if (cached) applyDiscoverPage(cached);
+    setIsLoading(!cached);
     setIsError(false);
     try {
       const data = await discoverService.getDiscoverPage(filters, otherProfilesPage, OTHER_PROFILES_PAGE_SIZE);
+      writePageCache(cacheKey, data);
       setRecommendedProfiles(data.recommended);
       setOtherProfilesPageItems(data.otherPage);
       setOtherProfilesTotalCount(data.otherTotalCount);

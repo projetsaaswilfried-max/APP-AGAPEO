@@ -4,7 +4,7 @@ import { useState, ReactNode } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { BottomNav } from "./bottom-nav";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { usePathname, useSearchParams } from "next/navigation";
 import { TRANSITION_EASE } from "@/core/animations/variants";
 import { cn } from "@/lib/utils";
@@ -60,18 +60,18 @@ function AppShellContent({ children }: AppShellProps) {
           </div>
 
           <main className={cn("flex-1 w-full md:px-5 md:py-6 lg:py-8", isConversationOpen ? "p-0" : "px-5 py-4")}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={pathname}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2, ease: TRANSITION_EASE }}
-                className="h-full flex flex-col"
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
+            {/* Apparition courte de la nouvelle page, sans attendre la sortie de
+                l'ancienne (l'ancien mode="wait" ajoutait ~200 ms à chaque
+                changement de page avant même d'afficher la suivante). */}
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15, ease: TRANSITION_EASE }}
+              className="h-full flex flex-col"
+            >
+              {children}
+            </motion.div>
           </main>
         </div>
       </div>

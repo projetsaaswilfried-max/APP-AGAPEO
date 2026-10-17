@@ -2,6 +2,7 @@ import { UserProfile } from "../types/user";
 import { createClient } from "@/lib/supabase/client";
 import { mapProfileRowToUserProfile } from "@/domain/mappers/profile.mapper";
 import type { ProfileRow } from "@/lib/supabase/database.types";
+import { getSessionUser } from "@/lib/supabase/session-user";
 
 export interface IUserService {
   getCurrentUser(): Promise<UserProfile>;
@@ -24,7 +25,7 @@ class UserServiceSupabase implements IUserService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
 
     if (!user) throw new Error("Aucune session active.");
 

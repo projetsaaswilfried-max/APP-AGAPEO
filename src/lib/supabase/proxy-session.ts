@@ -65,9 +65,12 @@ export async function updateSession(request: NextRequest) {
     }
   });
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  // getClaims (recommandé par Supabase pour le proxy) : vérifie le jeton
+  // localement quand le projet utilise des clés de signature asymétriques —
+  // plus d'aller-retour vers Supabase Auth à chaque navigation — et retombe
+  // sur la vérification réseau sinon. Rafraîchit la session comme getUser.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims ?? null;
 
   const { pathname } = request.nextUrl;
   const publicRoute = isPublicRoute(pathname);

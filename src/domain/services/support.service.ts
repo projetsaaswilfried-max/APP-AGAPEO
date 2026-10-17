@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { uploadSupportImage, getSignedAttachmentUrls } from "@/lib/storage";
 import type { SupportMessageRow, SupportTicketRow, SupportTicketStatus } from "@/lib/supabase/database.types";
+import { getSessionUser } from "@/lib/supabase/session-user";
 
 export interface SupportMessage {
   id: string;
@@ -73,7 +74,7 @@ async function getCurrentUserId(): Promise<string> {
   const supabase = createClient();
   const {
     data: { user }
-  } = await supabase.auth.getUser();
+  } = await getSessionUser(supabase);
   if (!user) throw new Error("Session expirée.");
   return user.id;
 }

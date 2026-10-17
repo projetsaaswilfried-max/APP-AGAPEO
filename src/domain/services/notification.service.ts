@@ -2,6 +2,7 @@ import { AppNotification, NotificationCategory } from "../types/notification";
 import { createClient } from "@/lib/supabase/client";
 import { mapNotificationRow } from "@/domain/mappers/notification.mapper";
 import type { NotificationRow } from "@/lib/supabase/database.types";
+import { getSessionUser } from "@/lib/supabase/session-user";
 
 export interface INotificationService {
   getNotifications(category?: NotificationCategory): Promise<AppNotification[]>;
@@ -16,7 +17,7 @@ class NotificationServiceSupabase implements INotificationService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return [];
 
     let query = supabase.from("notifications").select("*").eq("recipient_id", user.id).order("created_at", { ascending: false }).limit(100);
@@ -48,7 +49,7 @@ class NotificationServiceSupabase implements INotificationService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return 0;
 
     const { count } = await supabase
@@ -71,7 +72,7 @@ class NotificationServiceSupabase implements INotificationService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return;
 
     await supabase.from("notifications").update({ is_read: true }).eq("recipient_id", user.id).eq("is_read", false);

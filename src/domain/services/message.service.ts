@@ -11,6 +11,7 @@ import type {
   ProfileRow,
   ProfilePhotoRow
 } from "@/lib/supabase/database.types";
+import { getSessionUser } from "@/lib/supabase/session-user";
 
 export type MessageUpdate = Pick<ChatMessage, "id" | "status" | "isRead" | "content" | "deletedAt" | "readAt">;
 
@@ -48,7 +49,7 @@ async function getCurrentUserId(): Promise<string> {
   const supabase = createClient();
   const {
     data: { user }
-  } = await supabase.auth.getUser();
+  } = await getSessionUser(supabase);
   if (!user) throw new Error("Session expirée.");
   return user.id;
 }

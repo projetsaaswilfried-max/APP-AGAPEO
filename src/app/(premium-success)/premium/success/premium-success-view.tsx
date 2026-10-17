@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, Crown, UserCog } from "lucide-react";
 import { trackMetaEventOnce } from "@/lib/meta-pixel";
 import { PREMIUM_PLANS, planKeyFromDbValue } from "@/domain/premium-plans";
+import { getSessionUser } from "@/lib/supabase/session-user";
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_ATTEMPTS = 10;
@@ -29,7 +30,7 @@ export function PremiumSuccessView({ onboardingCompleted }: PremiumSuccessViewPr
       const supabase = createClient();
       const {
         data: { user }
-      } = await supabase.auth.getUser();
+      } = await getSessionUser(supabase);
       if (!user || cancelled) return;
 
       const { data } = await supabase

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ConversationSummary, ChatMessage } from "@/domain/types/message";
 import { messageService } from "@/domain/services/message.service";
 import { useSession } from "@/core/providers/session-provider";
+import { readPageCache, writePageCache } from "@/core/cache/page-cache";
 import { ConversationListItem } from "@/components/features/messages/conversation-list-item";
 import { MessageBubble } from "@/components/features/messages/message-bubble";
 import { ChatInputBar, PendingFilePayload, PendingVoicePayload } from "@/components/features/messages/chat-input-bar";
@@ -60,11 +61,13 @@ function MessagesPageContent() {
   const router = useRouter();
   const { user, profile } = useSession();
   const canSendMessages = profile.subscription_status === "ACTIVE" || profile.role !== "USER";
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const conversationsCacheKey = `conversations:${user.id}`;
+  // Retour sur Messages : la dernière liste s'affiche tout de suite, rafraîchie ensuite.
+  const [conversations, setConversations] = useState<ConversationSummary[]>(() => readPageCache<ConversationSummary[]>(conversationsCacheKey) ?? []);
   const [activeConvId, setActiveConvId] = useState<string | null>(searchParams.get("conversation"));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoadingConvs, setIsLoadingConvs] = useState(true);
+  const [isLoadingConvs, setIsLoadingConvs] = useState(() => !readPageCache(conversationsCacheKey));
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   // Lu dans l'URL — même source que AppShell, pour que les deux changent ensemble.
   const isMobileChatOpen = Boolean(searchParams.get("conversation"));
@@ -104,7 +107,6 @@ function MessagesPageContent() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadConversations = useCallback(async () => {
-    setIsLoadingConvs(true);
     try {
       const data = await messageService.getConversations();
       setConversations(data);
@@ -159,6 +161,10 @@ function MessagesPageContent() {
           .catch(() => {});
       });
   }, [conversations]);
+
+  useEffect(() => {
+    if (!isLoadingConvs) writePageCache(conversationsCacheKey, conversations);
+  }, [conversationsCacheKey, conversations, isLoadingConvs]);
 
   // Le cache suit la discussion ouverte (messages envoyés, reçus, supprimés).
   useEffect(() => {

@@ -6,6 +6,7 @@ import { computeAge } from "@/domain/badges";
 import { orderByCompatibilityWithDailyRotation, pickDailyRecommendations } from "@/domain/daily-recommendations";
 import { PremiumRequiredError, VerificationRequiredError, isRlsViolation } from "@/domain/errors";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
+import { getSessionUser } from "@/lib/supabase/session-user";
 
 export interface IDiscoverService {
   getProfiles(filters?: DiscoverFilterCriteria): Promise<RecommendedProfileItem[]>;
@@ -160,7 +161,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return [];
 
     const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
@@ -230,7 +231,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return empty;
 
     const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
@@ -338,7 +339,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return;
 
     const { data: existing } = await supabase
@@ -369,7 +370,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return [];
 
     const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
@@ -442,7 +443,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return [];
 
     const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
@@ -520,7 +521,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) return 0;
 
     const { data: viewerRow } = await supabase.from("profiles").select("gender").eq("id", user.id).single();
@@ -559,7 +560,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) throw new Error("Session expirée.");
 
     // Vérifié en amont (message d'erreur précis) plutôt que de laisser la
@@ -598,7 +599,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     const supabase = createClient();
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await getSessionUser(supabase);
     if (!user) throw new Error("Session expirée.");
 
     const { data: viewerRow } = await supabase.from("profiles").select("photo_verification_status, is_staff").eq("id", user.id).single();

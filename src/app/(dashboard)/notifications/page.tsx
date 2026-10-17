@@ -9,16 +9,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Bell, CheckCheck } from "lucide-react";
+import { useSession } from "@/core/providers/session-provider";
+import { readPageCache, writePageCache } from "@/core/cache/page-cache";
 
 // Toutes les notifications au même endroit — plus d'onglets par catégorie
 // (demande du fondateur), seulement un regroupement par période.
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { profile } = useSession();
+  const cacheKey = `notifications:${profile.id}`;
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => readPageCache<AppNotification[]>(cacheKey) ?? []);
+  const [isLoading, setIsLoading] = useState(() => !readPageCache(cacheKey));
+
+  // Toute modification locale (lu, supprimé) suit dans la mémoire de page.
+  useEffect(() => {
+    if (!isLoading) writePageCache(cacheKey, notifications);
+  }, [cacheKey, notifications, isLoading]);
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      setIsLoading(true);
       try {
         setNotifications(await notificationService.getNotifications("ALL"));
       } catch (err) {
@@ -29,6 +37,7 @@ export default function NotificationsPage() {
     };
     fetchNotifications();
   }, []);
+
 
   const handleMarkAsRead = async (id: string) => {
     setNotifications((prev) =>

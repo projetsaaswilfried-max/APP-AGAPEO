@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { notificationService } from "@/domain/services/notification.service";
+import { getSessionUser } from "@/lib/supabase/session-user";
 
 const POLL_INTERVAL_MS = 30000;
 
@@ -44,7 +45,7 @@ export function UnreadCountsProvider({ children }: { children: ReactNode }) {
       const supabase = createClient();
       const {
         data: { user }
-      } = await supabase.auth.getUser();
+      } = await getSessionUser(supabase);
       if (!user || cancelled) return;
 
       const [{ data: messageCount }, notifCount] = await Promise.all([
@@ -69,7 +70,7 @@ export function UnreadCountsProvider({ children }: { children: ReactNode }) {
     // déjà ce que Realtime peut transmettre à mes propres conversations).
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    getSessionUser(supabase).then(({ data: { user } }) => {
       if (!user || cancelled) return;
       channel = supabase
         .channel(`unread-counts:${user.id}`)

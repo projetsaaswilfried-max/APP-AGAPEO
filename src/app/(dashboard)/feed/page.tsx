@@ -11,6 +11,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/core/providers/session-provider";
+import { readPageCache, writePageCache } from "@/core/cache/page-cache";
 import { TRANSITION_EASE } from "@/core/animations/variants";
 
 // Nombre de publications "récentes" (hors épinglées) renvoyées par chaque
@@ -31,6 +33,8 @@ const CATEGORY_TABS = [
 const CHIP_ARROW_ZONE_PX = 64;
 
 export default function HomePage() {
+  const { profile } = useSession();
+  const feedCacheKey = (category: FeedCategory) => `feed:${profile.id}:${category}`;
   const [activeCategory, setActiveCategory] = useState<FeedCategory>("ALL");
   // Rubrique dont le contenu est réellement affiché : ne change qu'une fois
   // ses publications chargées, et c'est ce changement qui déclenche le
@@ -76,8 +80,9 @@ export default function HomePage() {
     const next = CATEGORY_TABS[index + (dx < 0 ? 1 : -1)];
     if (next) selectCategory(next.id as FeedCategory);
   };
-  const [publications, setPublications] = useState<FeedPublication[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Retour sur le fil : la dernière liste vue s'affiche tout de suite (rafraîchie ensuite).
+  const [publications, setPublications] = useState<FeedPublication[]>(() => readPageCache<FeedPublication[]>(feedCacheKey("ALL")) ?? []);
+  const [isLoading, setIsLoading] = useState(() => !readPageCache(feedCacheKey("ALL")));
   const [isError, setIsError] = useState(false);
   // Défilement infini mobile uniquement (format app native : feed_body.dart
   // charge la suite en approchant du bas) — desktop reste plafonné à 30
@@ -89,10 +94,18 @@ export default function HomePage() {
 
   const fetchPublications = async (category: FeedCategory) => {
     latestRequestRef.current = category;
-    setIsLoading(true);
+    const cached = readPageCache<FeedPublication[]>(feedCacheKey(category));
+    if (cached) {
+      setPublications(cached);
+      setDisplayedCategory(category);
+      setRecentOffset(RECENT_PAGE_SIZE);
+      setHasMoreRecent(true);
+    }
+    setIsLoading(!cached);
     setIsError(false);
     try {
       const data = await feedService.getPublications(category);
+      writePageCache(feedCacheKey(category), data);
       // Clics rapides d'une rubrique à l'autre : seule la dernière demandée s'affiche.
       if (latestRequestRef.current !== category) return;
       setPublications(data);
@@ -131,6 +144,8 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchPublications(activeCategory);
+    // Relancé uniquement au changement de rubrique (le membre connecté ne change pas sur cette page).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCategory]);
 
   useEffect(() => {
