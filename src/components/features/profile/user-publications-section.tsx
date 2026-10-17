@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { PublicationComposerModal } from "@/components/features/profile/publication-composer-modal";
 import { Tooltip } from "@/components/ui/tooltip";
-import { BookOpen, Plus, Pencil, Trash2, Info } from "lucide-react";
+import { FileText, Plus, Pencil, Trash2, Info } from "lucide-react";
 
 interface UserPublicationsSectionProps {
   userName: string;
@@ -123,7 +123,7 @@ export function UserPublicationsSection({ userName, profileId, publications, isO
 
       {!items || items.length === 0 ? (
         <EmptyState
-          icon={<BookOpen size={24} />}
+          icon={<FileText size={24} />}
           title={`${userName} n'a pas encore partagé de pensée personnelle`}
           description="Les publications personnelles de ce membre apparaîtront ici."
           action={

@@ -12,7 +12,9 @@ import {
   TickDouble01Icon,
   MoreHorizontalIcon,
   Copy01Icon,
-  Delete02Icon
+  Delete02Icon,
+  Mic01Icon,
+  Clock01Icon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { cn } from "@/lib/utils";
@@ -61,6 +63,8 @@ export function MessageBubble({
   // Message texte simple : l'heure se place au bout de la dernière ligne, comme
   // WhatsApp, au lieu d'une ligne à part qui alourdit chaque bulle.
   const hasInlineTime = message.type === "TEXT" && Boolean(message.content) && !message.attachments?.length && !(message.ctaText && message.ctaUrl);
+  // Note vocale seule : bulle compacte de largeur fixe, l'heure sur la même ligne que la durée (comme WhatsApp).
+  const isVoiceOnly = message.attachments?.length === 1 && message.attachments[0].type === "AUDIO" && message.type !== "TEXT";
 
   const handleCopy = () => {
     if (navigator.clipboard) {
@@ -119,7 +123,8 @@ export function MessageBubble({
         {/* Bulle de Message */}
         <div
           className={cn(
-            "relative min-w-0 px-3 py-2 rounded-[18px] text-sm space-y-1.5 leading-snug transition-colors",
+            "relative min-w-0 rounded-[18px] text-sm leading-snug transition-colors",
+            isVoiceOnly ? "w-[15rem] max-w-full px-2.5 pt-2 pb-1.5" : "px-3 py-2 space-y-1.5",
             isCurrentUser
               ? "bg-primary text-primary-foreground rounded-br-[6px]"
               : "bg-card text-foreground rounded-bl-[6px] border border-border/50"
@@ -211,6 +216,7 @@ export function MessageBubble({
             className={cn(
               "flex items-center justify-end gap-1 text-[10px] leading-none tabular-nums",
               hasInlineTime && "absolute right-3 bottom-2",
+              isVoiceOnly && "absolute right-2.5 bottom-1.5",
               isCurrentUser ? "text-primary-foreground/80" : "text-muted-foreground opacity-80"
             )}
           >
@@ -234,3 +240,37 @@ export function MessageBubble({
     </div>
   );
 }
+
+/**
+ * Note vocale en cours d'envoi (affichée dès le toucher sur « Envoyer »,
+ * pendant la conversion et l'upload) : même gabarit que la bulle vocale
+ * envoyée, avec une horloge à la place des coches, comme WhatsApp.
+ */
+export function PendingVoiceBubble({ durationSeconds }: { durationSeconds: number }) {
+  const minutes = Math.floor(durationSeconds / 60);
+  const seconds = String(durationSeconds % 60).padStart(2, "0");
+  return (
+    <div className="flex flex-col items-end my-0.5 select-none">
+      <div className="relative w-[15rem] max-w-[85%] px-2.5 pt-2 pb-1.5 rounded-[18px] rounded-br-[6px] bg-primary text-primary-foreground">
+        <div className="flex items-center gap-2">
+          <span className="shrink-0 w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
+            <HugeIcon icon={Mic01Icon} size={14} />
+          </span>
+          <span className="flex-1 min-w-0 h-6 flex items-center gap-[2px]">
+            {PENDING_VOICE_BARS.map((height, i) => (
+              <span key={i} className="flex-1 min-w-[1.5px] rounded-full bg-primary-foreground/35" style={{ height: `${height}%` }} />
+            ))}
+          </span>
+        </div>
+        <div className="flex items-center justify-between pl-10 pt-0.5 text-[10px] leading-none tabular-nums text-primary-foreground/75">
+          <span>
+            {minutes}:{seconds}
+          </span>
+          <HugeIcon icon={Clock01Icon} size={11} className="text-primary-foreground/80" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PENDING_VOICE_BARS = [30, 55, 40, 70, 45, 85, 60, 35, 75, 50, 65, 40, 80, 55, 30, 60, 45, 70, 35, 50, 65, 40, 55, 30];

@@ -22,18 +22,31 @@ export type SessionProfile = ProfileRow & ProfileRestrictedRow;
  */
 export const getCurrentSession = cache(async () => {
   const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  // Identifiant lu dans le jeton (vérifié localement, clé ES256) pour lancer
+  // en parallèle la confirmation de session (getUser) et la lecture du
+  // profil, au lieu de les enchaîner : un aller-retour de moins vers Supabase
+  // à chaque affichage de l'espace membre.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  if (!userId) {
     return { user: null, profile: null };
   }
 
-  const [{ data: profile }, { data: restricted }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
-    supabase.from("profile_restricted").select("*").eq("id", user.id).single()
+  const [
+    {
+      data: { user }
+    },
+    { data: profile },
+    { data: restricted }
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("profiles").select("*").eq("id", userId).single(),
+    supabase.from("profile_restricted").select("*").eq("id", userId).single()
   ]);
+
+  if (!user || user.id !== userId) {
+    return { user: null, profile: null };
+  }
 
   if (!profile || !restricted) {
     return { user, profile: null };

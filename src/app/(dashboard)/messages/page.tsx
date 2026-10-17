@@ -7,8 +7,9 @@ import { ConversationSummary, ChatMessage } from "@/domain/types/message";
 import { messageService } from "@/domain/services/message.service";
 import { useSession } from "@/core/providers/session-provider";
 import { readPageCache, writePageCache } from "@/core/cache/page-cache";
+import { cancelInvitationAction } from "@/lib/actions/invitation.actions";
 import { ConversationListItem } from "@/components/features/messages/conversation-list-item";
-import { MessageBubble } from "@/components/features/messages/message-bubble";
+import { MessageBubble, PendingVoiceBubble } from "@/components/features/messages/message-bubble";
 import { ChatInputBar, PendingFilePayload, PendingVoicePayload } from "@/components/features/messages/chat-input-bar";
 import { SearchInput } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -87,6 +88,14 @@ function MessagesPageContent() {
   const [matchError, setMatchError] = useState<string | null>(null);
   const [isMatchRequestConfirmOpen, setIsMatchRequestConfirmOpen] = useState(false);
   const [isMatchAcceptConfirmOpen, setIsMatchAcceptConfirmOpen] = useState(false);
+  // Notes vocales en cours d'envoi (affichées tout de suite, comme WhatsApp), dans l'ordre d'envoi —
+  // chacune rattachée à la discussion où elle a été enregistrée, même si on en change pendant l'envoi.
+  const [pendingVoices, setPendingVoices] = useState<{ conversationId: string; durationSeconds: number }[]>([]);
+  const pendingVoicesRef = useRef(pendingVoices);
+  const updatePendingVoices = (update: (prev: typeof pendingVoices) => typeof pendingVoices) => {
+    pendingVoicesRef.current = update(pendingVoicesRef.current);
+    setPendingVoices(pendingVoicesRef.current);
+  };
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesContentRef = useRef<HTMLDivElement>(null);
@@ -329,6 +338,22 @@ function MessagesPageContent() {
     }
   };
 
+  /** L'expéditeur retire son invitation tant qu'elle est sans réponse (cf. cancelInvitationAction). */
+  const handleCancelInvitation = async () => {
+    if (!activeConvId) return;
+    setIsInviteBusy(true);
+    const result = await cancelInvitationAction(activeConvId);
+    if (result.error) {
+      setSendError(result.error);
+      setTimeout(() => setSendError(null), 4000);
+    } else {
+      setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
+      setActiveConvId(null);
+      setConversationInUrl(null);
+    }
+    setIsInviteBusy(false);
+  };
+
   const handleDeclineInvitation = async () => {
     if (!activeConvId) return;
     setIsInviteBusy(true);
@@ -406,8 +431,33 @@ function MessagesPageContent() {
 
   const handleSendMessage = (text: string) => runSend(() => messageService.sendMessage(activeConvId!, text));
   const handleSendFileAttachment = (payload: PendingFilePayload) => runSend(() => messageService.sendFileAttachment(activeConvId!, payload.file, payload.type));
-  const handleSendVoiceMessage = (payload: PendingVoicePayload) =>
-    runSend(() => messageService.sendVoiceMessage(activeConvId!, payload.blob, payload.mimeType, payload.durationSeconds));
+  const handleSendVoiceMessage = async (payload: PendingVoicePayload) => {
+    const targetId = pendingVoicesRef.current[0]?.conversationId ?? activeConvId;
+    if (!targetId) return;
+    try {
+      const newMsg = await messageService.sendVoiceMessage(targetId, payload.blob, payload.mimeType, payload.durationSeconds);
+      if (activeConvIdRef.current === targetId) {
+        setMessages((prev) => [...prev, newMsg]);
+      } else {
+        const cached = messageCacheRef.current.get(targetId);
+        if (cached) messageCacheRef.current.set(targetId, [...cached, newMsg]);
+      }
+      setConversations((prev) => moveConversationToTop(prev, targetId, { lastMessage: newMsg, updatedAt: new Date().toISOString() }));
+    } catch (err) {
+      if (err instanceof PremiumRequiredError) setIsPremiumRequiredOpen(true);
+      else {
+        setSendError(err instanceof Error ? err.message : "L'envoi a échoué.");
+        setTimeout(() => setSendError(null), 4000);
+      }
+    } finally {
+      updatePendingVoices((prev) => prev.slice(1));
+    }
+  };
+  const handleVoiceSendStart = (durationSeconds: number) => {
+    if (activeConvId) updatePendingVoices((prev) => [...prev, { conversationId: activeConvId, durationSeconds }]);
+  };
+  const handleVoiceSendFailed = () => updatePendingVoices((prev) => prev.slice(1));
+  const pendingVoicesHere = pendingVoices.filter((voice) => voice.conversationId === activeConvId);
 
   const handleDeleteMessage = async (msgId: string) => {
     setMessages((prev) => prev.filter((m) => m.id !== msgId));
@@ -630,6 +680,11 @@ function MessagesPageContent() {
                         <p className="text-xs text-muted-foreground">
                           Vous pourrez échanger dès que {activeConv.participant.firstName} aura accepté ton invitation à discuter.
                         </p>
+                        <div className="pt-2">
+                          <Button variant="outline" size="sm" onClick={handleCancelInvitation} isLoading={isInviteBusy}>
+                            Annuler l&apos;invitation
+                          </Button>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -715,7 +770,7 @@ function MessagesPageContent() {
                         <Skeleton className="h-12 w-1/2 ml-auto rounded-[14px]" />
                         <Skeleton className="h-10 w-3/4 rounded-[14px]" />
                       </div>
-                    ) : messages.length === 0 ? (
+                    ) : messages.length === 0 && pendingVoicesHere.length === 0 ? (
                       <EmptyState icon={<MessageSquare size={24} />} title="Aucun message" description="Envoie le premier message de cette conversation." />
                     ) : (
                       <div ref={messagesContentRef} className="space-y-1">
@@ -728,6 +783,9 @@ function MessagesPageContent() {
                             senderAvatarUrl={msg.senderId === user.id ? profile.avatar_url ?? undefined : activeConv.participant.avatarUrl}
                             senderAvatarFallback={msg.senderId === user.id ? profile.first_name?.charAt(0) : activeConv.participant.firstName.charAt(0)}
                           />
+                        ))}
+                        {pendingVoicesHere.map((voice, i) => (
+                          <PendingVoiceBubble key={`pending-voice-${i}`} durationSeconds={voice.durationSeconds} />
                         ))}
                         <div ref={messagesEndRef} />
                       </div>
@@ -771,6 +829,8 @@ function MessagesPageContent() {
                         onSendMessage={handleSendMessage}
                         onSendFileAttachment={handleSendFileAttachment}
                         onSendVoiceMessage={handleSendVoiceMessage}
+                        onVoiceSendStart={handleVoiceSendStart}
+                        onVoiceSendFailed={handleVoiceSendFailed}
                         onTyping={handleTyping}
                       />
                     </>

@@ -16,11 +16,9 @@ import {
   InformationCircleIcon,
   Mic01Icon,
   Delete02Icon,
-  StopIcon,
   VoiceIcon,
   PlayIcon,
-  PauseIcon,
-  Loading03Icon
+  PauseIcon
 } from "@hugeicons/core-free-icons";
 import { HugeIcon } from "@/components/ui/hugeicon";
 import { cn } from "@/lib/utils";
@@ -41,6 +39,10 @@ interface ChatInputBarProps {
   onSendMessage: (text: string) => void;
   onSendFileAttachment?: (payload: PendingFilePayload) => void;
   onSendVoiceMessage?: (payload: PendingVoicePayload) => void;
+  /** Appelé dès le toucher sur « Envoyer » pendant l'enregistrement (avant conversion/envoi) : la discussion affiche aussitôt la note en cours d'envoi, comme WhatsApp. */
+  onVoiceSendStart?: (durationSeconds: number) => void;
+  /** L'enregistrement n'a finalement rien produit (micro muet, annulation) : retirer la note en cours d'envoi. */
+  onVoiceSendFailed?: () => void;
   onTyping?: () => void;
 }
 
@@ -50,7 +52,7 @@ function formatRecordingTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceMessage, onTyping }: ChatInputBarProps) {
+export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceMessage, onVoiceSendStart, onVoiceSendFailed, onTyping }: ChatInputBarProps) {
   const [text, setText] = useState("");
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [pendingFile, setPendingFile] = useState<PendingFilePayload | null>(null);
@@ -58,6 +60,29 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
   const hasContentToSend = Boolean(text.trim() || pendingFile || recorder.recordedBlob);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement>(null);
+
+  // Envoi façon WhatsApp : « Envoyer » pendant l'enregistrement arrête le
+  // micro et la note part toute seule dès que le fichier est prêt (conversion
+  // faite en arrière-plan, sans bandeau ni étape d'écoute préalable).
+  const sendVoiceWhenReadyRef = useRef(false);
+  const sendRecording = () => {
+    if (recorder.status !== "recording" && recorder.status !== "paused") return;
+    sendVoiceWhenReadyRef.current = true;
+    onVoiceSendStart?.(Math.max(1, recorder.elapsedSeconds));
+    recorder.stopRecording();
+  };
+  useEffect(() => {
+    if (!sendVoiceWhenReadyRef.current) return;
+    if (recorder.status === "recorded" && recorder.recordedBlob) {
+      sendVoiceWhenReadyRef.current = false;
+      onSendVoiceMessage?.({ blob: recorder.recordedBlob, mimeType: recorder.recordedBlob.type, durationSeconds: recorder.recordedDurationSeconds });
+      recorder.discardRecording();
+    } else if (recorder.status === "idle" || recorder.status === "error") {
+      sendVoiceWhenReadyRef.current = false;
+      onVoiceSendFailed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recorder.status, recorder.recordedBlob]);
 
   // Le brouillon peut disparaître de deux façons (envoyé ou annulé) sans
   // jamais passer par le bouton play/pause lui-même — l'icône doit alors
@@ -200,12 +225,6 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
         </div>
       )}
 
-      {recorder.status === "transcoding" && (
-        <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-[14px] flex items-center gap-3 animate-in fade-in duration-150">
-          <HugeIcon icon={Loading03Icon} size={18} className="text-primary shrink-0 animate-spin" />
-          <span className="text-xs font-medium text-foreground">Conversion audio en cours…</span>
-        </div>
-      )}
 
       {recorder.status === "recorded" && recorder.recordedBlob && (
         <div className="mb-3 p-3 bg-accent-subtle/80 border border-accent/25 rounded-[14px] flex items-center justify-between gap-3 animate-in fade-in duration-150">
@@ -369,13 +388,14 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
 
             <Button
               type="button"
-              onClick={recorder.stopRecording}
+              onClick={sendRecording}
               size="icon"
               variant="primary"
               className="h-10 w-10 rounded-full shrink-0"
-              title="Terminer l'enregistrement"
+              title="Envoyer la note vocale"
+              aria-label="Envoyer la note vocale"
             >
-              <HugeIcon icon={StopIcon} size={15} />
+              <HugeIcon icon={SentIcon} size={16} />
             </Button>
           </>
         ) : (
@@ -416,7 +436,8 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               variant="primary"
               className="h-10 w-10 rounded-full shrink-0 disabled:opacity-40"
               title={hasContentToSend ? "Envoyer" : "Enregistrer une note vocale"}
-              disabled={(!hasContentToSend && !onSendVoiceMessage) || recorder.status === "transcoding"}
+              // Pendant la conversion d'une note déjà envoyée : on peut écrire, mais pas relancer le micro.
+              disabled={!hasContentToSend && (!onSendVoiceMessage || recorder.status === "transcoding")}
               onClick={(e) => {
                 if (!hasContentToSend && onSendVoiceMessage) {
                   e.preventDefault();

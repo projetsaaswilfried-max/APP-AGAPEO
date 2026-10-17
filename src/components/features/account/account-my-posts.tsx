@@ -9,7 +9,7 @@ import { PublicationCard } from "@/components/features/feed/publication-card";
 import { PublicationComposerModal } from "@/components/features/profile/publication-composer-modal";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tooltip } from "@/components/ui/tooltip";
-import { Plus, BookOpen, Trash2, Pencil, Info } from "lucide-react";
+import { Plus, FileText, Trash2, Pencil, Info } from "lucide-react";
 
 interface AccountMyPostsProps {
   publications: FeedPublication[];
@@ -112,7 +112,7 @@ export function AccountMyPosts({ publications }: AccountMyPostsProps) {
 
         {posts.length === 0 ? (
           <EmptyState
-            icon={<BookOpen size={24} />}
+            icon={<FileText size={24} />}
             title="Tu n'as créé aucune publication"
             description="Partage une pensée spirituelle ou une citation pour enrichir ton profil."
             action={

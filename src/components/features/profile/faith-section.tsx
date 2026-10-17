@@ -3,7 +3,7 @@
 import React from "react";
 import { UserFaithProfile } from "@/domain/types/user";
 import { Card } from "@/components/ui/card";
-import { Church, BookOpen, HeartHandshake, Flame, Quote } from "lucide-react";
+import { Church, MessageCircleHeart, HeartHandshake, Flame, Quote } from "lucide-react";
 
 interface FaithSectionProps {
   faith: UserFaithProfile;
@@ -78,7 +78,7 @@ export function FaithSection({ faith }: FaithSectionProps) {
       {faith.testimony && (
         <div className="space-y-2">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <BookOpen size={14} className="text-primary" /> Témoignage Personnel
+            <MessageCircleHeart size={14} className="text-primary" /> Témoignage Personnel
           </h3>
           <p className="text-sm text-foreground/90 leading-relaxed bg-card p-4 rounded-2xl border border-border/60">
             {faith.testimony}

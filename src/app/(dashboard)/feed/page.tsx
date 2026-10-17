@@ -6,7 +6,7 @@ import { feedService } from "@/domain/services/feed.service";
 import { PublicationCard } from "@/components/features/feed/publication-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { BookOpen, RefreshCw, AlertCircle, LayoutGrid, HeartHandshake, Users, Lightbulb, Quote, ChevronLeft, ChevronRight } from "lucide-react";
+import { GraduationCap, RefreshCw, AlertCircle, LayoutGrid, HeartHandshake, Users, Lightbulb, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ const RECENT_PAGE_SIZE = 30;
 
 const CATEGORY_TABS = [
   { id: "ALL", label: "Tout le fil", icon: LayoutGrid },
-  { id: "TEACHING", label: "Enseignements", icon: BookOpen },
+  { id: "TEACHING", label: "Enseignements", icon: GraduationCap },
   { id: "TESTIMONY", label: "Témoignages", icon: HeartHandshake },
   { id: "WORKSHOP", label: "Atelier/Mariage", icon: Users },
   { id: "ADVICE", label: "Conseils & Préparation", icon: Lightbulb },
@@ -412,7 +412,7 @@ export default function HomePage() {
             <>
               {publications.length === 0 ? (
                 <EmptyState
-                  icon={<BookOpen size={24} />}
+                  icon={<GraduationCap size={24} />}
                   title="Aucune publication dans cette catégorie"
                   description="L'équipe officielle ajoutera prochainement de nouveaux enseignements et témoignages ici."
                   action={
