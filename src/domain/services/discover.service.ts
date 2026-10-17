@@ -2,8 +2,7 @@ import { RecommendedProfileItem, DiscoverFilterCriteria, DiscoverPageResult } fr
 import { createClient } from "@/lib/supabase/client";
 import { mapProfileRowToUserProfile } from "@/domain/mappers/profile.mapper";
 import { computeCompatibility } from "@/domain/matching/compatibility";
-import { computeAge } from "@/domain/badges";
-import { orderByCompatibilityWithDailyRotation, pickDailyRecommendations } from "@/domain/daily-recommendations";
+import { fetchAllCandidates } from "@/domain/services/discover-ranking";
 import { PremiumRequiredError, VerificationRequiredError, isRlsViolation } from "@/domain/errors";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 import { getSessionUser } from "@/lib/supabase/session-user";
@@ -20,143 +19,7 @@ export interface IDiscoverService {
   toggleFavorite(profileId: string): Promise<boolean>;
   toggleLike(profileId: string): Promise<boolean>;
 }
-
-function birthDateFromAge(age: number): string {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - age);
-  return d.toISOString().slice(0, 10);
-}
-
-// Plage appliquée à tout compte non-Premium, quoi qu'il transmette lui-même
-// (cf. getProfiles) — doit rester identique à DEFAULT_FILTERS dans
-// discover/page.tsx, la seule vue qu'un compte gratuit peut voir désormais.
-const DEFAULT_AGE_MIN = 20;
-const DEFAULT_AGE_MAX = 50;
-
-// Colonnes suffisantes pour classer les candidats (compatibilité + mise en
-// avant Premium) SANS télécharger le profil complet ni les photos — cf.
-// getDiscoverPage. Doit couvrir exactement les champs lus par
-// computeCompatibility (compatibility.ts) plus is_premium/last_active_at.
-const RANKING_COLUMNS =
-  "id, is_premium, last_active_at, birth_date, country, desired_countries, desired_age_min, desired_age_max, church_denomination, faith_engagement_level, core_values, hobbies, marital_status, desired_marital_statuses";
-
 class DiscoverServiceSupabase implements IDiscoverService {
-  /**
-   * Construit la requête de candidats partagée par getProfiles (profil
-   * complet, tous les candidats) et getDiscoverPage (colonnes de classement
-   * uniquement) — mêmes critères d'éligibilité et mêmes filtres de
-   * recherche dans les deux cas, seule la projection de colonnes change.
-   */
-  private buildCandidateQuery<T>(
-    supabase: ReturnType<typeof createClient>,
-    viewer: ProfileRow,
-    filters: DiscoverFilterCriteria,
-    selectColumns: string,
-    range: readonly [number, number]
-  ) {
-    const targetGender = viewer.gender === "MALE" ? "FEMALE" : "MALE";
-
-    // Un profil n'est proposé aux autres que lorsqu'il est "actif" (cf.
-    // isProfileComplete côté client) — indépendant de `onboarding_completed`,
-    // qui ne fait que suivre si l'assistant d'inscription a été vu/quitté.
-    // Liste blanche stricte (VERIFIED uniquement), jamais une liste noire :
-    // `.not(...,"in","(PENDING,REJECTED)")` laissait passer UNVERIFIED (photo
-    // jamais soumise) — bug réel trouvé en prod où des profils n'ayant ni
-    // soumis ni obtenu de validation apparaissaient dans Découvrir.
-    let query = supabase
-      .from("profiles")
-      .select(selectColumns)
-      .neq("id", viewer.id)
-      .eq("gender", targetGender)
-      .eq("is_staff", false)
-      .not("avatar_url", "is", null)
-      .not("church_denomination", "is", null)
-      .not("why_marriage", "is", null)
-      .eq("photo_verification_status", "VERIFIED")
-      .eq("is_matched", false)
-      .order("last_active_at", { ascending: false });
-
-    // Recherche et filtres (y compris la "recherche de base" âge/pays/statut,
-    // désormais réservée Premium elle aussi) — appliqués ici côté serveur
-    // (pas seulement désactivés dans l'UI) pour qu'un appel direct au service
-    // ne puisse pas contourner la restriction. Un compte non-Premium reçoit
-    // systématiquement la plage d'âge par défaut, jamais ce qu'il a pu
-    // transmettre lui-même.
-    const canUseAdvancedFilters = viewer.is_premium || viewer.is_staff;
-
-    if (canUseAdvancedFilters && filters.searchQuery?.trim()) {
-      const q = filters.searchQuery.trim();
-      query = query.or(`first_name.ilike.%${q}%,city.ilike.%${q}%,profession.ilike.%${q}%,country.ilike.%${q}%`);
-    }
-
-    const ageMax = canUseAdvancedFilters ? (filters.ageMax ?? DEFAULT_AGE_MAX) : DEFAULT_AGE_MAX;
-    const ageMin = canUseAdvancedFilters ? (filters.ageMin ?? DEFAULT_AGE_MIN) : DEFAULT_AGE_MIN;
-    query = query.gte("birth_date", birthDateFromAge(ageMax + 1)).lte("birth_date", birthDateFromAge(ageMin));
-    if (canUseAdvancedFilters && filters.country) query = query.eq("country", filters.country);
-    if (canUseAdvancedFilters && filters.status && filters.status !== "ALL") query = query.eq("status", filters.status as ProfileRow["status"]);
-
-    // La situation matrimoniale acceptée n'exclut plus personne de la
-    // requête — c'est désormais un critère de score (cf. compatibility.ts),
-    // pas un filtre strict. Qui veut vraiment restreindre là-dessus peut
-    // utiliser le filtre de recherche ci-dessous.
-    if (canUseAdvancedFilters && filters.maritalStatus) query = query.eq("marital_status", filters.maritalStatus);
-
-    if (canUseAdvancedFilters) {
-      if (filters.city) query = query.ilike("city", `%${filters.city}%`);
-      if (filters.profession) query = query.ilike("profession", `%${filters.profession}%`);
-      if (filters.educationLevel) query = query.eq("education_level", filters.educationLevel);
-      if (filters.denomination) query = query.eq("church_denomination", filters.denomination);
-      if (filters.faithEngagementLevel) query = query.eq("faith_engagement_level", filters.faithEngagementLevel);
-      if (filters.ministry) query = query.ilike("ministry", `%${filters.ministry}%`);
-      if (filters.language) query = query.contains("languages", [filters.language]);
-      if (filters.hasChildren !== undefined) query = query.eq("has_children", filters.hasChildren);
-      if (filters.wantsChildren !== undefined) query = query.eq("wants_children", filters.wantsChildren);
-      if (filters.coreValue) query = query.contains("core_values", [filters.coreValue]);
-    }
-
-    return query.range(range[0], range[1]).overrideTypes<T[]>();
-  }
-
-  /**
-   * buildCandidateQuery n'impose plus aucun plafond — un plafond fixe (500,
-   * déjà relevé une fois depuis 60 pour la même raison) finit toujours par
-   * retronquer silencieusement Découvrir dès que la communauté grandit
-   * (signalé : "Autres profils" bloqué à 497 alors que plus de 500 femmes
-   * étaient déjà vérifiées). On récupère donc l'ensemble du vivier par pages
-   * de PAGE_SIZE (le plafond réel par requête côté PostgREST, cf. fetchAllRows
-   * dans lib/supabase/admin.ts pour le même constat côté admin), en lots
-   * parallèles de taille croissante — sans limite sur le nombre total de
-   * candidats, que la communauté en compte 500 ou 100 000.
-   */
-  private async fetchAllCandidates<T>(
-    supabase: ReturnType<typeof createClient>,
-    viewer: ProfileRow,
-    filters: DiscoverFilterCriteria,
-    selectColumns: string
-  ): Promise<T[]> {
-    const PAGE_SIZE = 1000;
-    const fetchPage = async (page: number): Promise<T[]> => {
-      const from = page * PAGE_SIZE;
-      const { data } = await this.buildCandidateQuery<T>(supabase, viewer, filters, selectColumns, [from, from + PAGE_SIZE - 1]);
-      return (data ?? []) as T[];
-    };
-
-    const firstPage = await fetchPage(0);
-    if (firstPage.length < PAGE_SIZE) return firstPage;
-
-    const all = [...firstPage];
-    let nextPage = 1;
-    let batchSize = 1;
-    while (true) {
-      const pages = await Promise.all(Array.from({ length: batchSize }, (_, i) => fetchPage(nextPage + i)));
-      pages.forEach((p) => all.push(...p));
-      if (pages.some((p) => p.length < PAGE_SIZE)) break;
-      nextPage += batchSize;
-      batchSize *= 2;
-    }
-    return all;
-  }
-
   async getProfiles(filters: DiscoverFilterCriteria = {}): Promise<RecommendedProfileItem[]> {
     const supabase = createClient();
     const {
@@ -168,7 +31,7 @@ class DiscoverServiceSupabase implements IDiscoverService {
     if (!viewerRow) return [];
     const viewer = viewerRow as ProfileRow;
 
-    const candidates = await this.fetchAllCandidates<ProfileRow>(supabase, viewer, filters, "*");
+    const candidates = await fetchAllCandidates<ProfileRow>(supabase, viewer, filters, "*");
     if (candidates.length === 0) return [];
 
     const candidateIds = candidates.map((c) => c.id);
@@ -213,118 +76,20 @@ class DiscoverServiceSupabase implements IDiscoverService {
   }
 
   /**
-   * Utilisée par la page Découvrir — corrige un vrai problème de
-   * performance : getProfiles() télécharge le profil COMPLET (toutes
-   * colonnes) et TOUTES les photos de chaque candidat éligible (300-400+
-   * réellement, vérifié en base le 2026-09-05), alors que Découvrir n'en
-   * affiche que 3 + 12 à la fois (pagination "Autres profils"). Ici, une
-   * première passe légère (RANKING_COLUMNS, sans photos) sert uniquement à
-   * calculer la compatibilité et l'ordre d'affichage pour l'ENSEMBLE des
-   * candidats (pour ne rien changer au classement existant : "Recommandée
-   * pour vous" doit rester tiré du meilleur de tout le vivier, pas seulement
-   * de la page courante) — seuls les profils réellement affichés
-   * (recommandés + page demandée) sont ensuite hydratés en entier (profil
-   * complet + photos).
+   * Classement fait côté serveur (route /api/discover, cf.
+   * discover-ranking.ts) : le téléphone ne télécharge plus tout le vivier
+   * (plusieurs milliers de profils), seulement les 3 recommandés + la page
+   * demandée, déjà classés et hydratés.
    */
   async getDiscoverPage(filters: DiscoverFilterCriteria = {}, page: number, pageSize: number): Promise<DiscoverPageResult> {
-    const empty: DiscoverPageResult = { recommended: [], otherPage: [], otherTotalCount: 0 };
-    const supabase = createClient();
-    const {
-      data: { user }
-    } = await getSessionUser(supabase);
-    if (!user) return empty;
-
-    const { data: viewerRow } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-    if (!viewerRow) return empty;
-    const viewer = viewerRow as ProfileRow;
-
-    const lightRows = await this.fetchAllCandidates<ProfileRow>(supabase, viewer, filters, RANKING_COLUMNS);
-    if (lightRows.length === 0) return empty;
-
-    interface RankedCandidate {
-      profile: { id: string };
-      compatibilityPercentage: number;
-      reasons: string[];
-      isPremium: boolean;
-      age: number;
-    }
-
-    // `row` ne porte réellement que RANKING_COLUMNS malgré le cast ProfileRow
-    // (même convention que candidates.map ci-dessus) — computeCompatibility
-    // ne lit que des champs couverts par cette sélection.
-    const ranked: RankedCandidate[] = lightRows.map((row) => {
-      const { score, reasons } = computeCompatibility(viewer, row);
-      return {
-        profile: { id: row.id },
-        compatibilityPercentage: score,
-        reasons,
-        isPremium: row.is_premium,
-        age: computeAge(row.birth_date)
-      };
+    const response = await fetch("/api/discover", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filters, page, pageSize })
     });
-
-    // Par palier de compatibilité, Premium d'abord dans chaque palier, et un
-    // ordre qui tourne chaque jour à l'intérieur (cf. daily-recommendations.ts) —
-    // c'est cet ordre qui définit "Autres profils" une fois les 3 recommandés retirés.
-    const ordered = orderByCompatibilityWithDailyRotation(ranked, viewer.id);
-
-    // "Recommandée pour vous" exige que le CANDIDAT tombe dans la tranche
-    // d'âge que LE membre connecté recherche — condition stricte, pas
-    // seulement un critère de score parmi d'autres (sinon un profil très
-    // bien assorti sur la foi peut sortir 15 ans hors de l'âge demandé).
-    const ageEligible = ordered.filter((c) => c.age >= viewer.desired_age_min && c.age <= viewer.desired_age_max);
-    const recommendationPool = ageEligible.length > 0 ? ageEligible : ordered;
-    const { recommended: recommendedLight } = pickDailyRecommendations(recommendationPool, viewer.id, 3);
-    const recommendedIds = new Set(recommendedLight.map((c) => c.profile.id));
-
-    const others = ordered.filter((c) => !recommendedIds.has(c.profile.id));
-    const otherTotalCount = others.length;
-    const pageLight = others.slice((page - 1) * pageSize, page * pageSize);
-
-    const idsToHydrate = [...recommendedLight.map((c) => c.profile.id), ...pageLight.map((c) => c.profile.id)];
-    if (idsToHydrate.length === 0) return { recommended: [], otherPage: [], otherTotalCount };
-
-    const [{ data: fullProfiles }, { data: photos }, { data: favorites }, { data: likes }] = await Promise.all([
-      supabase.from("profiles").select("*").in("id", idsToHydrate),
-      supabase.from("profile_photos").select("*").in("profile_id", idsToHydrate),
-      supabase.from("favorites").select("favorite_profile_id").eq("user_id", viewer.id),
-      supabase.from("profile_likes").select("liked_profile_id").eq("user_id", viewer.id)
-    ]);
-
-    const fullById = new Map<string, ProfileRow>((fullProfiles as ProfileRow[] | null ?? []).map((p) => [p.id, p]));
-    const photosByProfile = new Map<string, ProfilePhotoRow[]>();
-    (photos ?? []).forEach((p) => {
-      const list = photosByProfile.get(p.profile_id) ?? [];
-      list.push(p);
-      photosByProfile.set(p.profile_id, list);
-    });
-    const favoriteIds = new Set((favorites ?? []).map((f) => f.favorite_profile_id));
-    const likedIds = new Set((likes ?? []).map((l) => l.liked_profile_id));
-
-    const hydrate = (light: RankedCandidate): RecommendedProfileItem | null => {
-      const candidate = fullById.get(light.profile.id);
-      if (!candidate) return null;
-      const profile = mapProfileRowToUserProfile(candidate, photosByProfile.get(candidate.id) ?? [], {
-        compatibilityPercentage: light.compatibilityPercentage,
-        compatibilityReasons: light.reasons
-      });
-      return {
-        profile,
-        compatibilityPercentage: light.compatibilityPercentage,
-        status: candidate.status,
-        statusLabel: profile.statusLabel,
-        justifications: light.reasons,
-        isFavorite: favoriteIds.has(candidate.id),
-        isLiked: likedIds.has(candidate.id),
-        isPremium: candidate.is_premium
-      };
-    };
-
-    return {
-      recommended: recommendedLight.map(hydrate).filter((x): x is RecommendedProfileItem => x !== null),
-      otherPage: pageLight.map(hydrate).filter((x): x is RecommendedProfileItem => x !== null),
-      otherTotalCount
-    };
+    if (response.status === 401) return { recommended: [], otherPage: [], otherTotalCount: 0 };
+    if (!response.ok) throw new Error("Impossible de charger les profils.");
+    return (await response.json()) as DiscoverPageResult;
   }
 
   async getRecommendations(): Promise<RecommendedProfileItem[]> {
