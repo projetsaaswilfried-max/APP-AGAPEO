@@ -117,7 +117,7 @@ export function computeCompatibility(viewer: ProfileRow, candidate: ProfileRow):
   }
 
   if (reasons.length === 0) {
-    reasons.push("Compatibilité de base sur les critères disponibles — complétez vos profils pour affiner");
+    reasons.push("Compatibilité de base sur les critères disponibles : complétez vos profils pour affiner");
   }
 
   return { score: Math.max(0, Math.min(100, Math.round(score))), reasons };

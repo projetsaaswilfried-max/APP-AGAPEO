@@ -65,19 +65,19 @@ const PREMIUM_FEATURES = [
 ];
 
 const PRICE_NOTES: Record<PremiumPlanKey, string> = {
-  WEEKLY: `${PREMIUM_PLANS.WEEKLY.priceFcfaLabel} / 7 jours — renouvelable à tout moment.`,
-  HALF_MONTH: `${PREMIUM_PLANS.HALF_MONTH.priceFcfaLabel} / 15 jours — renouvelable à tout moment.`,
-  MONTHLY: `${PREMIUM_PLANS.MONTHLY.priceFcfaLabel} / mois — renouvelable à tout moment.`,
-  QUARTERLY: `${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel} / 3 mois (au lieu de 20 997 FCFA) — soit environ 5 832 FCFA/mois.`,
-  ACCESS: `${PREMIUM_PLANS.ACCESS.priceFcfaLabel} / 30 jours — renouvelable à tout moment.`
+  WEEKLY: `${PREMIUM_PLANS.WEEKLY.priceFcfaLabel} / 7 jours, renouvelable à tout moment.`,
+  HALF_MONTH: `${PREMIUM_PLANS.HALF_MONTH.priceFcfaLabel} / 15 jours, renouvelable à tout moment.`,
+  MONTHLY: `${PREMIUM_PLANS.MONTHLY.priceFcfaLabel} / mois, renouvelable à tout moment.`,
+  QUARTERLY: `${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel} / 3 mois (au lieu de 20 997 FCFA), soit environ 5 832 FCFA/mois.`,
+  ACCESS: `${PREMIUM_PLANS.ACCESS.priceFcfaLabel} / 30 jours, renouvelable à tout moment.`
 };
 
 const BUY_LABELS: Record<PremiumPlanKey, string> = {
-  WEEKLY: `S'abonner — ${PREMIUM_PLANS.WEEKLY.priceFcfaLabel}`,
-  HALF_MONTH: `S'abonner — ${PREMIUM_PLANS.HALF_MONTH.priceFcfaLabel}`,
-  MONTHLY: `S'abonner — ${PREMIUM_PLANS.MONTHLY.priceFcfaLabel}`,
-  QUARTERLY: `S'abonner — ${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel}`,
-  ACCESS: `S'abonner — ${PREMIUM_PLANS.ACCESS.priceFcfaLabel}`
+  WEEKLY: `S'abonner · ${PREMIUM_PLANS.WEEKLY.priceFcfaLabel}`,
+  HALF_MONTH: `S'abonner · ${PREMIUM_PLANS.HALF_MONTH.priceFcfaLabel}`,
+  MONTHLY: `S'abonner · ${PREMIUM_PLANS.MONTHLY.priceFcfaLabel}`,
+  QUARTERLY: `S'abonner · ${PREMIUM_PLANS.QUARTERLY.priceFcfaLabel}`,
+  ACCESS: `S'abonner · ${PREMIUM_PLANS.ACCESS.priceFcfaLabel}`
 };
 
 // Page de paiement mobile (membre sans accès actif) : libellés courts du
@@ -187,7 +187,7 @@ function PremiumPlanCard({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
           </div>
         ) : (
           <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
-            Merci pour ta confiance — profite de tous tes avantages Premium.
+            Merci pour ta confiance : profite de tous tes avantages Premium.
           </p>
         )
       ) : (
@@ -249,8 +249,8 @@ function CompactPlanTile({ planKey, recommended, isCurrentPlan, isExpiringSoon, 
         <p className="text-xs text-muted-foreground mt-0.5">
           {isCurrentPlan && isExpiringSoon && daysUntilExpiry !== null
             ? daysUntilExpiry <= 0
-              ? "Expire aujourd'hui — renouvelle-le"
-              : `Expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? "s" : ""} — renouvelle-le`
+              ? "Expire aujourd'hui, renouvelle-le"
+              : `Expire dans ${daysUntilExpiry} jour${daysUntilExpiry > 1 ? "s" : ""}, renouvelle-le`
             : PRICE_NOTES[planKey]}
         </p>
       </div>
@@ -386,7 +386,7 @@ export default function PremiumPage() {
         leftIcon={<Smartphone size={16} />}
         onClick={handleChooseMobileMoney}
       >
-        Mobile Money — Moov, Wave, MTN, Celtiis...
+        Mobile Money : Moov, Wave, MTN, Celtiis...
       </Button>
       <form action={action} onSubmit={() => setSelectedPaymentMethod("CARD")}>
         <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
@@ -415,7 +415,7 @@ export default function PremiumPage() {
             className="w-full h-11 rounded-xl border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="" disabled>
-              —
+              -
             </option>
             {PHONE_COUNTRY_CODES.map((c) => (
               <option key={c.code} value={c.code}>
@@ -467,7 +467,7 @@ export default function PremiumPage() {
       </ul>
 
       <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border/40">
-        Ce plan n&apos;est plus proposé à l&apos;achat — choisis l&apos;un des plans ci-contre pour renouveler ton accès à son échéance.
+        Ce plan n&apos;est plus proposé à l&apos;achat : choisis l&apos;un des plans ci-contre pour renouveler ton accès à son échéance.
       </p>
     </Card>
   );
@@ -637,7 +637,7 @@ export default function PremiumPage() {
           isOpen={paymentMethodModalPlan !== null}
           onClose={() => setPaymentMethodModalPlan(null)}
           title="Comment veux-tu payer ?"
-          description={paymentMethodModalPlan ? `${PREMIUM_PLANS[paymentMethodModalPlan].label} — ${PREMIUM_PLANS[paymentMethodModalPlan].priceFcfaLabel}` : undefined}
+          description={paymentMethodModalPlan ? `${PREMIUM_PLANS[paymentMethodModalPlan].label} · ${PREMIUM_PLANS[paymentMethodModalPlan].priceFcfaLabel}` : undefined}
         >
           {paymentMethodContent}
         </BottomSheet>
@@ -647,7 +647,7 @@ export default function PremiumPage() {
           isOpen={paymentMethodModalPlan !== null}
           onClose={() => setPaymentMethodModalPlan(null)}
           title="Comment veux-tu payer ?"
-          description={paymentMethodModalPlan ? `${PREMIUM_PLANS[paymentMethodModalPlan].label} — ${PREMIUM_PLANS[paymentMethodModalPlan].priceFcfaLabel}` : undefined}
+          description={paymentMethodModalPlan ? `${PREMIUM_PLANS[paymentMethodModalPlan].label} · ${PREMIUM_PLANS[paymentMethodModalPlan].priceFcfaLabel}` : undefined}
           maxWidth="sm"
         >
           {paymentMethodContent}

@@ -20,7 +20,7 @@ function ResendConfirmation({ email }: { email: string }) {
     return (
       <div className="flex items-center gap-2 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-400">
         <CheckCircle2 size={16} className="shrink-0 text-emerald-500" />
-        E-mail de confirmation renvoyé — vérifie ta boîte de réception.
+        E-mail de confirmation renvoyé : vérifie ta boîte de réception.
       </div>
     );
   }

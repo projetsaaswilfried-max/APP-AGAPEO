@@ -250,7 +250,7 @@ export function SupportTicketThread({ ticket, viewerIsStaff = false, onTicketClo
         </div>
       ) : (
         <div className="p-3 bg-card border-t border-border/60 text-center text-[11px] text-muted-foreground shrink-0">
-          Ce dossier est clôturé — ouvre un nouveau dossier pour une nouvelle demande.
+          Ce dossier est clôturé : ouvre un nouveau dossier pour une nouvelle demande.
         </div>
       )}
     </div>

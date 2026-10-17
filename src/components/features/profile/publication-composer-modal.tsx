@@ -127,7 +127,7 @@ export function PublicationComposerModal({
       isOpen={isOpen}
       onClose={resetAndClose}
       title={isEditing ? "Modifier ma publication" : "Créer une pensée personnelle"}
-      description="Visible uniquement par les membres qui visitent ton profil — jamais dans le fil officiel."
+      description="Visible uniquement par les membres qui visitent ton profil : jamais dans le fil officiel."
       maxWidth="lg"
       footer={
         <>

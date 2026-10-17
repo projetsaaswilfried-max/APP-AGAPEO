@@ -78,7 +78,7 @@ export default function PrivacyPolicyPage() {
             <p>
               Si tu ne peux pas te connecter à ton compte, écris-nous depuis l&apos;espace Support de l&apos;application ou à{" "}
               <a href="mailto:support@agapeo.love" className="text-pink-600 hover:underline">support@agapeo.love</a> en précisant l&apos;adresse email
-              associée à ton compte — nous traiterons ta demande de suppression manuellement.
+              associée à ton compte : nous traiterons ta demande de suppression manuellement.
             </p>
           </div>
         </div>

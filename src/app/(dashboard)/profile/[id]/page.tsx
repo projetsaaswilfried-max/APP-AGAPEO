@@ -37,7 +37,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         <EmptyState
           icon={<Crown size={24} />}
           title="Passe Premium pour consulter les profils"
-          description="La consultation des fiches profil est réservée aux membres Premium — abonne-toi pour en consulter autant que tu veux."
+          description="La consultation des fiches profil est réservée aux membres Premium : abonne-toi pour en consulter autant que tu veux."
           action={
             <Link href="/premium">
               <Button variant="primary" size="sm" leftIcon={<Crown size={15} />}>

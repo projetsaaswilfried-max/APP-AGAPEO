@@ -18,6 +18,6 @@ export const PAYMENT_PROVIDER_LABELS: Record<PaymentProvider, string> = {
 };
 
 export const PAYMENT_PROVIDER_DESCRIPTIONS: Record<PaymentProvider, string> = {
-  chariow: "Mobile Money via Chariow — à utiliser en repli si SasPay a un incident.",
-  saspay: "Mobile Money via SasPay (Moov, Wave, MTN, Celtiis...) — processeur recommandé, spécialisé Afrique de l'Ouest/Centre."
+  chariow: "Mobile Money via Chariow : à utiliser en repli si SasPay a un incident.",
+  saspay: "Mobile Money via SasPay (Moov, Wave, MTN, Celtiis...) : processeur recommandé, spécialisé Afrique de l'Ouest/Centre."
 };

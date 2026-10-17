@@ -6,7 +6,7 @@ export default function AdminSupportPage() {
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-display font-semibold tracking-tight text-foreground">Dossiers de support</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Réponds à un dossier, le membre le voit en temps réel — clôture-le une fois résolu.</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Réponds à un dossier, le membre le voit en temps réel : clôture-le une fois résolu.</p>
       </div>
       <Suspense fallback={<p className="text-xs text-muted-foreground p-4">Chargement...</p>}>
         <AdminSupportInbox />

@@ -40,7 +40,7 @@ function IncompleteProfileBannerContent() {
           </div>
 
           <div className="flex-1 min-w-0 sm:min-w-[220px]">
-            <p className="text-sm font-semibold text-foreground">Ton profil est complet — soumets-le pour validation</p>
+            <p className="text-sm font-semibold text-foreground">Ton profil est complet : soumets-le pour validation</p>
             <p className="text-xs text-muted-foreground">
               Valide ton profil pour apparaître dans Découvrir et être contacté par les autres membres.
             </p>
@@ -70,7 +70,7 @@ function IncompleteProfileBannerContent() {
 
         <div className="flex-1 min-w-0 sm:min-w-[220px]">
           <p className="text-sm font-semibold text-foreground">
-            Profil incomplet — invisible dans Découvrir
+            Profil incomplet : invisible dans Découvrir
           </p>
           <p className="text-xs text-muted-foreground">
             Encore {missing.length} {missing.length > 1 ? "étapes" : "étape"} : {missing.join(", ")}

@@ -77,7 +77,7 @@ export async function activateStripeTransaction(sessionId: string, amountTotal: 
   // paiement est marqué "paid".
   if (amountTotal === null || Math.round(amountTotal) !== tx.amount_cents) {
     console.error(
-      `Paiement Stripe ${sessionId} : montant reçu ${amountTotal} ne correspond pas au montant attendu (${tx.amount_cents}) — accès NON accordé.`
+      `Paiement Stripe ${sessionId} : montant reçu ${amountTotal} ne correspond pas au montant attendu (${tx.amount_cents}) : accès NON accordé.`
     );
     return false;
   }

@@ -97,7 +97,7 @@ export function InstallInstructionsModal({ variant, isOpen, onClose }: InstallIn
           );
         })}
         <p className="text-xs text-muted-foreground pt-3 border-t border-border/40">
-          Cette étape est demandée par Apple lui-même — aucune application externe n&apos;est nécessaire, Agapeo s&apos;installe
+          Cette étape est demandée par Apple lui-même : aucune application externe n&apos;est nécessaire, Agapeo s&apos;installe
           directement depuis le site.
         </p>
       </div>

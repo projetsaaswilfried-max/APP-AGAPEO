@@ -16,7 +16,7 @@ const initialState: PremiumCheckoutState = undefined;
 const REASSURANCES = [
   { icon: ShieldCheck, text: "Profils vérifiés manuellement par notre équipe avant d'apparaître sur la plateforme." },
   { icon: HeartHandshake, text: "Une communauté engagée, exclusivement composée de célibataires chrétiens sérieux dans leur recherche." },
-  { icon: Lock, text: "Paiement sécurisé — ton accès s'active automatiquement dès la confirmation du paiement." }
+  { icon: Lock, text: "Paiement sécurisé : ton accès s'active automatiquement dès la confirmation du paiement." }
 ];
 
 export function PaymentRequiredView() {
@@ -61,7 +61,7 @@ export function PaymentRequiredView() {
           <form action={action} className="pt-2 border-t border-border/40 space-y-2">
             <input type="hidden" name="plan" value="ACCESS" />
             <Button type="submit" variant="primary" size="lg" className="w-full" isLoading={pending} leftIcon={<Crown size={16} />}>
-              Débloquer mon accès — {PREMIUM_PLANS.ACCESS.priceFcfaLabel}
+              Débloquer mon accès · {PREMIUM_PLANS.ACCESS.priceFcfaLabel}
             </Button>
             <p className="text-[11px] text-center text-muted-foreground">Valable 30 jours, renouvelable à tout moment.</p>
           </form>
@@ -90,7 +90,7 @@ export function PaymentRequiredView() {
                 className="w-full h-11 rounded-xl border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="" disabled>
-                  —
+                  -
                 </option>
                 {PHONE_COUNTRY_CODES.map((c) => (
                   <option key={c.code} value={c.code}>

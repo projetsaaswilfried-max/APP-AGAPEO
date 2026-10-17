@@ -321,7 +321,7 @@ export function PublicationCard({
             </p>
             {publication.quoteAuthor && (
               <p className="text-xs font-medium text-muted-foreground text-right">
-                — {publication.quoteAuthor}
+                · {publication.quoteAuthor}
               </p>
             )}
           </div>

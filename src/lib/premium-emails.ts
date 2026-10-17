@@ -33,12 +33,12 @@ export async function sendPremiumActivatedEmail(
       recipientFirstName: firstName,
       contentHtml: `
         <p style="margin:0 0 12px 0;">
-          Merci pour ta confiance — ton paiement a bien été reçu et ton accès Premium est actif dès maintenant.
+          Merci pour ta confiance : ton paiement a bien été reçu et ton accès Premium est actif dès maintenant.
           Tu peux désormais contacter en priorité, voir qui s'intéresse à toi, utiliser les filtres avancés et
           consulter les profils sans limite.
         </p>
         <p style="margin:0;color:#94A3B8;font-size:12px;">
-          Ton accès est valable ${periodDays} jours — renouvelable à tout moment depuis l'onglet "Mon Plan" de ton compte.
+          Ton accès est valable ${periodDays} jours : renouvelable à tout moment depuis l'onglet "Mon Plan" de ton compte.
         </p>
       `,
       infoRows: [
@@ -55,7 +55,7 @@ export async function sendPremiumActivatedEmail(
 export async function sendPremiumRemovedEmail(to: string, firstName: string, reason: "expired" | "admin") {
   const contentHtml =
     reason === "expired"
-      ? `<p style="margin:0 0 12px 0;">Ton abonnement Premium Agapeo est arrivé à échéance et n'a pas été renouvelé à temps — ton compte est repassé en version gratuite.</p><p style="margin:0;">Tu peux te réabonner à tout moment pour retrouver tous tes avantages : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>`
+      ? `<p style="margin:0 0 12px 0;">Ton abonnement Premium Agapeo est arrivé à échéance et n'a pas été renouvelé à temps : ton compte est repassé en version gratuite.</p><p style="margin:0;">Tu peux te réabonner à tout moment pour retrouver tous tes avantages : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>`
       : `<p style="margin:0 0 12px 0;">Ton accès Premium Agapeo a été retiré par notre équipe.</p><p style="margin:0;">Si tu penses qu'il s'agit d'une erreur, contacte-nous depuis l'espace Support de l'application.</p>`;
 
   await sendResendEmail(

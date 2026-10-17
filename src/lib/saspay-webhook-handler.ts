@@ -102,7 +102,7 @@ export async function activateSasPayTransaction(tx: PendingSasPayTransaction, re
   const expectedAmount = tx.amount_cents / 100;
   if (Math.round(Number(requestedAmount)) !== expectedAmount) {
     console.error(
-      `Paiement SasPay ${tx.id} : montant ${requestedAmount} ${tx.currency} ne correspond pas au montant attendu (${expectedAmount} ${tx.currency}) — accès NON accordé.`
+      `Paiement SasPay ${tx.id} : montant ${requestedAmount} ${tx.currency} ne correspond pas au montant attendu (${expectedAmount} ${tx.currency}) : accès NON accordé.`
     );
     return false;
   }

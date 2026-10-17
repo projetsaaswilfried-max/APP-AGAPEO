@@ -738,7 +738,7 @@ function MessagesPageContent() {
                   {activeConv.isSystemBroadcast ? (
                     <div className="mx-4 mb-4 flex flex-col items-center gap-2 p-4 rounded-[14px] bg-secondary/50 border border-border/40 text-center">
                       <p className="text-xs text-muted-foreground">
-                        Message automatique de l&apos;équipe Agapeo — tu ne peux pas répondre directement ici.
+                        Message automatique de l&apos;équipe Agapeo : tu ne peux pas répondre directement ici.
                       </p>
                       {!canSendMessages && (
                         <Link href="/premium" className="text-xs font-semibold text-primary hover:underline">
@@ -886,7 +886,7 @@ function MessagesPageContent() {
                 En proposant un match, tu indiques vouloir démarrer une relation sérieuse avec {activeConv.participant.firstName}.{" "}
                 {activeConv.participant.firstName} devra accepter à son tour. Une fois confirmé : vos deux profils disparaissent de Découvrir, vous
                 recevez chacun un email avec des conseils et une prière pour la suite, et vous ne pourrez plus proposer de match à quelqu&apos;un
-                d&apos;autre tant que celui-ci est actif — tu pourras toujours l&apos;annuler plus tard.
+                d&apos;autre tant que celui-ci est actif : tu pourras toujours l&apos;annuler plus tard.
               </p>
               {/* Empilés : la modale reste étroite (maxWidth="sm") quel que
                   soit l'écran — deux boutons côte à côte forceraient

@@ -428,7 +428,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
                       disabled={u.role === "SUPER_ADMIN" || isPending}
                       onChange={(e) => handleGenderChange(u.id, e.target.value as GenderType)}
                       className="h-auto bg-secondary/60 rounded-lg py-1"
-                      title="Corriger le genre — normalement définitif une fois choisi par le membre, modifiable uniquement depuis l'admin."
+                      title="Corriger le genre : normalement définitif une fois choisi par le membre, modifiable uniquement depuis l'admin."
                     >
                       {(["MALE", "FEMALE"] as GenderType[]).map((g) => (
                         <option key={g} value={g}>
@@ -520,7 +520,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
 
       {isActivelySearching ? (
         <p className="text-[11px] text-muted-foreground text-center py-2">
-          Résultats de recherche sur toute la base ({filtered.length} trouvé{filtered.length > 1 ? "s" : ""}) — efface la recherche pour revenir à la liste paginée.
+          Résultats de recherche sur toute la base ({filtered.length} trouvé{filtered.length > 1 ? "s" : ""}) : efface la recherche pour revenir à la liste paginée.
         </p>
       ) : (
         <div className="flex flex-col items-center gap-2 py-2">
@@ -533,7 +533,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
             <p className="text-xs text-muted-foreground">Tous les membres sont chargés ({users.length}).</p>
           )}
           <p className="text-[11px] text-muted-foreground">
-            Triés par vérification la plus récente d&apos;abord — les autres filtres (rôle, statut, dates) ne portent que sur les membres déjà chargés.
+            Triés par vérification la plus récente d&apos;abord : les autres filtres (rôle, statut, dates) ne portent que sur les membres déjà chargés.
           </p>
         </div>
       )}
@@ -542,7 +542,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
         isOpen={Boolean(grantModalUserId)}
         onClose={() => setGrantModalUserId(null)}
         title="Accorder l'accès Premium"
-        description="Choisis le type d'abonnement à attribuer — la durée et l'affichage seront ensuite identiques à un abonnement payé via Chariow."
+        description="Choisis le type d'abonnement à attribuer : la durée et l'affichage seront ensuite identiques à un abonnement payé via Chariow."
         footer={
           <>
             <Button variant="ghost" size="sm" onClick={() => setGrantModalUserId(null)} disabled={isPending}>
@@ -557,7 +557,7 @@ export function AdminUsersTable({ initialUsers }: { initialUsers: AdminUserRow[]
         <Select value={grantPlan} onChange={(e) => setGrantPlan(e.target.value as PremiumPlanKey)} className="w-full">
           {(Object.keys(PREMIUM_PLANS) as PremiumPlanKey[]).map((key) => (
             <option key={key} value={key}>
-              {PREMIUM_PLANS[key].label} — {PREMIUM_PLANS[key].periodDays} jours
+              {PREMIUM_PLANS[key].label} · {PREMIUM_PLANS[key].periodDays} jours
             </option>
           ))}
         </Select>

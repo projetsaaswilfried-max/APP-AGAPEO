@@ -37,7 +37,7 @@ export function SelfieCaptureModal({ isOpen, userId, onClose, onCaptured }: Self
       isOpen={isOpen}
       onClose={onClose}
       title="Vérifie ton identité"
-      description="Prends un selfie en direct — notre équipe le compare à tes photos de profil avant de valider."
+      description="Prends un selfie en direct : notre équipe le compare à tes photos de profil avant de valider."
     >
       <div className="space-y-4">
         <div className="relative aspect-square w-full max-w-xs mx-auto rounded-2xl overflow-hidden bg-secondary">

@@ -246,13 +246,13 @@ export async function addVerifiedProfilePhotosAction(photos: { url: string; stor
       .eq("profile_id", user.id)
       .eq("moderation_status", "PENDING");
     if ((pendingCount ?? 0) > 0) {
-      return { error: "Ta photo précédente est encore en cours d'examen par notre équipe — attends sa validation avant d'en ajouter une nouvelle." };
+      return { error: "Ta photo précédente est encore en cours d'examen par notre équipe : attends sa validation avant d'en ajouter une nouvelle." };
     }
 
     const { count: totalCount } = await supabase.from("profile_photos").select("id", { count: "exact", head: true }).eq("profile_id", user.id);
     const limit = viewerRow?.is_premium ? 10 : 2;
     if ((totalCount ?? 0) + photos.length > limit) {
-      return { error: `Limite de ${limit} photos atteinte — impossible d'ajouter ${photos.length} photo(s) de plus.` };
+      return { error: `Limite de ${limit} photos atteinte : impossible d'ajouter ${photos.length} photo(s) de plus.` };
     }
   }
 

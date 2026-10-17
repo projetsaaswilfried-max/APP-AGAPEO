@@ -338,7 +338,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               />
               <span className="text-xs tabular-nums text-foreground shrink-0">{formatRecordingTime(recorder.elapsedSeconds)}</span>
               {recorder.elapsedSeconds >= 2 && !recorder.hasDetectedSound ? (
-                <span className="text-[11px] text-destructive font-medium truncate">Aucun son détecté — vérifie ton micro</span>
+                <span className="text-[11px] text-destructive font-medium truncate">Aucun son détecté : vérifie ton micro</span>
               ) : (
                 // Graphe façon WhatsApp/Telegram : barres fines de largeur fixe,
                 // centrées verticalement, alignées à droite — chaque nouvel

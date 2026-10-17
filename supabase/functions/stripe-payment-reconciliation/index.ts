@@ -86,12 +86,12 @@ async function sendActivationEmail(to: string, firstName: string, amount: number
       recipientFirstName: firstName,
       contentHtml: `
         <p style="margin:0 0 12px 0;">
-          Merci pour ta confiance — ton paiement a bien été reçu et ton accès Premium est actif dès maintenant.
+          Merci pour ta confiance : ton paiement a bien été reçu et ton accès Premium est actif dès maintenant.
           Tu peux désormais contacter en priorité, voir qui s'intéresse à toi, utiliser les filtres avancés et
           consulter les profils sans limite.
         </p>
         <p style="margin:0;color:#94A3B8;font-size:12px;">
-          Ton accès est valable ${periodDays} jours — renouvelable à tout moment depuis l'onglet "Mon Plan" de ton compte.
+          Ton accès est valable ${periodDays} jours : renouvelable à tout moment depuis l'onglet "Mon Plan" de ton compte.
         </p>
       `,
       infoRows: [

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/client";
 import { mapProfileRowToUserProfile } from "@/domain/mappers/profile.mapper";
 import { computeCompatibility } from "@/domain/matching/compatibility";
 import { computeAge } from "@/domain/badges";
-import { pickDailyRecommendations } from "@/domain/daily-recommendations";
+import { orderByCompatibilityWithDailyRotation, pickDailyRecommendations } from "@/domain/daily-recommendations";
 import { PremiumRequiredError, VerificationRequiredError, isRlsViolation } from "@/domain/errors";
 import type { ProfileRow, ProfilePhotoRow } from "@/lib/supabase/database.types";
 
@@ -262,21 +262,21 @@ class DiscoverServiceSupabase implements IDiscoverService {
       };
     });
 
-    // Même tri que getProfiles (Premium d'abord, puis compatibilité) — c'est
-    // cet ordre qui définit la page "Autres profils" une fois les 3
-    // recommandés retirés.
-    ranked.sort((a, b) => Number(b.isPremium) - Number(a.isPremium) || b.compatibilityPercentage - a.compatibilityPercentage);
+    // Par palier de compatibilité, Premium d'abord dans chaque palier, et un
+    // ordre qui tourne chaque jour à l'intérieur (cf. daily-recommendations.ts) —
+    // c'est cet ordre qui définit "Autres profils" une fois les 3 recommandés retirés.
+    const ordered = orderByCompatibilityWithDailyRotation(ranked, viewer.id);
 
     // "Recommandée pour vous" exige que le CANDIDAT tombe dans la tranche
     // d'âge que LE membre connecté recherche — condition stricte, pas
     // seulement un critère de score parmi d'autres (sinon un profil très
     // bien assorti sur la foi peut sortir 15 ans hors de l'âge demandé).
-    const ageEligible = ranked.filter((c) => c.age >= viewer.desired_age_min && c.age <= viewer.desired_age_max);
-    const recommendationPool = ageEligible.length > 0 ? ageEligible : ranked;
+    const ageEligible = ordered.filter((c) => c.age >= viewer.desired_age_min && c.age <= viewer.desired_age_max);
+    const recommendationPool = ageEligible.length > 0 ? ageEligible : ordered;
     const { recommended: recommendedLight } = pickDailyRecommendations(recommendationPool, viewer.id, 3);
     const recommendedIds = new Set(recommendedLight.map((c) => c.profile.id));
 
-    const others = ranked.filter((c) => !recommendedIds.has(c.profile.id));
+    const others = ordered.filter((c) => !recommendedIds.has(c.profile.id));
     const otherTotalCount = others.length;
     const pageLight = others.slice((page - 1) * pageSize, page * pageSize);
 

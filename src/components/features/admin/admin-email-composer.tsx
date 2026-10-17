@@ -185,7 +185,7 @@ export function AdminEmailComposer({ initialCounts, directRecipients, history: i
             </div>
             {recipientCount === 0 && (
               <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1">
-                <AlertCircle size={11} /> Ce segment est vide pour le moment — normal tant que l&apos;abonnement n&apos;est pas encore actif.
+                <AlertCircle size={11} /> Ce segment est vide pour le moment : normal tant que l&apos;abonnement n&apos;est pas encore actif.
               </p>
             )}
           </div>
@@ -253,7 +253,7 @@ export function AdminEmailComposer({ initialCounts, directRecipients, history: i
         {showPreview && (
           <div className="p-4 rounded-xl border border-border/60 bg-secondary/30 space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Aperçu — tel que verra {previewFirstName}
+              Aperçu : tel que verra {previewFirstName}
             </p>
             <div className="p-4 rounded-lg bg-card border border-border/60">
               <p className="text-sm font-semibold text-foreground mb-2">{applyMergeTags(subject, previewFirstName) || "(sans objet)"}</p>
@@ -305,7 +305,7 @@ export function AdminEmailComposer({ initialCounts, directRecipients, history: i
 
         <div className="flex items-center justify-between pt-2 border-t border-border/40">
           <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Users2 size={13} /> {recipientCount} destinataire(s) — {audienceLabel}
+            <Users2 size={13} /> {recipientCount} destinataire(s) · {audienceLabel}
           </span>
           <Button
             variant="primary"

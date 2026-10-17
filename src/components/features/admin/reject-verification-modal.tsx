@@ -33,7 +33,7 @@ export function RejectVerificationModal({ isOpen, onClose, memberName, onConfirm
 
   const handleSubmit = async () => {
     if (!reason.trim()) {
-      setError("Le motif du refus est obligatoire — il sera envoyé au membre par email.");
+      setError("Le motif du refus est obligatoire : il sera envoyé au membre par email.");
       return;
     }
     setIsSubmitting(true);
@@ -52,7 +52,7 @@ export function RejectVerificationModal({ isOpen, onClose, memberName, onConfirm
       isOpen={isOpen}
       onClose={handleClose}
       title={`Refuser le profil de ${memberName}`}
-      description="Ce motif est envoyé directement au membre par email — sois clair et bienveillant."
+      description="Ce motif est envoyé directement au membre par email : sois clair et bienveillant."
     >
       <div className="space-y-4">
         <div className="flex flex-wrap gap-1.5">

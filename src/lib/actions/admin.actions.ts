@@ -440,7 +440,7 @@ export async function approveVerificationRequestAction(requestId: string, userId
   await sendAgapeoSystemMessage(
     admin,
     userId,
-    "Bienvenue sur Agapeo ! Ton profil est maintenant vérifié et visible dans Découvrir. Aujourd'hui, une seule chose bloque encore ton exploration : sans abonnement, tu ne peux ni consulter un profil en entier, ni démarrer une conversation avec quelqu'un qui t'intéresse. Passe Premium pour débloquer tout ça — Découvrir en illimité, contact prioritaire, favoris, et savoir qui s'intéresse déjà à toi."
+    "Bienvenue sur Agapeo ! Ton profil est maintenant vérifié et visible dans Découvrir. Aujourd'hui, une seule chose bloque encore ton exploration : sans abonnement, tu ne peux ni consulter un profil en entier, ni démarrer une conversation avec quelqu'un qui t'intéresse. Passe Premium pour débloquer tout ça : Découvrir en illimité, contact prioritaire, favoris, et savoir qui s'intéresse déjà à toi."
   );
 
   // Notification in-app + push (cf. notify_push_on_notification, déclenché
@@ -694,7 +694,7 @@ export async function openReportConversationAction(reportId: string) {
   } else {
     const { data: newTicket, error: ticketError } = await admin
       .from("support_tickets")
-      .insert({ user_id: targetUserId, subject: `Signalement — ${report.reason}`, report_id: reportId })
+      .insert({ user_id: targetUserId, subject: `Signalement · ${report.reason}`, report_id: reportId })
       .select("id")
       .single();
     if (ticketError || !newTicket) return { error: ticketError?.message ?? "Impossible d'ouvrir le dossier." };

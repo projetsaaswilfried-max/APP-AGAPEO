@@ -115,7 +115,7 @@ export async function respondToMatchAction(matchId: string, accept: boolean): Pr
       actor_id: match.recipient_id,
       type: "MATCH_ACCEPTED",
       title: "Ton match a été accepté !",
-      body: "Vous êtes désormais en couple sur Agapeo — félicitations !",
+      body: "Vous êtes désormais en couple sur Agapeo : félicitations !",
       target_url: `/messages?conversation=${match.conversation_id}`
     });
 

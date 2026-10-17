@@ -283,7 +283,7 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
           <p className="text-sm text-muted-foreground">
             {isRevisit
               ? "Reviens sur n'importe quelle étape ci-dessous pour compléter ou corriger une section."
-              : `Bienvenue ${profile.first_name} — ça prend environ 5 minutes. Chaque étape est obligatoire pour passer à la suivante, mais tu peux revenir plus tard si besoin.`}
+              : `Bienvenue ${profile.first_name}, ça prend environ 5 minutes. Chaque étape est obligatoire pour passer à la suivante, mais tu peux revenir plus tard si besoin.`}
           </p>
         </div>
 
@@ -304,7 +304,7 @@ export function OnboardingWizard({ profile, initialPhotos }: OnboardingWizardPro
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">
-          Si tu quittes avant la fin, ton profil reste incomplet et invisible pour les autres membres — reviens à tout
+          Si tu quittes avant la fin, ton profil reste incomplet et invisible pour les autres membres : reviens à tout
           moment depuis Accueil pour reprendre où tu t&apos;étais arrêté(e).
         </p>
       </div>

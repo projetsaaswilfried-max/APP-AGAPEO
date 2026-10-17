@@ -69,7 +69,7 @@ export async function initiateMobileMoneyPaymentAction(input: {
       firstName: profile.first_name,
       lastName: profile.last_name || "-",
       phone: input.phone.trim(),
-      description: `Abonnement Agapeo — ${planConfig.label}`,
+      description: `Abonnement Agapeo · ${planConfig.label}`,
       metadata: { agapeo_user_id: user.id, agapeo_plan: plan },
       idempotencyKey: crypto.randomUUID()
     });

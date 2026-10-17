@@ -34,7 +34,7 @@ function NavItemInner({ item, isActive }: { item: NavigationItem; isActive: bool
       {isActive && (
         <motion.div
           layoutId="bottom-nav-active-pill"
-          className="absolute inset-0 bg-accent-subtle border border-accent/30 rounded-full shadow-2xs"
+          className="absolute inset-0 bg-accent-subtle border border-accent/30 rounded-full"
           transition={{ type: "spring", stiffness: 420, damping: 34 }}
         />
       )}
@@ -76,12 +76,14 @@ export function BottomNav() {
   if (isConversationOpen) return null;
 
   return (
-    <div className="md:hidden fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40 bg-card/90 backdrop-blur-xl rounded-full border border-border/40 p-1.5 shadow-soft select-none">
-      <nav className="flex items-center justify-around">
+    // Même marge intérieure sur les quatre côtés : p-1.5 pour la barre, p-2.5 pour chaque bouton,
+    // et justify-between (pas d'espace supplémentaire accumulé aux deux extrémités).
+    <div className="md:hidden fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40 bg-card/90 backdrop-blur-xl rounded-full border border-border/40 p-1.5 select-none">
+      <nav className="flex items-center justify-between">
         {navigation.map((item: NavigationItem) => {
           const isActive = item.isExact ? pathname === item.href : pathname.startsWith(item.href);
           const itemClassName = cn(
-            "relative flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors duration-200 border border-transparent",
+            "relative flex items-center justify-center gap-1.5 p-2.5 rounded-full text-xs font-medium transition-colors duration-200 border border-transparent",
             isActive ? "text-primary font-semibold border-accent/30" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
           );
 

@@ -85,7 +85,7 @@ export function PremiumSuccessView({ onboardingCompleted }: PremiumSuccessViewPr
               <div>
                 <h1 className="text-base font-display font-semibold text-foreground">Activation en cours...</h1>
                 <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                  Ton paiement a bien été reçu, on active ton accès — quelques secondes suffisent.
+                  Ton paiement a bien été reçu, on active ton accès : quelques secondes suffisent.
                 </p>
               </div>
             </>

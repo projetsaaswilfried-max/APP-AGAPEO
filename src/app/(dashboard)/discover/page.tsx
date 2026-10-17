@@ -49,8 +49,8 @@ function getVerificationBannerContent(
     return {
       icon: <Clock size={14} className="text-accent shrink-0" />,
       description: canView
-        ? "Ton profil est en cours de vérification — en attendant, tu peux consulter les membres, mais pas encore les contacter."
-        : "Ton profil est en cours de vérification — en attendant, voici un aperçu des membres de la communauté.",
+        ? "Ton profil est en cours de vérification : en attendant, tu peux consulter les membres, mais pas encore les contacter."
+        : "Ton profil est en cours de vérification : en attendant, voici un aperçu des membres de la communauté.",
       cta: "Voir ma demande"
     };
   }

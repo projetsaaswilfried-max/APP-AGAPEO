@@ -52,7 +52,7 @@ async function sendResendEmail(to: string, subject: string, html: string) {
 // que l'email ci-dessus, formulation raccourcie (place limitée sur un push).
 const PUSH_CONFIGS = [
   { title: "Ton paiement n'a pas abouti", body: "Réessaie dès maintenant, ça ne prend qu'une minute." },
-  { title: "Ton offre Premium t'attend toujours", body: "Ta tentative de paiement d'hier n'a pas abouti — réessaie quand tu veux." },
+  { title: "Ton offre Premium t'attend toujours", body: "Ta tentative de paiement d'hier n'a pas abouti : réessaie quand tu veux." },
   { title: "Dernier rappel : paiement non abouti", body: "Depuis 3 jours, ton paiement n'a pas abouti. Contacte-nous si besoin." }
 ];
 
@@ -71,7 +71,7 @@ async function sendFailedPaymentReminderEmail(to: string, firstName: string, pla
       headline: "On dirait que ton paiement a échoué",
       contentHtml: `
         <p style="margin:0 0 12px 0;">
-          Ta tentative de paiement pour l'offre <strong>${planLabel}</strong> sur Agapeo n'a pas abouti — ça arrive
+          Ta tentative de paiement pour l'offre <strong>${planLabel}</strong> sur Agapeo n'a pas abouti : ça arrive
           parfois (carte refusée, session expirée, coupure de connexion...).
         </p>
         <p style="margin:0;">Tu peux réessayer dès maintenant, ça ne prend qu'une minute.</p>
@@ -82,7 +82,7 @@ async function sendFailedPaymentReminderEmail(to: string, firstName: string, pla
       headline: "Ton offre Premium t'attend toujours",
       contentHtml: `
         <p style="margin:0 0 12px 0;">
-          Hier, ta tentative de paiement pour l'offre <strong>${planLabel}</strong> n'a pas abouti — ton accès Premium
+          Hier, ta tentative de paiement pour l'offre <strong>${planLabel}</strong> n'a pas abouti : ton accès Premium
           n'a donc pas pu être activé.
         </p>
         <p style="margin:0;">
@@ -96,12 +96,12 @@ async function sendFailedPaymentReminderEmail(to: string, firstName: string, pla
       headline: "On t'aide à finaliser ton abonnement",
       contentHtml: `
         <p style="margin:0 0 12px 0;">
-          Depuis 3 jours, ta tentative de paiement pour l'offre <strong>${planLabel}</strong> n'a pas abouti — voici
+          Depuis 3 jours, ta tentative de paiement pour l'offre <strong>${planLabel}</strong> n'a pas abouti : voici
           notre dernier rappel automatique à ce sujet.
         </p>
         <p style="margin:0;">
           Si le problème persiste malgré une nouvelle tentative, contacte-nous directement à
-          <a href="mailto:${SUPPORT_EMAIL}" style="color:#FE70B2;">${SUPPORT_EMAIL}</a> — on se chargera de finaliser
+          <a href="mailto:${SUPPORT_EMAIL}" style="color:#FE70B2;">${SUPPORT_EMAIL}</a> : on se chargera de finaliser
           ton abonnement avec toi.
         </p>
       `

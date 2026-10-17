@@ -71,3 +71,22 @@ export function pickDailyRecommendations<T extends ScoredItem>(
 
   return { recommended, others };
 }
+
+/** Largeur (en points sur 100) des paliers de compatibilité à l'intérieur desquels l'ordre tourne chaque jour. */
+const COMPATIBILITY_BAND_SIZE = 10;
+
+/**
+ * Ordre d'affichage de Découvrir ("Autres profils", pile mobile) : par palier
+ * de compatibilité décroissant (90+, 80-89, ...) ; dans un même palier, les
+ * profils Premium d'abord (avantage "profil mis en avant"), puis un ordre
+ * tiré au sort chaque jour — stable pour un même membre toute la journée,
+ * différent le lendemain. Les plus compatibles restent en tête, mais ce
+ * n'est plus toujours la même personne qui apparaît en premier.
+ */
+export function orderByCompatibilityWithDailyRotation<T extends ScoredItem & { isPremium?: boolean }>(items: T[], viewerId: string): T[] {
+  const band = (item: T) => Math.floor(item.compatibilityPercentage / COMPATIBILITY_BAND_SIZE);
+  // Le tri JavaScript est stable : l'ordre aléatoire du jour est conservé entre profils de même palier et même statut.
+  return seededShuffle(items, dailySeed(viewerId)).sort(
+    (a, b) => band(b) - band(a) || Number(Boolean(b.isPremium)) - Number(Boolean(a.isPremium))
+  );
+}

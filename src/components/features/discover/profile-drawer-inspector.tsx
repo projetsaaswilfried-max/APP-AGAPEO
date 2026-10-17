@@ -58,7 +58,7 @@ export function ProfileDrawerInspector({
       isOpen={isOpen}
       onClose={onClose}
       title={`${profile.firstName}, ${profile.age} ans`}
-      description={`${profile.city}, ${profile.country} — ${profile.profession}`}
+      description={`${profile.city}, ${profile.country} · ${profile.profession}`}
       maxWidth="lg"
       footer={
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full">

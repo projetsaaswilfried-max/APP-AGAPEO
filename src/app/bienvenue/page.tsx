@@ -25,7 +25,7 @@ export default function BienvenuePage() {
         <div className="space-y-3">
           <h1 className="text-3xl font-display font-bold tracking-tight text-white">Bienvenue sur Agapeo</h1>
           <p className="text-sm text-white/90 leading-relaxed">
-            L&apos;alliance chrétienne pour le mariage — rencontre des célibataires qui partagent ta foi et ton engagement pour un mariage bâti sur
+            L&apos;alliance chrétienne pour le mariage : rencontre des célibataires qui partagent ta foi et ton engagement pour un mariage bâti sur
             des valeurs communes.
           </p>
         </div>

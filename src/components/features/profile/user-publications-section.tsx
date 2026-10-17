@@ -109,7 +109,7 @@ export function UserPublicationsSection({ userName, profileId, publications, isO
       <div className="flex items-center justify-between bg-card p-4 rounded-2xl border border-border/60 shadow-2xs">
         <div className="flex items-center gap-1.5">
           <h3 className="text-sm font-display font-semibold text-foreground">Pensées & Publications de {userName}</h3>
-          <Tooltip content="Les publications que vous créez seront vues uniquement par les personnes qui viendront consulter votre profil — elles n'apparaissent jamais dans le fil général.">
+          <Tooltip content="Les publications que vous créez seront vues uniquement par les personnes qui viendront consulter votre profil : elles n'apparaissent jamais dans le fil général.">
             <Info size={13} className="text-muted-foreground hover:text-foreground transition-colors cursor-help" />
           </Tooltip>
         </div>

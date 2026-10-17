@@ -121,7 +121,7 @@ export function buildAgapeoEmailHtml({
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="480" style="width: 480px; max-width: 480px; margin-top: 20px;">
           <tr>
             <td align="center">
-              <p style="margin: 0 0 4px 0; font-size: 11px; color: #94A3B8;">&copy; ${new Date().getFullYear()} Agapeo — Plateforme sociale éthique pour célibataires chrétiens.</p>
+              <p style="margin: 0 0 4px 0; font-size: 11px; color: #94A3B8;">&copy; ${new Date().getFullYear()} Agapeo · Plateforme sociale éthique pour célibataires chrétiens.</p>
               <p style="margin: 0; font-size: 10px; color: #B4BCC7;">Cet email a été envoyé automatiquement. Merci de ne pas y répondre directement.</p>
             </td>
           </tr>

@@ -127,7 +127,7 @@ export async function handleChariowWebhook(request: Request, planKey: ChariowPla
 
   if (transactionStatus === "SUCCEEDED" && !amountMatchesPlan) {
     console.error(
-      `Webhook Chariow ${sale.id} (${planKey}) : montant reçu ${sale.amount.value} ${sale.amount.currency} ne correspond pas au prix attendu (${plan.priceUsd} USD) — transaction enregistrée mais accès Premium NON accordé.`
+      `Webhook Chariow ${sale.id} (${planKey}) : montant reçu ${sale.amount.value} ${sale.amount.currency} ne correspond pas au prix attendu (${plan.priceUsd} USD) : transaction enregistrée mais accès Premium NON accordé.`
     );
     return NextResponse.json({ received: true });
   }

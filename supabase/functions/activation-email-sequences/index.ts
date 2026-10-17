@@ -48,7 +48,7 @@ const SUBMIT_PROFILE_URL = `${SITE_URL}/onboarding`;
 async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5 | 7) {
   const configs = {
     1: {
-      subject: "Bienvenue sur Agapeo — encore une étape avant de commencer",
+      subject: "Bienvenue sur Agapeo : encore une étape avant de commencer",
       headline: "Ton profil n'est pas encore visible",
       contentHtml: `
         <p style="margin:0 0 12px 0;">Bienvenue sur Agapeo ! Ton compte est créé, mais tant que ton profil n'est pas soumis pour vérification, personne ne peut te voir dans Découvrir ni t'écrire.</p>
@@ -60,7 +60,7 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       subject: "Tu n'es toujours pas visible dans Découvrir",
       headline: "Personne ne peut encore te voir",
       contentHtml: `
-        <p style="margin:0 0 12px 0;">Depuis 3 jours, ton profil Agapeo existe mais reste invisible pour les autres membres — tant qu'il n'est pas vérifié, tu n'apparais pas dans Découvrir et tu ne peux recevoir aucun message.</p>
+        <p style="margin:0 0 12px 0;">Depuis 3 jours, ton profil Agapeo existe mais reste invisible pour les autres membres : tant qu'il n'est pas vérifié, tu n'apparais pas dans Découvrir et tu ne peux recevoir aucun message.</p>
         <p style="margin:0;">Prends deux minutes pour le soumettre : notre équipe l'examine généralement sous 48h.</p>
       `,
       ctaText: "Soumettre mon profil"
@@ -69,7 +69,7 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       subject: "Ça prend 2 minutes : fais-toi remarquer sur Agapeo",
       headline: "La vérification est plus simple qu'il n'y paraît",
       contentHtml: `
-        <p style="margin:0 0 12px 0;">On te demande juste tes photos de profil et un selfie pris en direct (pour confirmer que c'est bien toi) — notre équipe compare les deux et valide généralement en moins de 48h.</p>
+        <p style="margin:0 0 12px 0;">On te demande juste tes photos de profil et un selfie pris en direct (pour confirmer que c'est bien toi) : notre équipe compare les deux et valide généralement en moins de 48h.</p>
         <p style="margin:0;">Pendant ce temps, d'autres membres qui pourraient te correspondre sont déjà sur la plateforme.</p>
       `,
       ctaText: "Soumettre mon profil"
@@ -79,7 +79,7 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       headline: "On ne veut pas que tu passes à côté",
       contentHtml: `
         <p style="margin:0 0 12px 0;">Voici le dernier rappel automatique : ton profil Agapeo est prêt, il ne manque plus que la vérification pour qu'il devienne visible dans Découvrir.</p>
-        <p style="margin:0;">Soumets-le dès maintenant — tu peux reprendre exactement là où tu t'étais arrêté(e).</p>
+        <p style="margin:0;">Soumets-le dès maintenant : tu peux reprendre exactement là où tu t'étais arrêté(e).</p>
       `,
       ctaText: "Soumettre mon profil"
     }
@@ -118,7 +118,7 @@ async function sendAlmostDoneEmail(to: string, firstName: string) {
       headline: "Tu es à un pas de la fin !",
       recipientFirstName: firstName,
       contentHtml: `
-        <p style="margin:0 0 12px 0;">Ton profil Agapeo est déjà complet — photos, confession, vision du mariage : tout y est. Il ne manque plus qu'un selfie en direct (pour confirmer que c'est bien toi) et un clic sur "Soumettre".</p>
+        <p style="margin:0 0 12px 0;">Ton profil Agapeo est déjà complet : photos, confession, vision du mariage, tout y est. Il ne manque plus qu'un selfie en direct (pour confirmer que c'est bien toi) et un clic sur "Soumettre".</p>
         <p style="margin:0;">Ça prend littéralement 2 minutes, et notre équipe l'examine généralement sous 48h.</p>
       `,
       ctaText: "Finaliser mon profil",
@@ -234,7 +234,7 @@ function buildPremiumContent(segment: PremiumSegment, count: number, isLate: boo
       subject: isLate ? `${count} personne(s) attendent toujours de tes nouvelles sur Agapeo` : "Des personnes s'intéressent déjà à toi",
       headline: "Qui s'intéresse à toi ?",
       contentHtml: `
-        <p style="margin:0 0 12px 0;">${count} personne${count > 1 ? "s ont" : " a"} déjà manifesté de l'intérêt pour ton profil sur Agapeo (favori, vue ou like) — mais son identité reste réservée aux membres Premium.</p>
+        <p style="margin:0 0 12px 0;">${count} personne${count > 1 ? "s ont" : " a"} déjà manifesté de l'intérêt pour ton profil sur Agapeo (favori, vue ou like) : mais son identité reste réservée aux membres Premium.</p>
         <p style="margin:0;">Passe Premium pour découvrir qui, et pouvoir lui écrire directement.</p>
       `,
       ctaText: "Découvrir qui s'intéresse à moi"
@@ -246,7 +246,7 @@ function buildPremiumContent(segment: PremiumSegment, count: number, isLate: boo
       headline: "De bons profils t'attendent",
       contentHtml: `
         <p style="margin:0 0 12px 0;">${count} profil${count > 1 ? "s ont" : " a"} au moins 85% de compatibilité avec toi sur Agapeo en ce moment.</p>
-        <p style="margin:0;">Sans abonnement, tu ne peux ni les consulter en entier, ni leur écrire — passe Premium pour aller plus loin.</p>
+        <p style="margin:0;">Sans abonnement, tu ne peux ni les consulter en entier, ni leur écrire : passe Premium pour aller plus loin.</p>
       `,
       ctaText: "Voir les offres Premium"
     };
@@ -674,7 +674,7 @@ Deno.serve(async (req) => {
 
           if (wantsInApp) {
             try {
-              await sendAgapeoSystemMessage(admin, row.id, `${content.headline} — ${stripHtmlForMessage(content.contentHtml)}`, {
+              await sendAgapeoSystemMessage(admin, row.id, `${content.headline} : ${stripHtmlForMessage(content.contentHtml)}`, {
                 ctaText: content.ctaText,
                 ctaUrl: "/premium",
                 ctaAction: "PREMIUM"

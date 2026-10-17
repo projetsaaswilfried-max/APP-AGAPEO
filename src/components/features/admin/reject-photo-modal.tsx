@@ -35,7 +35,7 @@ export function RejectPhotoModal({ isOpen, onClose, memberName, onConfirm }: Rej
 
   const handleSubmit = async () => {
     if (!reason.trim()) {
-      setError("Le motif du refus est obligatoire — il sera envoyé au membre.");
+      setError("Le motif du refus est obligatoire : il sera envoyé au membre.");
       return;
     }
     setIsSubmitting(true);
@@ -54,7 +54,7 @@ export function RejectPhotoModal({ isOpen, onClose, memberName, onConfirm }: Rej
       isOpen={isOpen}
       onClose={handleClose}
       title={`Refuser cette photo de ${memberName}`}
-      description="Ce motif est envoyé directement au membre en notification — sois clair et bienveillant."
+      description="Ce motif est envoyé directement au membre en notification : sois clair et bienveillant."
     >
       <div className="space-y-4">
         <div className="flex flex-wrap gap-1.5">

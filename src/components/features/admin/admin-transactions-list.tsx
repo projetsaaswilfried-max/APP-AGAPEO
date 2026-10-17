@@ -154,7 +154,7 @@ export function AdminTransactionsList({ transactions }: { transactions: AdminTra
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card variant="base" className="p-4 border-border/60 shadow-2xs space-y-1">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1" title="Valeur en $ du plan de chaque transaction réussie — le montant réellement encaissé peut être dans une autre devise, cf. colonne Montant.">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1" title="Valeur en $ du plan de chaque transaction réussie : le montant réellement encaissé peut être dans une autre devise, cf. colonne Montant.">
             <TrendingUp size={12} /> Revenu (réussies, $)
           </p>
           <p className="text-xl font-display font-semibold text-foreground">
@@ -199,9 +199,9 @@ export function AdminTransactionsList({ transactions }: { transactions: AdminTra
                 {filtered.map((t) => (
                   <tr key={t.id} className="border-b border-border/40 last:border-0 hover:bg-secondary/30">
                     <td className="px-4 py-2.5 font-medium text-foreground">{t.userName}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{t.plan ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{t.plan ?? "-"}</td>
                     <td className="px-4 py-2.5 text-foreground">{formatAmount(t.amountCents, t.currency)}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{t.provider ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{t.provider ?? "-"}</td>
                     <td className="px-4 py-2.5">
                       <Badge variant="status" className={`text-[10px] ${STATUS_COLORS[t.status]}`}>
                         {STATUS_LABELS[t.status]}

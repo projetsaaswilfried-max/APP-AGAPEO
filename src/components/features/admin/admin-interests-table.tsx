@@ -71,7 +71,7 @@ export function AdminInterestsTable({ initialInterests }: { initialInterests: In
         <div>
           <h2 className="text-sm font-display font-semibold text-foreground">Centres d&apos;intérêt</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Liste proposée en case à cocher à l&apos;onboarding et sur le profil — {interests.length} entrée(s).
+            Liste proposée en case à cocher à l&apos;onboarding et sur le profil ({interests.length} entrée(s)).
           </p>
         </div>
         <Button variant="primary" size="sm" onClick={openCreateForm} leftIcon={<Plus size={14} />}>
@@ -152,7 +152,7 @@ export function AdminInterestsTable({ initialInterests }: { initialInterests: In
         isOpen={Boolean(deleteId)}
         onClose={() => setDeleteId(null)}
         title="Supprimer ce centre d'intérêt ?"
-        description={deleteTarget ? `« ${deleteTarget.name} » ne sera plus proposé — les membres qui l'avaient déjà coché le gardent tel quel.` : undefined}
+        description={deleteTarget ? `« ${deleteTarget.name} » ne sera plus proposé : les membres qui l'avaient déjà coché le gardent tel quel.` : undefined}
         footer={
           <>
             <Button variant="ghost" size="sm" onClick={() => setDeleteId(null)}>

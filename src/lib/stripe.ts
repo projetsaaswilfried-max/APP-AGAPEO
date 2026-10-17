@@ -45,7 +45,7 @@ export async function initiateStripeCheckout(input: InitiateStripeCheckoutInput)
         price_data: {
           currency: "usd",
           unit_amount: plan.priceUsd * 100,
-          product_data: { name: `Abonnement Agapeo — ${plan.label}` }
+          product_data: { name: `Abonnement Agapeo · ${plan.label}` }
         }
       }
     ],

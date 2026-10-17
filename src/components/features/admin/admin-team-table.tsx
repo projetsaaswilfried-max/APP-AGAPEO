@@ -143,7 +143,7 @@ export function AdminTeamTable({
         <p className="text-[11px] text-muted-foreground px-1">Seul un Super Admin peut modifier les rôles de l&apos;équipe.</p>
       )}
       <p className="text-[11px] text-muted-foreground px-1">
-        {VERIFICATION_LABELS.VERIFIED} = profil de rencontre vérifié comme n&apos;importe quel membre — sans lien avec les droits d&apos;administration ci-dessus.
+        {VERIFICATION_LABELS.VERIFIED} = profil de rencontre vérifié comme n&apos;importe quel membre : sans lien avec les droits d&apos;administration ci-dessus.
       </p>
     </div>
   );

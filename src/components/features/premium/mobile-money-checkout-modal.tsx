@@ -152,7 +152,7 @@ export function MobileMoneyCheckoutModal({ plan, onClose }: MobileMoneyCheckoutM
         <div className="space-y-3">
           {plan && (
             <p className="text-xs text-muted-foreground">
-              {PREMIUM_PLANS[plan].label} —{" "}
+              {PREMIUM_PLANS[plan].label} ·{" "}
               {isQuoteLoading
                 ? "calcul du montant..."
                 : priceQuote
@@ -186,7 +186,7 @@ export function MobileMoneyCheckoutModal({ plan, onClose }: MobileMoneyCheckoutM
               onChange={(e) => setNetwork(e.target.value)}
               className="w-full h-11 rounded-xl border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="">— Sélectionner —</option>
+              <option value="">Sélectionner</option>
               {country?.networks
                 .filter((n) => !n.inactive)
                 .map((n) => (
@@ -229,7 +229,7 @@ export function MobileMoneyCheckoutModal({ plan, onClose }: MobileMoneyCheckoutM
           <div>
             <p className="text-sm font-semibold text-foreground">Vérifie ton téléphone</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Une demande de paiement vient d&apos;être envoyée — confirme-la (validation USSD ou code secret) pour
+              Une demande de paiement vient d&apos;être envoyée : confirme-la (validation USSD ou code secret) pour
               activer ton abonnement. Cette page se met à jour automatiquement.
             </p>
           </div>

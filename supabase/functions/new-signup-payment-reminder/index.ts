@@ -72,7 +72,7 @@ async function sendAccessPaymentReminderEmail(to: string, firstName: string, sta
           Il ne te reste qu'une étape avant de commencer ta recherche sur Agapeo : débloquer ton accès pour
           ${PRICE_LABEL}, valable 30 jours.
         </p>
-        <p style="margin:0;">Ça ne prend qu'une minute — clique ci-dessous pour finaliser.</p>
+        <p style="margin:0;">Ça ne prend qu'une minute : clique ci-dessous pour finaliser.</p>
       `
     },
     {

@@ -348,7 +348,7 @@ export function AdminFinancesView({
       {unconvertedRevenueCount > 0 && (
         <div className="flex items-center gap-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700 dark:text-amber-400">
           <AlertTriangle size={14} className="shrink-0" />
-          {unconvertedRevenueCount} transaction(s) en {unconvertedRevenueCurrencies.join(", ")} non incluse(s) dans le CA — taux de change indisponible pour le moment.
+          {unconvertedRevenueCount} transaction(s) en {unconvertedRevenueCurrencies.join(", ")} non incluse(s) dans le CA : taux de change indisponible pour le moment.
         </div>
       )}
       {error && <p className="text-xs text-destructive px-1">{error}</p>}
@@ -377,7 +377,7 @@ export function AdminFinancesView({
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Chariow/SasPay prélèvent un pourcentage au retrait, jamais communiqué à l&apos;avance — à renseigner ici une fois constaté sur le relevé réel.
+            Chariow/SasPay prélèvent un pourcentage au retrait, jamais communiqué à l&apos;avance : à renseigner ici une fois constaté sur le relevé réel.
           </p>
 
           {filteredDeductions.length === 0 ? (
@@ -406,9 +406,9 @@ export function AdminFinancesView({
                           <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{formatPeriod(d.periodStart, d.periodEnd)}</td>
                           <td className="px-4 py-2 font-medium text-foreground">{d.provider}</td>
                           <td className="px-4 py-2 text-right text-muted-foreground font-mono tabular-nums whitespace-nowrap">{formatUsd(periodRevenueCents)}</td>
-                          <td className="px-4 py-2 text-muted-foreground max-w-xs truncate">{d.note ?? "—"}</td>
+                          <td className="px-4 py-2 text-muted-foreground max-w-xs truncate">{d.note ?? "-"}</td>
                           <td className="px-4 py-2 text-right font-medium text-destructive font-mono tabular-nums whitespace-nowrap">−{formatUsd(d.amountCents)}</td>
-                          <td className="px-4 py-2 text-right text-muted-foreground font-mono tabular-nums whitespace-nowrap">{pct !== null ? `${pct.toFixed(1)}%` : "—"}</td>
+                          <td className="px-4 py-2 text-right text-muted-foreground font-mono tabular-nums whitespace-nowrap">{pct !== null ? `${pct.toFixed(1)}%` : "-"}</td>
                           <td className="px-4 py-2">
                             <div className="flex items-center justify-end gap-1.5">
                               <button onClick={() => openEditDeductionForm(d)} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary" title="Modifier">
@@ -475,7 +475,7 @@ export function AdminFinancesView({
                         <td className="px-4 py-2 text-muted-foreground whitespace-nowrap">{new Date(e.date).toLocaleDateString("fr-FR")}</td>
                         <td className="px-4 py-2 text-muted-foreground">{e.category}</td>
                         <td className="px-4 py-2 font-medium text-foreground">{e.label}</td>
-                        <td className="px-4 py-2 text-muted-foreground max-w-xs truncate">{e.note ?? "—"}</td>
+                        <td className="px-4 py-2 text-muted-foreground max-w-xs truncate">{e.note ?? "-"}</td>
                         <td className="px-4 py-2 text-right font-medium text-destructive font-mono tabular-nums whitespace-nowrap">−{formatUsd(e.amountCents)}</td>
                         <td className="px-4 py-2">
                           <div className="flex items-center justify-end gap-1.5">
@@ -536,7 +536,7 @@ export function AdminFinancesView({
             <input
               value={expenseForm.label}
               onChange={(e) => setExpenseForm((f) => ({ ...f, label: e.target.value }))}
-              placeholder="Ex : Hébergement Supabase — septembre"
+              placeholder="Ex : Hébergement Supabase, septembre"
               className="w-full h-10 rounded-xl border border-border/60 bg-secondary/50 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

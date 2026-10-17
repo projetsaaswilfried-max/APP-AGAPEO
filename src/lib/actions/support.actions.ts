@@ -30,7 +30,7 @@ export async function notifyStaffOfSupportMessageAction(ticketId: string, subjec
         from: "Agapeo <support@agapeo.love>",
         to: [getSupportEmail()],
         reply_to: user.email,
-        subject: `Support — ${subject}`,
+        subject: `Support · ${subject}`,
         html: buildAgapeoEmailHtml({
           title: "Nouveau message support",
           preheader: `${escapeHtml(name)} vient d'écrire dans un dossier support`,

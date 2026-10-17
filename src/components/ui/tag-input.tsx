@@ -67,7 +67,7 @@ export function TagInput({ label, placeholder, value, onChange, maxTags = 12, cl
           />
         )}
       </div>
-      <p className="text-[10px] text-muted-foreground pl-1">Entrée ou virgule pour ajouter — {value.length}/{maxTags}</p>
+      <p className="text-[10px] text-muted-foreground pl-1">Entrée ou virgule pour ajouter · {value.length}/{maxTags}</p>
     </div>
   );
 }

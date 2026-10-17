@@ -34,13 +34,13 @@ export default function ChildSafetyStandardsPage() {
             <h2 className="text-2xl font-medium text-zinc-900 mt-12 mb-6">2. Tolérance zéro</h2>
             <p>
               Agapeo applique une politique de <strong>tolérance zéro</strong> envers toute forme d&apos;exploitation ou d&apos;abus sexuel sur mineur
-              (CSAE — Child Sexual Abuse and Exploitation), sous quelque forme que ce soit : contenu, sollicitation, mise en relation ou
+              (CSAE : Child Sexual Abuse and Exploitation), sous quelque forme que ce soit : contenu, sollicitation, mise en relation ou
               comportement. Tout compte impliqué est immédiatement suspendu et signalé aux autorités compétentes.
             </p>
 
             <h2 className="text-2xl font-medium text-zinc-900 mt-12 mb-6">3. Nos mesures de prévention</h2>
             <ul>
-              <li>Vérification de l&apos;âge (date de naissance) obligatoire à l&apos;inscription — l&apos;accès est refusé en dessous de 18 ans.</li>
+              <li>Vérification de l&apos;âge (date de naissance) obligatoire à l&apos;inscription : l&apos;accès est refusé en dessous de 18 ans.</li>
               <li>Vérification d&apos;identité manuelle par selfie en direct, comparée aux photos du profil, avant toute visibilité publique.</li>
               <li>Chaque photo ajoutée à un profil est examinée individuellement par notre équipe avant d&apos;apparaître à quiconque.</li>
               <li>Signalement et blocage disponibles sur chaque profil, message et publication.</li>

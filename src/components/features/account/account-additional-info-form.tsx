@@ -104,7 +104,7 @@ export function AccountAdditionalInfoForm({ profile, onSave }: AccountAdditional
         </div>
 
         <p className="text-xs text-muted-foreground -mt-2">
-          Entièrement facultatif — remplis uniquement ce que tu souhaites partager. En dehors des centres d&apos;intérêt
+          Entièrement facultatif : remplis uniquement ce que tu souhaites partager. En dehors des centres d&apos;intérêt
           (qui comptent dans ton score de compatibilité), ces informations ne servent qu&apos;à te présenter ou à affiner
           tes recommandations dans Découvrir : le reste se discute directement avec la personne.
         </p>

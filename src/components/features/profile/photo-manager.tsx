@@ -72,7 +72,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
     for (const file of files) {
       if (currentCount >= photoLimit) {
         errorMessage = uploadedCount > 0
-          ? `Limite de ${photoLimit} photos atteinte — ${uploadedCount} photo(s) ajoutée(s), les suivantes n'ont pas pu l'être.`
+          ? `Limite de ${photoLimit} photos atteinte : ${uploadedCount} photo(s) ajoutée(s), les suivantes n'ont pas pu l'être.`
           : `Limite de ${photoLimit} photos atteinte.`;
         break;
       }
@@ -118,7 +118,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
     }
     const selected = files.slice(0, remaining);
     if (files.length > selected.length) {
-      setError(`Limite de ${photoLimit} photos atteinte — seules les ${selected.length} première(s) ont été retenues.`);
+      setError(`Limite de ${photoLimit} photos atteinte : seules les ${selected.length} première(s) ont été retenues.`);
     }
     setPendingVerifiedFiles(selected);
     setIsSelfieModalOpen(true);
@@ -127,7 +127,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
   const handleAddClick = () => {
     setError(null);
     if (requiresSelfieForNewPhotos && hasPendingPhoto) {
-      setError("Ta photo précédente est encore en cours d'examen par notre équipe — attends sa validation avant d'en ajouter une nouvelle.");
+      setError("Ta photo précédente est encore en cours d'examen par notre équipe : attends sa validation avant d'en ajouter une nouvelle.");
       return;
     }
     fileInputRef.current?.click();
@@ -194,7 +194,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
       {photoVerificationStatus === "PENDING" && (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700">
           <Clock3 size={15} className="shrink-0" />
-          Profil en cours de vérification — notre équipe l&apos;examine, tu recevras un email dès que c&apos;est fait.
+          Profil en cours de vérification : notre équipe l&apos;examine, tu recevras un email dès que c&apos;est fait.
         </div>
       )}
 
@@ -283,7 +283,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
 
       <p className="text-[11px] text-muted-foreground">
         {requiresSelfieForNewPhotos
-          ? "Tu peux sélectionner plusieurs photos à la fois — un selfie en direct te sera demandé juste avant l'envoi pour confirmer que c'est bien toi. Chacune est ensuite revue par notre équipe avant d'être visible par les autres membres."
+          ? "Tu peux sélectionner plusieurs photos à la fois : un selfie en direct te sera demandé juste avant l'envoi pour confirmer que c'est bien toi. Chacune est ensuite revue par notre équipe avant d'être visible par les autres membres."
           : photosAreDraftUntilSubmission
             ? "Tu peux sélectionner plusieurs photos à la fois. Elles restent en brouillon et ne sont envoyées à notre équipe qu'au moment de ta soumission finale."
             : "Tu peux sélectionner plusieurs photos à la fois. Chacune est revue individuellement par notre équipe avant d'être visible par les autres membres."}
@@ -343,7 +343,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
       <ImageLightbox src={viewingPhoto?.url ?? null} alt="Photo de profil" onClose={() => setViewingPhoto(null)}>
         {viewingPhoto?.moderation_status === "DRAFT" && (
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <FileClock size={14} className="shrink-0" /> Brouillon — sera envoyée à notre équipe au moment de ta soumission finale.
+            <FileClock size={14} className="shrink-0" /> Brouillon : sera envoyée à notre équipe au moment de ta soumission finale.
           </div>
         )}
         {viewingPhoto?.moderation_status === "PENDING" && (
@@ -353,7 +353,7 @@ export function PhotoManager({ userId, initialPhotos, photoVerificationStatus, p
         )}
         {viewingPhoto?.moderation_status === "APPROVED" && (
           <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
-            <Check size={14} className="shrink-0" /> Approuvée — visible par les autres membres.
+            <Check size={14} className="shrink-0" /> Approuvée : visible par les autres membres.
           </div>
         )}
         {viewingPhoto?.moderation_status === "REJECTED" && (

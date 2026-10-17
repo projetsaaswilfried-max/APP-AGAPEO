@@ -101,7 +101,7 @@ export function AccountMyPosts({ publications }: AccountMyPostsProps) {
             <h2 className="text-base font-display font-semibold text-foreground tracking-tight">
               Gestion de mes Publications Personnelles
             </h2>
-            <Tooltip content="Les publications que vous créez seront vues uniquement par les personnes qui viendront consulter votre profil — elles n'apparaissent jamais dans le fil général.">
+            <Tooltip content="Les publications que vous créez seront vues uniquement par les personnes qui viendront consulter votre profil : elles n'apparaissent jamais dans le fil général.">
               <Info size={15} className="text-muted-foreground hover:text-foreground transition-colors cursor-help" />
             </Tooltip>
           </div>

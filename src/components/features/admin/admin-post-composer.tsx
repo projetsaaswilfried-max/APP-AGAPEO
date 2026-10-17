@@ -136,7 +136,7 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
     // l'upload pour découvrir que le plan Supabase actuel le refusera.
     if (file.size > PLATFORM_MAX_UPLOAD_BYTES) {
       setError(
-        `Cette vidéo fait ${(file.size / (1024 * 1024)).toFixed(0)} Mo. Le plan Supabase actuel plafonne les fichiers à ${PLATFORM_MAX_UPLOAD_MB} Mo, quelle que soit la configuration de l'app — passe à un plan payant sur supabase.com/dashboard pour uploader des vidéos plus volumineuses.`
+        `Cette vidéo fait ${(file.size / (1024 * 1024)).toFixed(0)} Mo. Le plan Supabase actuel plafonne les fichiers à ${PLATFORM_MAX_UPLOAD_MB} Mo, quelle que soit la configuration de l'app : passe à un plan payant sur supabase.com/dashboard pour uploader des vidéos plus volumineuses.`
       );
       return;
     }
@@ -336,7 +336,7 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
                 </button>
               </div>
               {youtubeInput.trim() && !youtubeVideoId && (
-                <p className="text-[11px] text-destructive">Lien YouTube non reconnu — vérifie l&apos;URL.</p>
+                <p className="text-[11px] text-destructive">Lien YouTube non reconnu : vérifie l&apos;URL.</p>
               )}
               {youtubeVideoId && (
                 <div className="relative w-full max-w-sm rounded-xl overflow-hidden border border-border bg-black aspect-video">
@@ -368,7 +368,7 @@ export function AdminPostComposer({ initialPosts, imageUrlByPost }: AdminPostCom
           {isSaving && (imageFile || videoFile) && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Envoi en cours{videoFile ? " — ne ferme pas cette page" : ""}...</span>
+                <span>Envoi en cours{videoFile ? " : ne ferme pas cette page" : ""}...</span>
                 <span className="font-mono">{uploadProgress ?? 0}%</span>
               </div>
               <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">

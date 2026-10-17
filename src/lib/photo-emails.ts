@@ -29,12 +29,12 @@ interface SendPhotoEmailInput {
 export async function sendPhotoEmail({ to, firstName, kind, rejectionReason }: SendPhotoEmailInput) {
   const configs: Record<PhotoEmailKind, { subject: string; headline: string; contentHtml: string; ctaText: string }> = {
     SUBMITTED: {
-      subject: "Ta photo est en cours de vérification — Agapeo",
+      subject: "Ta photo est en cours de vérification | Agapeo",
       headline: "Photo bien reçue",
       contentHtml: `
         <p style="margin:0 0 12px 0;">
           Ta photo a bien été reçue. Avant d'apparaître sur ton profil et d'être visible par les autres membres,
-          notre équipe l'examine — tu recevras un email dès que la décision sera prise, généralement sous 48h.
+          notre équipe l'examine : tu recevras un email dès que la décision sera prise, généralement sous 48h.
         </p>
         <p style="margin:0 0 8px 0;">
           Agapeo est une plateforme chrétienne où l'éthique et la décence sont de mise. Une photo peut être refusée si
@@ -53,13 +53,13 @@ export async function sendPhotoEmail({ to, firstName, kind, rejectionReason }: S
       ctaText: "Voir mon profil"
     },
     APPROVED: {
-      subject: "Une de tes photos a été validée — Agapeo",
+      subject: "Une de tes photos a été validée | Agapeo",
       headline: "Photo validée ✓",
       contentHtml: `<p style="margin:0;">Bonne nouvelle : la photo que tu as soumise a été validée par notre équipe et est maintenant visible sur ton profil par les autres membres.</p>`,
       ctaText: "Voir mon profil"
     },
     REJECTED: {
-      subject: "Une de tes photos n'a pas été validée — Agapeo",
+      subject: "Une de tes photos n'a pas été validée | Agapeo",
       headline: "Photo non validée",
       contentHtml: `<p style="margin:0 0 12px 0;">Notre équipe n'a pas pu valider cette photo pour la raison suivante :</p><div style="background:#F4F6F8;border-radius:12px;padding:14px 16px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-line;">${escapeHtml(rejectionReason ?? "Raison non précisée.")}</div><p style="margin:12px 0 0 0;">Tu peux à tout moment supprimer cette photo et en ajouter une nouvelle depuis ton compte.</p>`,
       ctaText: "Gérer mes photos"

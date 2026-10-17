@@ -69,7 +69,7 @@ export default async function AdminAuditPage() {
                 </td>
                 <td className="px-4 py-2.5 font-medium text-foreground">{log.actor_id ? nameById.get(log.actor_id) ?? "Admin" : "Système"}</td>
                 <td className="px-4 py-2.5 text-muted-foreground font-mono text-[11px]">
-                  {log.details ? JSON.stringify(log.details) : "—"}
+                  {log.details ? JSON.stringify(log.details) : "-"}
                 </td>
                 <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{new Date(log.created_at).toLocaleString("fr-FR")}</td>
               </tr>

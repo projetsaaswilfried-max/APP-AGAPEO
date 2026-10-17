@@ -159,7 +159,7 @@ export function AdminVerificationsList({ initialItems }: { initialItems: AdminVe
           <div className="space-y-5">
             {activeItem.isPriority && (
               <div className="flex items-center gap-1.5 p-2 rounded-xl bg-accent/10 text-accent text-xs font-medium">
-                <Crown size={13} /> Membre premium — SLA de traitement sous 24h
+                <Crown size={13} /> Membre premium : SLA de traitement sous 24h
               </div>
             )}
 
@@ -181,7 +181,7 @@ export function AdminVerificationsList({ initialItems }: { initialItems: AdminVe
                 </button>
               ) : (
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700">
-                  Aucun selfie fourni — demande soumise avant la mise en place de cette exigence.
+                  Aucun selfie fourni : demande soumise avant la mise en place de cette exigence.
                 </div>
               )}
             </div>

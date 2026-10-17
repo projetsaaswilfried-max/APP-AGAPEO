@@ -90,7 +90,7 @@ async function sendExpiredEmail(to: string, firstName: string) {
       headline: "Ton abonnement a expiré",
       recipientFirstName: firstName,
       contentHtml: `
-        <p style="margin:0 0 12px 0;">Ton abonnement Premium Agapeo est arrivé à échéance et n'a pas été renouvelé à temps — ton compte est repassé en version gratuite.</p>
+        <p style="margin:0 0 12px 0;">Ton abonnement Premium Agapeo est arrivé à échéance et n'a pas été renouvelé à temps : ton compte est repassé en version gratuite.</p>
         <p style="margin:0;">Tu peux te réabonner à tout moment pour retrouver tous tes avantages : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>
       `,
       ctaText: "Se réabonner",
@@ -104,7 +104,7 @@ async function sendExpiredEmail(to: string, firstName: string) {
 async function sendExpiryFollowupEmail(to: string, firstName: string) {
   await sendResendEmail(
     to,
-    "On te garde une place — reviens sur Agapeo",
+    "On te garde une place : reviens sur Agapeo",
     buildAgapeoEmailHtml({
       title: "On te garde une place sur Agapeo",
       eyebrow: "PREMIUM",

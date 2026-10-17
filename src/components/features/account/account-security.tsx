@@ -77,7 +77,7 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
       {profile.photoVerificationStatus === "PENDING" ? (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-accent/10 text-accent text-xs">
           <Clock size={15} className="shrink-0" />
-          Ta demande est en cours de traitement — tu recevras un email dès qu&apos;elle sera examinée.
+          Ta demande est en cours de traitement : tu recevras un email dès qu&apos;elle sera examinée.
         </div>
       ) : (
         <>
@@ -89,8 +89,8 @@ function VerificationStatusCard({ profile }: { profile: UserProfile }) {
           )}
           <p className="text-xs text-muted-foreground">
             {profile.photoVerificationStatus === "REJECTED"
-              ? "Reprends ton profil pour corriger ce qui a motivé le refus, puis soumets-le à nouveau — ton badge apparaîtra une fois validé par notre équipe."
-              : "Complète ton profil (photo, confession, vision du mariage) puis soumets-le pour vérification — ton badge apparaîtra une fois validé par notre équipe."}
+              ? "Reprends ton profil pour corriger ce qui a motivé le refus, puis soumets-le à nouveau : ton badge apparaîtra une fois validé par notre équipe."
+              : "Complète ton profil (photo, confession, vision du mariage) puis soumets-le pour vérification : ton badge apparaîtra une fois validé par notre équipe."}
           </p>
           <Link href="/onboarding">
             <Button variant="primary" size="sm" leftIcon={<ShieldCheck size={15} />}>
@@ -443,7 +443,7 @@ export function AccountSecurity({ profile }: AccountSecurityProps) {
         isOpen={isEmailModalOpen}
         onClose={() => setIsEmailModalOpen(false)}
         title="Changer d'adresse email"
-        description="Un email de confirmation sera envoyé à la nouvelle adresse — ton adresse actuelle ne change qu'après validation."
+        description="Un email de confirmation sera envoyé à la nouvelle adresse : ton adresse actuelle ne change qu'après validation."
       >
         {emailState?.message === "EMAIL_CHANGE_REQUESTED" ? (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-400">

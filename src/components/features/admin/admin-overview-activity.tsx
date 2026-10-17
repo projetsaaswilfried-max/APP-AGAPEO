@@ -201,7 +201,7 @@ export function AdminOverviewActivity(props: AdminOverviewActivityProps) {
       </div>
 
       <Card variant="base" className="p-4 border-border/60 shadow-2xs space-y-4">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Répartition par genre — nouveaux membres</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Répartition par genre : nouveaux membres</p>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex items-center gap-2.5">
@@ -245,7 +245,7 @@ export function AdminOverviewActivity(props: AdminOverviewActivityProps) {
       </Card>
 
       <Card variant="base" className="p-4 border-border/60 shadow-2xs space-y-4">
-        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Entonnoir d&apos;onboarding — premier profil soumis</p>
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Entonnoir d&apos;onboarding : premier profil soumis</p>
 
         {funnelMax > 1 ? (
           <div className="space-y-2.5">

@@ -32,6 +32,21 @@ const DAILY_VERSES = [
 ];
 
 /**
+ * Dernières données affichées, gardées en mémoire le temps de la session de
+ * navigation (module client) : revenir sur l'Accueil depuis une autre page
+ * affiche tout immédiatement, puis rafraîchit en arrière-plan — seule la
+ * toute première visite passe par les emplacements de chargement.
+ */
+let homeCache: {
+  userId: string;
+  selection: RecommendedProfileItem[];
+  likesCount: number;
+  likers: RecommendedProfileItem[];
+  waiting: ConversationSummary[];
+  teaching: FeedPublication | null;
+} | null = null;
+
+/**
  * Accueil de l'espace membre (le fil d'actualité vit sur /feed) : tourné vers
  * la rencontre — sélection du jour, qui s'intéresse à toi, discussions qui
  * attendent une réponse — puis une pensée du jour et le dernier enseignement.
@@ -42,11 +57,12 @@ export default function AccueilPage() {
   const canSeeDetails = profile.photo_verification_status === "VERIFIED" || profile.subscription_status === "ACTIVE" || profile.is_staff;
   const canSeeWhoLikes = profile.subscription_status === "ACTIVE" || profile.is_staff;
 
-  const [selection, setSelection] = useState<RecommendedProfileItem[] | null>(null);
-  const [likesCount, setLikesCount] = useState<number | null>(null);
-  const [likers, setLikers] = useState<RecommendedProfileItem[]>([]);
-  const [waiting, setWaiting] = useState<ConversationSummary[] | null>(null);
-  const [teaching, setTeaching] = useState<FeedPublication | null | undefined>(undefined);
+  const cached = homeCache?.userId === profile.id ? homeCache : null;
+  const [selection, setSelection] = useState<RecommendedProfileItem[] | null>(cached?.selection ?? null);
+  const [likesCount, setLikesCount] = useState<number | null>(cached?.likesCount ?? null);
+  const [likers, setLikers] = useState<RecommendedProfileItem[]>(cached?.likers ?? []);
+  const [waiting, setWaiting] = useState<ConversationSummary[] | null>(cached?.waiting ?? null);
+  const [teaching, setTeaching] = useState<FeedPublication | null | undefined>(cached ? cached.teaching : undefined);
   const [verse, setVerse] = useState(DAILY_VERSES[0]);
 
   useEffect(() => {
@@ -79,6 +95,12 @@ export default function AccueilPage() {
       .then(({ items }) => setTeaching(items[0] ?? null))
       .catch(() => setTeaching(null));
   }, []);
+
+  // Mémorise le dernier état complet pour le prochain retour sur la page.
+  useEffect(() => {
+    if (selection === null || likesCount === null || waiting === null || teaching === undefined) return;
+    homeCache = { userId: profile.id, selection, likesCount, likers, waiting, teaching };
+  }, [profile.id, selection, likesCount, likers, waiting, teaching]);
 
   const waitingCount = waiting?.length ?? 0;
   const subtitle =
