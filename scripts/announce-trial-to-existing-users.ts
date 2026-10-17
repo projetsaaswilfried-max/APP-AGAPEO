@@ -64,12 +64,32 @@ function buildEmailHtml(headline: string, contentHtml: string, ctaText: string, 
 </div>`;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Resend plafonne à 10 requêtes/seconde (429 constaté en conditions réelles
+// sur la séquence existante activation-email-sequences, non modifiée par ce
+// script) — 150ms entre chaque envoi reste sous ce plafond avec de la marge
+// (~6,6 req/s), et une seule tentative de reprise après une pause plus longue
+// en cas de 429 malgré tout (ex: autre process envoyant en parallèle).
+const RESEND_DELAY_MS = 150;
+
 async function sendResendEmail(to: string, subject: string, html: string) {
+  await sleep(RESEND_DELAY_MS);
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: "Agapeo <support@agapeo.love>", to: [to], subject, html })
   });
+  if (res.status === 429) {
+    await sleep(2000);
+    const retry = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: "Agapeo <support@agapeo.love>", to: [to], subject, html })
+    });
+    if (!retry.ok) throw new Error(`Resend a refusé l'envoi après reprise (${retry.status}) : ${await retry.text()}`);
+    return;
+  }
   if (!res.ok) throw new Error(`Resend a refusé l'envoi (${res.status}) : ${await res.text()}`);
 }
 
