@@ -52,7 +52,8 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       headline: "Ton profil n'est pas encore visible",
       contentHtml: `
         <p style="margin:0 0 12px 0;">Bienvenue sur Agapeo ! Ton compte est créé, mais tant que ton profil n'est pas soumis pour vérification, personne ne peut te voir dans Découvrir ni t'écrire.</p>
-        <p style="margin:0;">C'est rapide (environ 5 minutes) : reprends ton profil là où tu l'avais laissé.</p>
+        <p style="margin:0 0 12px 0;">C'est rapide (environ 5 minutes) : reprends ton profil là où tu l'avais laissé.</p>
+        <p style="margin:0;"><strong>Et dès que ton profil sera validé, tu recevras 24h d'accès Premium gratuit</strong> pour explorer Agapeo pleinement.</p>
       `,
       ctaText: "Soumettre mon profil"
     },
@@ -61,7 +62,8 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       headline: "Personne ne peut encore te voir",
       contentHtml: `
         <p style="margin:0 0 12px 0;">Depuis 3 jours, ton profil Agapeo existe mais reste invisible pour les autres membres : tant qu'il n'est pas vérifié, tu n'apparais pas dans Découvrir et tu ne peux recevoir aucun message.</p>
-        <p style="margin:0;">Prends deux minutes pour le soumettre : notre équipe l'examine généralement sous 48h.</p>
+        <p style="margin:0 0 12px 0;">Prends deux minutes pour le soumettre : notre équipe l'examine généralement sous 48h.</p>
+        <p style="margin:0;">Une fois validé, 24h d'accès Premium gratuit t'attendent pour explorer Agapeo sans restriction.</p>
       `,
       ctaText: "Soumettre mon profil"
     },
@@ -70,7 +72,8 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       headline: "La vérification est plus simple qu'il n'y paraît",
       contentHtml: `
         <p style="margin:0 0 12px 0;">On te demande juste tes photos de profil et un selfie pris en direct (pour confirmer que c'est bien toi) : notre équipe compare les deux et valide généralement en moins de 48h.</p>
-        <p style="margin:0;">Pendant ce temps, d'autres membres qui pourraient te correspondre sont déjà sur la plateforme.</p>
+        <p style="margin:0 0 12px 0;">Pendant ce temps, d'autres membres qui pourraient te correspondre sont déjà sur la plateforme.</p>
+        <p style="margin:0;">Et à la validation, 24h d'accès Premium te sont offertes pour tout découvrir sans limite.</p>
       `,
       ctaText: "Soumettre mon profil"
     },
@@ -79,7 +82,8 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       headline: "On ne veut pas que tu passes à côté",
       contentHtml: `
         <p style="margin:0 0 12px 0;">Voici le dernier rappel automatique : ton profil Agapeo est prêt, il ne manque plus que la vérification pour qu'il devienne visible dans Découvrir.</p>
-        <p style="margin:0;">Soumets-le dès maintenant : tu peux reprendre exactement là où tu t'étais arrêté(e).</p>
+        <p style="margin:0 0 12px 0;">Soumets-le dès maintenant : tu peux reprendre exactement là où tu t'étais arrêté(e).</p>
+        <p style="margin:0;">24h d'accès Premium gratuit t'attendent dès que ton profil sera validé.</p>
       `,
       ctaText: "Soumettre mon profil"
     }
@@ -99,6 +103,19 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       ctaUrl: SUBMIT_PROFILE_URL
     })
   );
+}
+
+// Contenu du message Agapeo (messagerie) associé à chaque palier J1/J3/J5/J7
+// — même information que l'email, reformulée pour un message court, avec le
+// même argument de l'essai Premium gratuit de 24h à la validation.
+function onboardingInAppMessage(day: 1 | 3 | 5 | 7): string {
+  const messages: Record<1 | 3 | 5 | 7, string> = {
+    1: "Bienvenue sur Agapeo ! Il ne te reste qu'une étape avant de commencer : soumets ton profil pour vérification. Dès qu'il sera validé, tu recevras 24h d'accès Premium gratuit pour explorer Agapeo pleinement.",
+    3: "Depuis 3 jours, ton profil reste invisible tant qu'il n'est pas soumis pour vérification. Soumets-le dès maintenant : une fois validé, 24h d'accès Premium gratuit t'attendent.",
+    5: "La vérification est plus simple qu'il n'y paraît : juste tes photos et un selfie en direct. Une fois validé, tu profites de 24h d'accès Premium gratuit pour tout découvrir sans limite.",
+    7: "Dernier rappel : ton profil Agapeo est prêt, il ne manque plus que la vérification. Soumets-le dès maintenant pour débloquer 24h d'accès Premium gratuit."
+  };
+  return messages[day];
 }
 
 // ---------------------------------------------------------------------------
@@ -390,11 +407,18 @@ Deno.serve(async (req) => {
   const now = new Date();
 
   // ---- Séquence 1 : UNVERIFIED depuis 1 à 7+ jours, + relance dédiée "presque fini" ----
-  const onboardingResults: { userId: string; sent: boolean; stage?: number; reason?: string }[] = [];
+  // Email et messagerie suivis indépendamment pour les paliers J1/J3/J5/J7
+  // (même principe que premium_sequence_stage / in_app_premium_nudge_stage
+  // en Séquence 2) : un échec sur un canal n'empêche pas l'autre de partir,
+  // et sera retenté seul à la prochaine exécution. La relance dédiée "presque
+  // fini" reste volontairement email seul, inchangée.
+  const onboardingResults: { userId: string; channel: "email" | "in_app"; sent: boolean; stage?: number; reason?: string }[] = [];
   {
     const { data: rows, error } = await admin
       .from("profiles")
-      .select("id, first_name, created_at, avatar_url, church_denomination, why_marriage, profile_restricted(onboarding_sequence_stage, almost_done_nudge_sent)")
+      .select(
+        "id, first_name, created_at, avatar_url, church_denomination, why_marriage, profile_restricted(onboarding_sequence_stage, onboarding_in_app_nudge_stage, almost_done_nudge_sent)"
+      )
       .eq("photo_verification_status", "UNVERIFIED")
       .eq("is_test_account", false);
 
@@ -407,22 +431,28 @@ Deno.serve(async (req) => {
       avatar_url: string | null;
       church_denomination: string | null;
       why_marriage: string | null;
-      profile_restricted: { onboarding_sequence_stage: number | null; almost_done_nudge_sent: boolean } | null;
+      profile_restricted: {
+        onboarding_sequence_stage: number | null;
+        onboarding_in_app_nudge_stage: number | null;
+        almost_done_nudge_sent: boolean;
+      } | null;
     }[]) {
       const isProfileComplete = Boolean(row.avatar_url && row.church_denomination && row.why_marriage);
       const wantsAlmostDone = isProfileComplete && !(row.profile_restricted?.almost_done_nudge_sent ?? false);
 
       const daysSince = Math.floor((now.getTime() - new Date(row.created_at).getTime()) / (24 * 60 * 60 * 1000));
       const milestone = applicableMilestone(daysSince, MILESTONES);
-      const stage = row.profile_restricted?.onboarding_sequence_stage ?? null;
-      const wantsMilestone = milestone !== undefined && (stage === null || stage < milestone);
+      const emailStage = row.profile_restricted?.onboarding_sequence_stage ?? null;
+      const inAppStage = row.profile_restricted?.onboarding_in_app_nudge_stage ?? null;
+      const wantsEmailMilestone = milestone !== undefined && (emailStage === null || emailStage < milestone);
+      const wantsInAppMilestone = milestone !== undefined && (inAppStage === null || inAppStage < milestone);
 
-      if (!wantsAlmostDone && !wantsMilestone) continue;
+      if (!wantsAlmostDone && !wantsEmailMilestone && !wantsInAppMilestone) continue;
 
       const { data: authUser } = await admin.auth.admin.getUserById(row.id);
       const email = authUser?.user?.email;
       if (!email) {
-        onboardingResults.push({ userId: row.id, sent: false, reason: "Email introuvable" });
+        onboardingResults.push({ userId: row.id, channel: "email", sent: false, reason: "Email introuvable" });
         continue;
       }
 
@@ -433,19 +463,35 @@ Deno.serve(async (req) => {
         try {
           await sendAlmostDoneEmail(email, row.first_name);
           await admin.from("profile_restricted").update({ almost_done_nudge_sent: true }).eq("id", row.id);
-          onboardingResults.push({ userId: row.id, sent: true, reason: "Relance dédiée : profil complet, selfie manquant" });
+          onboardingResults.push({ userId: row.id, channel: "email", sent: true, reason: "Relance dédiée : profil complet, selfie manquant" });
         } catch (err) {
-          onboardingResults.push({ userId: row.id, sent: false, reason: err instanceof Error ? err.message : "Erreur d'envoi (relance dédiée)" });
+          onboardingResults.push({ userId: row.id, channel: "email", sent: false, reason: err instanceof Error ? err.message : "Erreur d'envoi (relance dédiée)" });
         }
         continue;
       }
 
+      if (wantsInAppMilestone) {
+        try {
+          await sendAgapeoSystemMessage(admin, row.id, onboardingInAppMessage(milestone as 1 | 3 | 5 | 7), {
+            ctaText: "Soumettre mon profil",
+            ctaUrl: "/onboarding",
+            ctaAction: "ONBOARDING"
+          });
+          await admin.from("profile_restricted").update({ onboarding_in_app_nudge_stage: milestone }).eq("id", row.id);
+          onboardingResults.push({ userId: row.id, channel: "in_app", sent: true, stage: milestone });
+        } catch (err) {
+          onboardingResults.push({ userId: row.id, channel: "in_app", sent: false, reason: err instanceof Error ? err.message : "Erreur d'envoi" });
+        }
+      }
+
+      if (!wantsEmailMilestone) continue;
+
       try {
         await sendOnboardingEmail(email, row.first_name, milestone as 1 | 3 | 5 | 7);
         await admin.from("profile_restricted").update({ onboarding_sequence_stage: milestone }).eq("id", row.id);
-        onboardingResults.push({ userId: row.id, sent: true, stage: milestone });
+        onboardingResults.push({ userId: row.id, channel: "email", sent: true, stage: milestone });
       } catch (err) {
-        onboardingResults.push({ userId: row.id, sent: false, reason: err instanceof Error ? err.message : "Erreur d'envoi" });
+        onboardingResults.push({ userId: row.id, channel: "email", sent: false, reason: err instanceof Error ? err.message : "Erreur d'envoi" });
       }
     }
   }

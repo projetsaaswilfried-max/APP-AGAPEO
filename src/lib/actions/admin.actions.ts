@@ -11,6 +11,7 @@ import { sendRoleChangedEmail } from "@/lib/role-emails";
 import { sendPhotoEmail } from "@/lib/photo-emails";
 import { sendAccountSuspendedEmail } from "@/lib/account-suspension-email";
 import { sendAgapeoSystemMessage } from "@/lib/agapeo-system-message";
+import { sendTrialGrantedEmail } from "@/lib/trial-emails";
 import { AGAPEO_SYSTEM_PROFILE_ID } from "@/domain/system-account";
 import { extractYouTubeVideoId, getYouTubeThumbnailUrl } from "@/lib/youtube";
 import { PREMIUM_PLANS, type PremiumPlanKey } from "@/domain/premium-plans";
@@ -431,16 +432,46 @@ export async function approveVerificationRequestAction(requestId: string, userId
   // complet, pas reprendre un ancien palier.
   await admin.from("profile_restricted").update({ premium_sequence_stage: null, in_app_premium_nudge_stage: null }).eq("id", userId);
 
+  // Essai Premium gratuit de 24h, une seule fois par personne à vie : accordé
+  // uniquement si `trial_granted_at` est encore vide, jamais réattribué à une
+  // revérification ultérieure (photo supprimée puis resoumise, etc.) — cf.
+  // migration trial_access_columns. Réutilise le même mécanisme que Premium
+  // payant (subscription_status ACTIVE + période de fin) pour que TOUTES les
+  // vérifications "est-ce Premium" déjà en place (RLS compris) s'appliquent
+  // automatiquement, sans aucun code supplémentaire ailleurs dans l'app.
+  const { data: restricted } = await admin.from("profile_restricted").select("trial_granted_at").eq("id", userId).single();
+  const isFirstTrial = !restricted?.trial_granted_at;
+
+  if (isFirstTrial) {
+    const trialStart = new Date();
+    const trialEnd = new Date(trialStart.getTime() + 24 * 60 * 60 * 1000);
+    await admin
+      .from("profile_restricted")
+      .update({
+        subscription_status: "ACTIVE",
+        subscription_plan: "FREE_TRIAL",
+        subscription_current_period_end: trialEnd.toISOString(),
+        trial_granted_at: trialStart.toISOString(),
+        trial_reminder_stage: null
+      })
+      .eq("id", userId);
+  }
+
   const { data: target } = await admin.from("profiles").select("first_name").eq("id", userId).single();
   const { data: authUser } = await admin.auth.admin.getUserById(userId);
   if (target && authUser?.user?.email) {
     await sendVerificationEmail({ to: authUser.user.email, firstName: target.first_name, kind: "APPROVED" });
+    if (isFirstTrial) {
+      await sendTrialGrantedEmail(authUser.user.email, target.first_name);
+    }
   }
 
   await sendAgapeoSystemMessage(
     admin,
     userId,
-    "Bienvenue sur Agapeo ! Ton profil est maintenant vérifié et visible dans Découvrir. Aujourd'hui, une seule chose bloque encore ton exploration : sans abonnement, tu ne peux ni consulter un profil en entier, ni démarrer une conversation avec quelqu'un qui t'intéresse. Passe Premium pour débloquer tout ça : Découvrir en illimité, contact prioritaire, favoris, et savoir qui s'intéresse déjà à toi."
+    isFirstTrial
+      ? "Bienvenue sur Agapeo ! Ton profil est maintenant vérifié et visible dans Découvrir. Pour fêter ça, tu as 24h d'accès Premium gratuit : consultation illimitée des profils, conversations, favoris, savoir qui s'intéresse à toi, filtres avancés... tout est débloqué ! Profites-en dès maintenant pour explorer Agapeo pleinement."
+      : "Bienvenue sur Agapeo ! Ton profil est maintenant vérifié et visible dans Découvrir. Aujourd'hui, une seule chose bloque encore ton exploration : sans abonnement, tu ne peux ni consulter un profil en entier, ni démarrer une conversation avec quelqu'un qui t'intéresse. Passe Premium pour débloquer tout ça : Découvrir en illimité, contact prioritaire, favoris, et savoir qui s'intéresse déjà à toi."
   );
 
   // Notification in-app + push (cf. notify_push_on_notification, déclenché
