@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { PREMIUM_PLANS, PURCHASABLE_PLAN_KEYS, type PremiumPlanKey } from "@/domain/premium-plans";
-import { Crown, X } from "lucide-react";
+import { Heart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface PremiumOfferModalProps {
@@ -13,14 +13,16 @@ interface PremiumOfferModalProps {
   onSelectPlan: (key: PremiumPlanKey) => void;
 }
 
+const OFFER_TITLE = "Ta future moitié est peut-être déjà ici";
+
 const explanation = (
   <div className="flex items-start gap-3">
-    <div className="p-2.5 rounded-full bg-primary/10 text-primary shrink-0">
-      <Crown size={20} />
+    <div className="w-10 h-10 rounded-full bg-accent-subtle text-primary flex items-center justify-center shrink-0">
+      <Heart size={19} className="fill-current" />
     </div>
     <p className="text-sm text-foreground leading-relaxed">
-      Sur Agapeo, un abonnement Premium te permet de consulter les profils en entier, démarrer des conversations,
-      voir qui s&apos;intéresse à toi et utiliser les filtres avancés. Sans lui, ton exploration reste très limitée.
+      Un seul abonnement, et tout s&apos;ouvre : tu découvres chaque profil en entier, tu écris aux personnes qui te
+      touchent, et tu peux enfin rencontrer celle ou celui avec qui bâtir ton foyer.
     </p>
   </div>
 );
@@ -53,10 +55,10 @@ export function PremiumOfferModal({ isOpen, onClose, onSelectPlan }: PremiumOffe
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
-                className="absolute bottom-0 inset-x-0 bg-card rounded-t-[28px] shadow-soft p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] select-none"
+                className="absolute bottom-0 inset-x-0 bg-card rounded-t-[28px] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] select-none"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-display font-semibold text-foreground tracking-tight">Découvre tout Agapeo</h3>
+                  <h3 className="text-base font-display font-semibold text-foreground tracking-tight">{OFFER_TITLE}</h3>
                   <button onClick={onClose} className="p-1.5 -mr-1.5 text-muted-foreground hover:text-foreground rounded-full" aria-label="Fermer">
                     <X size={18} />
                   </button>
@@ -90,7 +92,7 @@ export function PremiumOfferModal({ isOpen, onClose, onSelectPlan }: PremiumOffe
                     })}
                   </div>
                   <Button variant="ghost" className="w-full" onClick={onClose}>
-                    Quitter maintenant
+                    Plus tard
                   </Button>
                 </div>
               </motion.div>
@@ -101,7 +103,7 @@ export function PremiumOfferModal({ isOpen, onClose, onSelectPlan }: PremiumOffe
 
       {/* Desktop : modale centrée inchangée. */}
       <div className="hidden md:block">
-        <Modal isOpen={isOpen} onClose={onClose} title="Découvre tout Agapeo" maxWidth="sm">
+        <Modal isOpen={isOpen} onClose={onClose} title={OFFER_TITLE} maxWidth="sm">
           <div className="flex flex-col gap-4 py-1">
             {explanation}
             <div className="grid grid-cols-1 gap-2">
@@ -116,7 +118,7 @@ export function PremiumOfferModal({ isOpen, onClose, onSelectPlan }: PremiumOffe
               })}
             </div>
             <Button variant="ghost" className="w-full" onClick={onClose}>
-              Quitter maintenant
+              Plus tard
             </Button>
           </div>
         </Modal>

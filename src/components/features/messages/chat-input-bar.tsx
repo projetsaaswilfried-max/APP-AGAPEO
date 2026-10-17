@@ -314,7 +314,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
       )}
 
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
-        {recorder.status === "recording" ? (
+        {recorder.status === "recording" || recorder.status === "paused" ? (
           <>
             <button
               type="button"
@@ -334,31 +334,38 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               )}
             >
               <span
-                className="w-2 h-2 rounded-full bg-destructive shrink-0 transition-transform duration-75"
-                style={{ transform: `scale(${1 + recorder.audioLevel * 1.8})` }}
+                className={cn("w-2 h-2 rounded-full shrink-0", recorder.status === "paused" ? "bg-muted-foreground" : "bg-destructive animate-pulse")}
               />
               <span className="text-xs tabular-nums text-foreground shrink-0">{formatRecordingTime(recorder.elapsedSeconds)}</span>
               {recorder.elapsedSeconds >= 2 && !recorder.hasDetectedSound ? (
                 <span className="text-[11px] text-destructive font-medium truncate">Aucun son détecté — vérifie ton micro</span>
               ) : (
-                // Barres en `flex-1` (jamais une largeur fixe en px) : leur
-                // nombre ne change jamais (40, cf. use-voice-recorder.ts),
-                // seule leur largeur individuelle s'adapte à l'espace
-                // réellement disponible — c'est l'inverse (largeur fixe +
-                // `shrink-0`) qui forçait ce graphe à exiger ~240px
-                // incompressibles et poussait Annuler/Stop hors de l'écran
-                // sur mobile.
-                <div className="flex-1 flex items-end gap-[2px] h-5 min-w-0 overflow-hidden">
+                // Graphe façon WhatsApp/Telegram : barres fines de largeur fixe,
+                // centrées verticalement, alignées à droite — chaque nouvel
+                // échantillon entre par la droite et pousse les plus anciens
+                // hors du cadre à gauche (overflow masqué). Nombre et largeur
+                // des barres fixes : la ligne ne s'agrandit jamais.
+                <div className="flex-1 min-w-0 h-6 flex items-center justify-end gap-[2px] overflow-hidden">
                   {recorder.levelHistory.map((level, i) => (
                     <span
                       key={i}
-                      className="flex-1 min-w-[1px] rounded-full bg-destructive"
-                      style={{ height: `${4 + Math.min(1, level) * 16}px` }}
+                      className={cn("w-[3px] shrink-0 rounded-full transition-[height] duration-100", recorder.status === "paused" ? "bg-muted-foreground/50" : "bg-primary")}
+                      style={{ height: `${Math.max(3, Math.round(Math.sqrt(Math.min(1, level)) * 22))}px` }}
                     />
                   ))}
                 </div>
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={recorder.status === "paused" ? recorder.resumeRecording : recorder.pauseRecording}
+              className="w-10 h-10 flex items-center justify-center text-foreground bg-secondary/70 hover:bg-secondary rounded-full transition-colors shrink-0"
+              title={recorder.status === "paused" ? "Reprendre l'enregistrement" : "Mettre en pause"}
+              aria-label={recorder.status === "paused" ? "Reprendre l'enregistrement" : "Mettre en pause"}
+            >
+              <HugeIcon icon={recorder.status === "paused" ? PlayIcon : PauseIcon} size={17} />
+            </button>
 
             <Button
               type="button"
@@ -366,7 +373,7 @@ export function ChatInputBar({ onSendMessage, onSendFileAttachment, onSendVoiceM
               size="icon"
               variant="primary"
               className="h-10 w-10 rounded-full shrink-0"
-              title="Arrêter l'enregistrement"
+              title="Terminer l'enregistrement"
             >
               <HugeIcon icon={StopIcon} size={15} />
             </Button>

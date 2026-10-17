@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
+import { AnimatePresence, motion, useDragControls, useMotionValue, useTransform, type PanInfo } from "framer-motion";
 import { ArrowLeft, ArrowRight, BadgeCheck, Bookmark, Heart, MapPin, MessageSquare, RefreshCw } from "lucide-react";
 import { RecommendedProfileItem } from "@/domain/types/discover";
 import { cn, maskForPreview } from "@/lib/utils";
@@ -9,6 +9,11 @@ import { cn, maskForPreview } from "@/lib/utils";
 /** Distance (px) ou vitesse (px/s) de glissement à partir de laquelle la carte change. */
 const SWIPE_DISTANCE = 90;
 const SWIPE_VELOCITY = 500;
+/** Position des deux cartes visibles derrière la carte active : la suivante penche à gauche, celle d'après à droite. */
+const BEHIND_CARD_TRANSFORMS: Record<number, string> = {
+  1: "rotate(-4deg) translateX(-6px) translateY(8px) scale(0.96)",
+  2: "rotate(5deg) translateX(8px) translateY(14px) scale(0.92)"
+};
 /** Charge la suite quand il ne reste plus que ce nombre de profils devant soi. */
 const PRELOAD_THRESHOLD = 3;
 
@@ -82,7 +87,8 @@ export function DiscoverSwipeStack({
   return (
     <div className="space-y-4 select-none">
       <div className="relative h-[58dvh] min-h-[380px] max-h-[560px]">
-        {/* Cartes suivantes, en retrait derrière la carte active */}
+        {/* Cartes suivantes, inclinées derrière la carte active (l'une à gauche,
+            l'autre à droite) : on voit qu'il y a d'autres profils en dessous. */}
         {[2, 1].map((offset) => {
           const behind = items[index + offset];
           if (!behind) return null;
@@ -91,7 +97,7 @@ export function DiscoverSwipeStack({
               key={behind.profile.id}
               aria-hidden
               className="absolute inset-0 rounded-[22px] overflow-hidden bg-secondary border border-border/60 transition-transform duration-300"
-              style={{ transform: `translateY(${offset * 12}px) scale(${1 - offset * 0.05})` }}
+              style={{ transform: BEHIND_CARD_TRANSFORMS[offset] }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={behind.profile.avatarUrl || undefined} alt="" className="w-full h-full object-cover" />
@@ -188,6 +194,13 @@ function SwipeCard({
   const { profile, isFavorite, isLiked } = item;
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-220, 220], [-9, 9]);
+  // Glissement et toucher démarrés à la main, jamais depuis un bouton posé sur
+  // la photo : les écouteurs natifs de framer-motion ignorent le
+  // stopPropagation de React, si bien qu'un toucher sur « Message » ouvrait
+  // aussi la fiche (et, pour un non-abonné, la fenêtre Premium « consulter
+  // les profils » juste après l'invitation).
+  const dragControls = useDragControls();
+  const isFromButton = (target: EventTarget | null) => target instanceof Element && Boolean(target.closest("button"));
 
   const displayName = canSeeDetails ? profile.firstName : maskForPreview(profile.firstName, 2);
   const displayAge = canSeeDetails ? `${profile.age} ans` : `${maskForPreview(String(profile.age))} ans`;
@@ -205,19 +218,26 @@ function SwipeCard({
       variants={{
         // En avançant, la carte suivante était déjà en retrait derrière : elle remonte au premier plan.
         // En revenant en arrière, la carte précédente revient depuis la gauche.
-        enter: (dir: 1 | -1) => (dir > 0 ? { scale: 0.95, y: 12, opacity: 1, x: 0 } : { x: -420, opacity: 0 }),
+        enter: (dir: 1 | -1) => (dir > 0 ? { scale: 0.96, y: 8, x: -6, opacity: 1 } : { x: -420, opacity: 0 }),
         center: { x: 0, y: 0, scale: 1, opacity: 1 },
-        exit: (dir: 1 | -1) => (dir > 0 ? { x: -480, opacity: 0 } : { scale: 0.95, y: 12, opacity: 0 })
+        exit: (dir: 1 | -1) => (dir > 0 ? { x: -480, opacity: 0 } : { scale: 0.96, y: 8, opacity: 0 })
       }}
       initial="enter"
       animate="center"
       exit="exit"
       transition={{ type: "spring", stiffness: 320, damping: 32 }}
       drag="x"
+      dragListener={false}
+      dragControls={dragControls}
+      onPointerDown={(e) => {
+        if (!isFromButton(e.target)) dragControls.start(e);
+      }}
       dragSnapToOrigin
       dragElastic={0.85}
       onDragEnd={handleDragEnd}
-      onTap={onTap}
+      onTap={(e) => {
+        if (!isFromButton(e.target)) onTap();
+      }}
       style={{ x, rotate }}
       className="absolute inset-0 rounded-[22px] overflow-hidden bg-secondary border border-border/60 cursor-grab active:cursor-grabbing touch-pan-y"
     >
@@ -281,7 +301,6 @@ function PhotoAction({
       type="button"
       aria-label={label}
       title={label}
-      onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation();
         onClick();

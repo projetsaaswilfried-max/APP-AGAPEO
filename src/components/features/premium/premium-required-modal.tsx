@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Crown, X } from "lucide-react";
+import { Heart, X } from "lucide-react";
+import { PREMIUM_PLANS } from "@/domain/premium-plans";
 
 interface PremiumRequiredModalProps {
   isOpen: boolean;
@@ -15,15 +16,19 @@ interface PremiumRequiredModalProps {
 
 /** Sur mobile, présenté comme une feuille glissant depuis le bas (format app native : tous les interstitiels Premium y sont des bottom sheets) — desktop garde la modale centrée existante. */
 export function PremiumRequiredModal({ isOpen, onClose, reason }: PremiumRequiredModalProps) {
+  // Message centré sur la rencontre (pas sur la fonctionnalité) ; `reason` rappelle juste ce qui a été tenté.
   const content = (
     <>
-      <div className="p-3 rounded-full bg-primary/10 text-primary">
-        <Crown size={24} />
+      <div className="w-12 h-12 rounded-full bg-accent-subtle text-primary flex items-center justify-center">
+        <Heart size={22} className="fill-current" />
       </div>
-      <p className="text-sm text-foreground">Passe Premium pour {reason}.</p>
+      <p className="text-sm text-foreground leading-relaxed">
+        Pour {reason}, passe Premium. Des célibataires chrétiens sérieux attendent eux aussi la bonne personne :
+        consulte leurs profils, écris à ceux qui te touchent, et donne enfin sa chance à ta rencontre.
+      </p>
       <Link href="/premium" className="w-full pt-2" onClick={onClose}>
-        <Button variant="primary" className="w-full" leftIcon={<Crown size={15} />}>
-          Découvrir Premium
+        <Button variant="primary" className="w-full" leftIcon={<Heart size={15} />}>
+          Passer Premium · {PREMIUM_PLANS.MONTHLY.priceFcfaLabel}/mois
         </Button>
       </Link>
     </>
@@ -48,10 +53,10 @@ export function PremiumRequiredModal({ isOpen, onClose, reason }: PremiumRequire
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
-                className="absolute bottom-0 inset-x-0 bg-card rounded-t-[28px] shadow-soft p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] select-none"
+                className="absolute bottom-0 inset-x-0 bg-card rounded-t-[28px] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] select-none"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="text-base font-display font-semibold text-foreground tracking-tight">Fonctionnalité Premium</h3>
+                  <h3 className="text-base font-display font-semibold text-foreground tracking-tight">Ta rencontre est peut-être à un clic</h3>
                   <button onClick={onClose} className="p-1.5 -mr-1.5 text-muted-foreground hover:text-foreground rounded-full" aria-label="Fermer">
                     <X size={18} />
                   </button>
@@ -65,7 +70,7 @@ export function PremiumRequiredModal({ isOpen, onClose, reason }: PremiumRequire
 
       {/* Desktop : modale centrée inchangée. */}
       <div className="hidden md:block">
-        <Modal isOpen={isOpen} onClose={onClose} title="Fonctionnalité Premium" maxWidth="sm">
+        <Modal isOpen={isOpen} onClose={onClose} title="Ta rencontre est peut-être à un clic" maxWidth="sm">
           <div className="flex flex-col items-center text-center gap-3 py-2">{content}</div>
         </Modal>
       </div>

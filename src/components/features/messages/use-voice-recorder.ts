@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { transcodeToAac } from "@/lib/audio-transcode";
 
-export type VoiceRecorderStatus = "idle" | "recording" | "transcoding" | "recorded" | "error";
+export type VoiceRecorderStatus = "idle" | "recording" | "paused" | "transcoding" | "recorded" | "error";
 
 /** Garde-fou UX (pas une vraie limite technique) — le bucket `message-attachments` plafonne à 25 Mo. */
 const MAX_DURATION_SECONDS = 300;
 
-/** Nombre de barres affichées par le graphe façon WhatsApp pendant l'enregistrement. */
-const WAVEFORM_BAR_COUNT = 40;
-const WAVEFORM_SAMPLE_INTERVAL_MS = 120;
+/** Nombre de barres du graphe façon WhatsApp/Telegram pendant l'enregistrement (assez pour remplir la largeur, les plus anciennes sortent à gauche). */
+const WAVEFORM_BAR_COUNT = 64;
+const WAVEFORM_SAMPLE_INTERVAL_MS = 90;
 
 /**
  * Beaucoup de micros (surtout intégrés) enregistrent nettement plus bas que
@@ -27,6 +27,9 @@ const RECORDING_GAIN = 2.4;
  * toujours le format réellement supporté avant de démarrer.
  */
 const CANDIDATE_MIME_TYPES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac", "audio/ogg;codecs=opus"];
+
+/** Horloge des segments d'enregistrement — appelée uniquement depuis des gestionnaires d'événements et des minuteries, jamais pendant le rendu. */
+const now = () => Date.now();
 
 function pickSupportedMimeType(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
@@ -63,7 +66,10 @@ export function useVoiceRecorder() {
   const rawStreamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const mimeTypeRef = useRef("audio/webm");
-  const startedAtRef = useRef(0);
+  /** Durée réellement enregistrée : segments terminés (pauses exclues) + segment en cours depuis segmentStartedAtRef. */
+  const recordedMsRef = useRef(0);
+  const segmentStartedAtRef = useRef(0);
+  const isPausedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const waveformIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -146,6 +152,8 @@ export function useVoiceRecorder() {
       tick();
 
       waveformIntervalRef.current = setInterval(() => {
+        // En pause, le graphe se fige (comme WhatsApp) au lieu de défiler du silence.
+        if (isPausedRef.current) return;
         setLevelHistory((prev) => [...prev.slice(1), currentLevelRef.current]);
       }, WAVEFORM_SAMPLE_INTERVAL_MS);
 
@@ -168,7 +176,7 @@ export function useVoiceRecorder() {
   const handleRecordingStopped = async () => {
     const generation = transcodeGenerationRef.current;
     const rawBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current });
-    const durationSeconds = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000));
+    const durationSeconds = Math.max(1, Math.round(recordedMsRef.current / 1000));
     stopStream();
 
     if (rawBlob.size === 0) {
@@ -240,17 +248,18 @@ export function useVoiceRecorder() {
       };
 
       mediaRecorderRef.current = recorder;
-      startedAtRef.current = Date.now();
+      recordedMsRef.current = 0;
+      segmentStartedAtRef.current = now();
+      isPausedRef.current = false;
       setElapsedSeconds(0);
       recorder.start();
       setStatus("recording");
 
       timerRef.current = setInterval(() => {
-        const seconds = Math.round((Date.now() - startedAtRef.current) / 1000);
+        if (isPausedRef.current) return;
+        const seconds = Math.floor((recordedMsRef.current + now() - segmentStartedAtRef.current) / 1000);
         setElapsedSeconds(seconds);
-        if (seconds >= MAX_DURATION_SECONDS && mediaRecorderRef.current?.state === "recording") {
-          mediaRecorderRef.current.stop();
-        }
+        if (seconds >= MAX_DURATION_SECONDS) stopRecording();
       }, 250);
     } catch (err) {
       setStatus("error");
@@ -263,8 +272,37 @@ export function useVoiceRecorder() {
     }
   };
 
+  /** Clôt le segment en cours dans le cumul de durée (avant une pause ou l'arrêt). */
+  const closeCurrentSegment = () => {
+    if (!isPausedRef.current) recordedMsRef.current += now() - segmentStartedAtRef.current;
+  };
+
   const stopRecording = () => {
-    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+    const recorder = mediaRecorderRef.current;
+    if (recorder?.state !== "recording" && recorder?.state !== "paused") return;
+    closeCurrentSegment();
+    isPausedRef.current = false;
+    recorder.stop();
+  };
+
+  /** Met l'enregistrement en pause — reprendre continue le MÊME fichier (MediaRecorder.pause/resume). */
+  const pauseRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder?.state !== "recording") return;
+    closeCurrentSegment();
+    isPausedRef.current = true;
+    recorder.pause();
+    setElapsedSeconds(Math.floor(recordedMsRef.current / 1000));
+    setStatus("paused");
+  };
+
+  const resumeRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder?.state !== "paused") return;
+    segmentStartedAtRef.current = now();
+    isPausedRef.current = false;
+    recorder.resume();
+    setStatus("recording");
   };
 
   const cancelRecording = () => {
@@ -273,7 +311,8 @@ export function useVoiceRecorder() {
     transcodeGenerationRef.current += 1;
     const recorder = mediaRecorderRef.current;
     if (recorder) recorder.onstop = null;
-    if (recorder?.state === "recording") recorder.stop();
+    if (recorder?.state === "recording" || recorder?.state === "paused") recorder.stop();
+    isPausedRef.current = false;
     stopStream();
     setStatus("idle");
     setElapsedSeconds(0);
@@ -309,6 +348,8 @@ export function useVoiceRecorder() {
     levelHistory,
     startRecording,
     stopRecording,
+    pauseRecording,
+    resumeRecording,
     cancelRecording,
     discardRecording
   };

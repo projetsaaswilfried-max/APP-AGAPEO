@@ -6,7 +6,7 @@ import { feedService } from "@/domain/services/feed.service";
 import { PublicationCard } from "@/components/features/feed/publication-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { BookOpen, RefreshCw, AlertCircle, LayoutGrid, HeartHandshake, Users, Lightbulb, Quote } from "lucide-react";
+import { BookOpen, RefreshCw, AlertCircle, LayoutGrid, HeartHandshake, Users, Lightbulb, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,9 @@ const CATEGORY_TABS = [
   { id: "QUOTE", label: "Pensées & Citations", icon: Quote }
 ];
 
+/** Largeur réservée à gauche de la rangée de rubriques (marge + flèche « précédente ») sur mobile. */
+const CHIP_ARROW_ZONE_PX = 64;
+
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<FeedCategory>("ALL");
   // Rubrique dont le contenu est réellement affiché : ne change qu'une fois
@@ -40,14 +43,17 @@ export default function HomePage() {
     setActiveCategory(id);
   };
 
-  // Mobile : la puce active reste visible dans la rangée (défilement horizontal de la rangée seule, jamais de la page).
+  // Mobile : la rubrique choisie vient se placer au bord gauche de la rangée
+  // (les précédentes sortent du cadre), juste après la flèche « précédente »
+  // qui apparaît alors. Défilement de la rangée seule, jamais de la page.
   const chipsRef = useRef<HTMLDivElement>(null);
+  const activeIndex = CATEGORY_TABS.findIndex((tab) => tab.id === activeCategory);
   useEffect(() => {
     const row = chipsRef.current;
     const chip = row?.querySelector<HTMLElement>(`[data-category="${activeCategory}"]`);
     if (!row || !chip) return;
-    row.scrollTo({ left: chip.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2, behavior: "smooth" });
-  }, [activeCategory]);
+    row.scrollTo({ left: activeIndex === 0 ? 0 : chip.offsetLeft - CHIP_ARROW_ZONE_PX, behavior: "smooth" });
+  }, [activeCategory, activeIndex]);
 
   // Mobile : glisser le doigt sur le fil vers la gauche passe à la rubrique
   // suivante, vers la droite revient à la précédente (geste nettement
@@ -284,30 +290,60 @@ export default function HomePage() {
         <div className="flex flex-col space-y-4">
           <PageHeader title="Fil d'actualité" description="Enseignements, témoignages et conseils partagés par l'équipe Agapeo." />
 
-          {/* Rubriques — mobile/tablette : puces à icône (colonne verticale à gauche sur ordinateur) */}
-          <div ref={chipsRef} data-swipe-ignore className="lg:hidden -mx-5 px-5 flex gap-2 overflow-x-auto">
-            {CATEGORY_TABS.map((tab) => {
-              const isActive = tab.id === activeCategory;
-              const TabIcon = tab.icon;
-              return (
+          {/* Rubriques — mobile/tablette : puces à icône (colonne verticale à gauche sur ordinateur).
+              La rubrique choisie se cale à gauche ; flèches pour passer à la précédente / suivante. */}
+          <div data-swipe-ignore className="lg:hidden relative -mx-5">
+            <div ref={chipsRef} className="relative flex gap-2 overflow-x-auto px-5">
+              {CATEGORY_TABS.map((tab) => {
+                const isActive = tab.id === activeCategory;
+                const TabIcon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    data-category={tab.id}
+                    onClick={() => selectCategory(tab.id as FeedCategory)}
+                    aria-pressed={isActive}
+                    className={cn(
+                      "shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm border transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground border-primary font-semibold"
+                        : "bg-card text-muted-foreground border-border/60 font-medium"
+                    )}
+                  >
+                    <TabIcon size={15} className="shrink-0" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+              {/* Espace de fin : permet aux dernières rubriques de venir elles aussi se caler à gauche. */}
+              <span aria-hidden className="shrink-0 w-[70vw]" />
+            </div>
+
+            {activeIndex > 0 && (
+              <div className="absolute inset-y-0 left-0 flex items-center pl-5 pr-3 bg-gradient-to-r from-background from-70% to-transparent">
                 <button
-                  key={tab.id}
                   type="button"
-                  data-category={tab.id}
-                  onClick={() => selectCategory(tab.id as FeedCategory)}
-                  aria-pressed={isActive}
-                  className={cn(
-                    "shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm border transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground border-primary font-semibold"
-                      : "bg-card text-muted-foreground border-border/60 font-medium"
-                  )}
+                  onClick={() => selectCategory(CATEGORY_TABS[activeIndex - 1].id as FeedCategory)}
+                  aria-label={`Rubrique précédente : ${CATEGORY_TABS[activeIndex - 1].label}`}
+                  className="w-9 h-9 rounded-full bg-card border border-border/60 flex items-center justify-center text-foreground active:scale-90 transition-transform"
                 >
-                  <TabIcon size={15} className="shrink-0" />
-                  {tab.label}
+                  <ChevronLeft size={17} />
                 </button>
-              );
-            })}
+              </div>
+            )}
+            {activeIndex < CATEGORY_TABS.length - 1 && (
+              <div className="absolute inset-y-0 right-0 flex items-center pr-5 pl-3 bg-gradient-to-l from-background from-70% to-transparent">
+                <button
+                  type="button"
+                  onClick={() => selectCategory(CATEGORY_TABS[activeIndex + 1].id as FeedCategory)}
+                  aria-label={`Rubrique suivante : ${CATEGORY_TABS[activeIndex + 1].label}`}
+                  className="w-9 h-9 rounded-full bg-card border border-border/60 flex items-center justify-center text-foreground active:scale-90 transition-transform"
+                >
+                  <ChevronRight size={17} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

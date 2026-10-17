@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConversationSummary, ChatMessage } from "@/domain/types/message";
@@ -41,6 +41,20 @@ function moveConversationToTop(
   return [updated, ...rest];
 }
 
+/** Nombre de discussions récentes dont les messages sont préchargés dès l'arrivée sur la page. */
+const PREFETCH_CONVERSATIONS = 6;
+
+/**
+ * Ouvre / ferme une discussion dans l'URL via l'API History native (intégrée
+ * au routeur Next, cf. docs "Native History API") plutôt que router.replace :
+ * pas d'aller-retour serveur, donc la page ET AppShell (qui masque le header
+ * sur mobile) basculent dans la même image — plus de mise en page
+ * intermédiaire déformée à l'ouverture ou au retour.
+ */
+function setConversationInUrl(convId: string | null) {
+  window.history.replaceState(null, "", convId ? `/messages?conversation=${convId}` : "/messages");
+}
+
 function MessagesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -52,7 +66,8 @@ function MessagesPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingConvs, setIsLoadingConvs] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
-  const [isMobileChatOpen, setIsMobileChatOpen] = useState(Boolean(searchParams.get("conversation")));
+  // Lu dans l'URL — même source que AppShell, pour que les deux changent ensemble.
+  const isMobileChatOpen = Boolean(searchParams.get("conversation"));
   const [sendError, setSendError] = useState<string | null>(null);
   const [otherIsTyping, setOtherIsTyping] = useState(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
@@ -77,6 +92,15 @@ function MessagesPageContent() {
   // ResizeObserver et le gestionnaire de scroll ci-dessous — aucun des deux
   // ne doit déclencher de re-render à chaque appel.
   const isPinnedToBottomRef = useRef(true);
+  // Messages déjà chargés par discussion : rouvrir une discussion (ou en
+  // ouvrir une préchargée) affiche son contenu immédiatement, puis le
+  // rafraîchit en arrière-plan — plus d'écran de chargement à chaque clic.
+  const messageCacheRef = useRef(new Map<string, ChatMessage[]>());
+  const activeConvIdRef = useRef(activeConvId);
+  // Effet de mise en page : exécuté avant les effets classiques (dont celui qui charge les messages).
+  useLayoutEffect(() => {
+    activeConvIdRef.current = activeConvId;
+  }, [activeConvId]);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadConversations = useCallback(async () => {
@@ -93,9 +117,14 @@ function MessagesPageContent() {
   }, []);
 
   const loadMessages = useCallback(async (convId: string) => {
-    setIsLoadingMessages(true);
+    const cached = messageCacheRef.current.get(convId);
+    setMessages(cached ?? []);
+    setIsLoadingMessages(!cached);
     try {
       const data = await messageService.getMessages(convId);
+      messageCacheRef.current.set(convId, data);
+      // Une autre discussion a été ouverte entre-temps : on ne l'écrase pas.
+      if (activeConvIdRef.current !== convId) return;
       setMessages(data);
       await messageService.markAsRead(convId);
       // Le marquage côté serveur ci-dessus ne met pas à jour, à lui seul, le
@@ -105,7 +134,7 @@ function MessagesPageContent() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsLoadingMessages(false);
+      if (activeConvIdRef.current === convId) setIsLoadingMessages(false);
     }
   }, []);
 
@@ -113,12 +142,36 @@ function MessagesPageContent() {
     loadConversations();
   }, [loadConversations]);
 
+  // Préchargement discret des discussions récentes, une fois la liste reçue.
+  const hasPrefetchedRef = useRef(false);
+  useEffect(() => {
+    if (hasPrefetchedRef.current || conversations.length === 0) return;
+    hasPrefetchedRef.current = true;
+    conversations
+      .filter((c) => c.status === "ACCEPTED" && !messageCacheRef.current.has(c.id))
+      .slice(0, PREFETCH_CONVERSATIONS)
+      .forEach((c) => {
+        messageService
+          .getMessages(c.id)
+          .then((data) => {
+            if (!messageCacheRef.current.has(c.id)) messageCacheRef.current.set(c.id, data);
+          })
+          .catch(() => {});
+      });
+  }, [conversations]);
+
+  // Le cache suit la discussion ouverte (messages envoyés, reçus, supprimés).
+  useEffect(() => {
+    if (activeConvId && !isLoadingMessages) messageCacheRef.current.set(activeConvId, messages);
+  }, [activeConvId, messages, isLoadingMessages]);
+
   useEffect(() => {
     if (activeConvId) loadMessages(activeConvId);
   }, [activeConvId, loadMessages]);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    const el = messagesContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
   /** Met à jour l'ancrage en fonction de la position réelle de lecture — jamais ramenée de force en bas tant qu'elle relit l'historique plus haut. */
@@ -157,7 +210,9 @@ function MessagesPageContent() {
   // dépendance, cet effet peut s'exécuter uniquement pendant que le squelette
   // de chargement est encore affiché, alors que la vraie liste (et sa
   // référence) n'existe pas encore, et jamais retenter une fois montée.
-  useEffect(() => {
+  // useLayoutEffect : la vue est recollée en bas AVANT que le navigateur ne
+  // peigne — on ne voit jamais la discussion s'afficher en haut puis sauter.
+  useLayoutEffect(() => {
     if (isPinnedToBottomRef.current) scrollToBottom();
 
     const content = messagesContentRef.current;
@@ -243,13 +298,11 @@ function MessagesPageContent() {
 
   const handleSelectConversation = (convId: string) => {
     setActiveConvId(convId);
-    setIsMobileChatOpen(true);
-    router.replace(`/messages?conversation=${convId}`, { scroll: false });
+    setConversationInUrl(convId);
   };
 
   const handleBackToList = () => {
-    setIsMobileChatOpen(false);
-    router.replace("/messages", { scroll: false });
+    setConversationInUrl(null);
   };
 
   const handleTyping = useCallback(() => {
@@ -277,8 +330,7 @@ function MessagesPageContent() {
       await messageService.declineInvitation(activeConvId);
       setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
       setActiveConvId(null);
-      setIsMobileChatOpen(false);
-      router.replace("/messages", { scroll: false });
+      setConversationInUrl(null);
     } catch (err) {
       setSendError(err instanceof Error ? err.message : "Impossible de refuser cette invitation.");
       setTimeout(() => setSendError(null), 4000);
@@ -367,8 +419,7 @@ function MessagesPageContent() {
   const handleBlocked = () => {
     setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
     setActiveConvId(null);
-    setIsMobileChatOpen(false);
-    router.replace("/messages", { scroll: false });
+    setConversationInUrl(null);
   };
 
   const handleDeleteConversation = async () => {
@@ -377,8 +428,7 @@ function MessagesPageContent() {
     await messageService.hideConversation(activeConvId);
     setConversations((prev) => prev.filter((c) => c.id !== activeConvId));
     setActiveConvId(null);
-    setIsMobileChatOpen(false);
-    router.replace("/messages", { scroll: false });
+    setConversationInUrl(null);
     setIsDeletingConv(false);
     setIsDeleteConvOpen(false);
   };
