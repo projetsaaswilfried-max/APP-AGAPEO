@@ -34,7 +34,8 @@ const PLUS = [
 ]
 
 export default function Pricing() {
-  const [plan, setPlan] = useState(3)
+  // Formule affichée à l'arrivée : 15 jours (ordinateur et mobile, même sélecteur) — le badge « Recommandé » reste sur le trimestriel (`best`).
+  const [plan, setPlan] = useState(() => PLANS.findIndex((pl) => pl.id === 'half'))
   const p = PLANS[plan]
 
   return (
