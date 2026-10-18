@@ -13,5 +13,8 @@ export const config = {
   // cette exclusion, une requête serveur-à-serveur sans cookie de session
   // était silencieusement redirigée vers /login (200 HTML) au lieu d'atteindre
   // la route, jamais détecté avant un test réel avec une vraie signature.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]
+  // Polices exclues comme les images : sans ça, /fonts/ProductSans-Light.ttf
+  // était redirigé vers /login (HTML) pour tout visiteur non connecté, et la
+  // police de l'app ne se chargeait jamais sur les pages publiques.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ttf|otf|woff|woff2)$).*)"]
 };
