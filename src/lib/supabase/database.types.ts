@@ -181,8 +181,6 @@ export interface ProfileRestrictedRow {
   subscription_expiry_followup_sent: boolean;
   /** Palier déjà envoyé (1/3/5/7) de la séquence "soumets ton profil" — null si aucun. */
   onboarding_sequence_stage: number | null;
-  /** Palier déjà envoyé (1/3/5/7) côté messagerie (message Agapeo) de la même séquence — indépendant de onboarding_sequence_stage qui suit le même palier côté email. */
-  onboarding_in_app_nudge_stage: number | null;
   /** Palier déjà envoyé (1/3/5/7) de la séquence "passe Premium" — null si aucun ; remis à null à chaque nouvelle validation de profil. */
   premium_sequence_stage: number | null;
   /** Vrai une fois la relance dédiée "il ne te reste qu'un selfie" envoyée — indépendante des paliers J1/J3/J5/J7. */
@@ -191,12 +189,6 @@ export interface ProfileRestrictedRow {
   access_payment_reminder_stage: number | null;
   /** Palier déjà envoyé (2/4/.../30 jours) de la relance Premium côté messagerie (message Agapeo) — indépendant de premium_sequence_stage qui suit le même palier côté email. */
   in_app_premium_nudge_stage: number | null;
-  /** Horodatage de l'unique essai Premium gratuit de 24h (première validation de profil) — jamais remis à null, sert aussi de marqueur permanent "essai déjà consommé". */
-  trial_granted_at: string | null;
-  /** Palier déjà envoyé de la relance d'expiration de l'essai gratuit : 0 = à 10h (reste 14h), 1 = à 22h (reste 2h, avec les offres). Null tant qu'aucune relance n'a été envoyée sur cet essai. */
-  trial_reminder_stage: number | null;
-  /** Migration unique (comptes déjà existants avant le lancement de l'essai gratuit) : true une fois l'email d'annonce envoyé à un membre FREE non vérifié — jamais utilisé en dehors de ce script ponctuel. */
-  legacy_trial_announcement_sent: boolean;
   latitude: number | null;
   longitude: number | null;
 }
