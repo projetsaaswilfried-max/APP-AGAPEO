@@ -1,6 +1,5 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
 import { AppNotification } from "@/domain/types/notification";
 import { notificationService } from "@/domain/services/notification.service";
 import { NotificationItem } from "@/components/features/notifications/notification-item";
@@ -10,49 +9,39 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Bell, CheckCheck } from "lucide-react";
 import { useSession } from "@/core/providers/session-provider";
-import { readPageCache, writePageCache } from "@/core/cache/page-cache";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/core/query-keys";
 
 // Toutes les notifications au même endroit — plus d'onglets par catégorie
 // (demande du fondateur), seulement un regroupement par période.
 export default function NotificationsPage() {
   const { profile } = useSession();
-  const cacheKey = `notifications:${profile.id}`;
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => readPageCache<AppNotification[]>(cacheKey) ?? []);
-  const [isLoading, setIsLoading] = useState(() => !readPageCache(cacheKey));
-
-  // Toute modification locale (lu, supprimé) suit dans la mémoire de page.
-  useEffect(() => {
-    if (!isLoading) writePageCache(cacheKey, notifications);
-  }, [cacheKey, notifications, isLoading]);
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        setNotifications(await notificationService.getNotifications("ALL"));
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchNotifications();
-  }, []);
-
+  const queryClient = useQueryClient();
+  const notificationsQueryKey = queryKeys.notifications(profile.id);
+  // Revenir sur cette page affiche instantanément la dernière liste connue
+  // (cache React Query, partagé et persistant le temps de l'onglet), puis se
+  // resynchronise en silence — staleTime court car une notification doit
+  // rester perçue comme "en direct", pas figée plusieurs minutes.
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: notificationsQueryKey,
+    queryFn: () => notificationService.getNotifications("ALL"),
+    staleTime: 30 * 1000
+  });
 
   const handleMarkAsRead = async (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    queryClient.setQueryData<AppNotification[]>(notificationsQueryKey, (prev) =>
+      prev?.map((n) => (n.id === id ? { ...n, isRead: true } : n))
     );
     await notificationService.markAsRead(id);
   };
 
   const handleMarkAllAsRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    queryClient.setQueryData<AppNotification[]>(notificationsQueryKey, (prev) => prev?.map((n) => ({ ...n, isRead: true })));
     await notificationService.markAllAsRead();
   };
 
   const handleDeleteNotification = async (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    queryClient.setQueryData<AppNotification[]>(notificationsQueryKey, (prev) => prev?.filter((n) => n.id !== id));
     await notificationService.deleteNotification(id);
   };
 

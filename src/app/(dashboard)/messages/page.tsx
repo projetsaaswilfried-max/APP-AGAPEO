@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ConversationSummary, ChatMessage } from "@/domain/types/message";
 import { messageService } from "@/domain/services/message.service";
 import { useSession } from "@/core/providers/session-provider";
-import { readPageCache, writePageCache } from "@/core/cache/page-cache";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/core/query-keys";
 import { cancelInvitationAction } from "@/lib/actions/invitation.actions";
 import { ConversationListItem } from "@/components/features/messages/conversation-list-item";
 import { MessageBubble, PendingVoiceBubble } from "@/components/features/messages/message-bubble";
@@ -62,13 +63,29 @@ function MessagesPageContent() {
   const router = useRouter();
   const { user, profile } = useSession();
   const canSendMessages = profile.subscription_status === "ACTIVE" || profile.role !== "USER";
-  const conversationsCacheKey = `conversations:${user.id}`;
-  // Retour sur Messages : la dernière liste s'affiche tout de suite, rafraîchie ensuite.
-  const [conversations, setConversations] = useState<ConversationSummary[]>(() => readPageCache<ConversationSummary[]>(conversationsCacheKey) ?? []);
+  const queryClient = useQueryClient();
+  const conversationsQueryKey = queryKeys.conversations(user.id);
+  // Retour sur Messages : la dernière liste s'affiche tout de suite (cache
+  // React Query, partagé et persistant le temps de l'onglet), rafraîchie
+  // ensuite. Les mises à jour locales (temps réel, actions ci-dessous)
+  // passent par ce même cache via setConversations, qui en garde la forme —
+  // un simple updater (prev) => next — pour que tous les appels existants
+  // plus bas dans ce fichier restent inchangés.
+  const { data: conversations = [], isLoading: isLoadingConvs } = useQuery({
+    queryKey: conversationsQueryKey,
+    queryFn: () => messageService.getConversations(),
+    staleTime: 30 * 1000
+  });
+  const setConversations = useCallback(
+    (updater: (prev: ConversationSummary[]) => ConversationSummary[]) => {
+      queryClient.setQueryData<ConversationSummary[]>(conversationsQueryKey, (prev) => updater(prev ?? []));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, user.id]
+  );
   const [activeConvId, setActiveConvId] = useState<string | null>(searchParams.get("conversation"));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoadingConvs, setIsLoadingConvs] = useState(() => !readPageCache(conversationsCacheKey));
   const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   // Lu dans l'URL — même source que AppShell, pour que les deux changent ensemble.
   const isMobileChatOpen = Boolean(searchParams.get("conversation"));
@@ -115,18 +132,6 @@ function MessagesPageContent() {
   }, [activeConvId]);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadConversations = useCallback(async () => {
-    try {
-      const data = await messageService.getConversations();
-      setConversations(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoadingConvs(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const loadMessages = useCallback(async (convId: string) => {
     const cached = messageCacheRef.current.get(convId);
     setMessages(cached ?? []);
@@ -147,11 +152,7 @@ function MessagesPageContent() {
     } finally {
       if (activeConvIdRef.current === convId) setIsLoadingMessages(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+  }, [setConversations]);
 
   // Préchargement discret des discussions récentes, une fois la liste reçue.
   const hasPrefetchedRef = useRef(false);
@@ -170,10 +171,6 @@ function MessagesPageContent() {
           .catch(() => {});
       });
   }, [conversations]);
-
-  useEffect(() => {
-    if (!isLoadingConvs) writePageCache(conversationsCacheKey, conversations);
-  }, [conversationsCacheKey, conversations, isLoadingConvs]);
 
   // Le cache suit la discussion ouverte (messages envoyés, reçus, supprimés).
   useEffect(() => {
@@ -290,7 +287,7 @@ function MessagesPageContent() {
       });
     });
     return unsubscribe;
-  }, [user.id, activeConvId]);
+  }, [user.id, activeConvId, setConversations]);
 
   const activeConv = conversations.find((c) => c.id === activeConvId);
   const filteredConversations = conversations.filter((c) =>
