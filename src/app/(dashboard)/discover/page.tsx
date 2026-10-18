@@ -23,7 +23,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
 import { useSession } from "@/core/providers/session-provider";
-import { readPageCache, writePageCache } from "@/core/cache/page-cache";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/core/query-keys";
 import type { DiscoverPageResult } from "@/domain/types/discover";
 import { getScoringGaps } from "@/domain/profile-completeness";
 import { Users, SlidersHorizontal, RefreshCw, CheckCircle2, AlertCircle, Heart, ArrowRight, Clock, ShieldAlert } from "lucide-react";
@@ -95,9 +96,6 @@ function DiscoverPageContent() {
   // (getDiscoverPage) — Découvrir ne télécharge plus les 300-400+ profils
   // complets de tout le vivier à chaque chargement, seulement ce qui
   // s'affiche réellement.
-  const [recommendedProfiles, setRecommendedProfiles] = useState<RecommendedProfileItem[]>([]);
-  const [otherProfilesPageItems, setOtherProfilesPageItems] = useState<RecommendedProfileItem[]>([]);
-  const [otherProfilesTotalCount, setOtherProfilesTotalCount] = useState(0);
   const [filters, setFilters] = useState<DiscoverFilterCriteria>(() => {
     const search = searchParams.get("search");
     return search && canUseAdvancedFilters ? { ...DEFAULT_FILTERS, searchQuery: search } : DEFAULT_FILTERS;
@@ -105,8 +103,6 @@ function DiscoverPageContent() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<RecommendedProfileItem | null>(null);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
   const [premiumReason, setPremiumReason] = useState("contacter ce membre en premier");
@@ -133,38 +129,35 @@ function DiscoverPageContent() {
     setIsVerificationRequiredOpen(true);
   };
 
-  const applyDiscoverPage = (data: DiscoverPageResult) => {
-    setRecommendedProfiles(data.recommended);
-    setOtherProfilesPageItems(data.otherPage);
-    setOtherProfilesTotalCount(data.otherTotalCount);
-    setMobileOthers(data.otherPage);
-    setMobileOthersPage(1);
-  };
+  const queryClient = useQueryClient();
+  const discoverQueryKey = queryKeys.discover(profile.id, filters, otherProfilesPage);
+  // Revenir sur Découvrir (navigation arrière, changement d'onglet) affiche
+  // instantanément ce qui était déjà vu pour ces filtres+page le temps de
+  // cette session, puis rafraîchit en silence — remplace l'ancien cache
+  // maison (page-cache.ts) par le cache partagé React Query, qui gère en
+  // plus la déduplication des requêtes identiques en vol.
+  const {
+    data: discoverData,
+    isLoading,
+    isError,
+    refetch: refetchDiscover
+  } = useQuery({
+    queryKey: discoverQueryKey,
+    queryFn: () => discoverService.getDiscoverPage(filters, otherProfilesPage, OTHER_PROFILES_PAGE_SIZE),
+    staleTime: 60 * 1000
+  });
+  const recommendedProfiles = discoverData?.recommended ?? [];
+  const otherProfilesPageItems = discoverData?.otherPage ?? [];
+  const otherProfilesTotalCount = discoverData?.otherTotalCount ?? 0;
 
-  const fetchProfiles = async () => {
-    // Déjà vue avec ces filtres et cette page : affichage immédiat, puis rafraîchissement silencieux.
-    const cacheKey = `discover:${profile.id}:${JSON.stringify(filters)}:${otherProfilesPage}`;
-    const cached = readPageCache<DiscoverPageResult>(cacheKey);
-    if (cached) applyDiscoverPage(cached);
-    setIsLoading(!cached);
-    setIsError(false);
-    try {
-      const data = await discoverService.getDiscoverPage(filters, otherProfilesPage, OTHER_PROFILES_PAGE_SIZE);
-      writePageCache(cacheKey, data);
-      setRecommendedProfiles(data.recommended);
-      setOtherProfilesPageItems(data.otherPage);
-      setOtherProfilesTotalCount(data.otherTotalCount);
-      // Même réponse réutilisée pour redémarrer la liste cumulée mobile —
-      // évite un second appel réseau identique pour la toute première page.
-      setMobileOthers(data.otherPage);
-      setMobileOthersPage(1);
-    } catch (err) {
-      console.error(err);
-      setIsError(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Même réponse réutilisée pour démarrer la liste cumulée mobile — évite un
+  // second appel réseau identique pour la toute première page. Redémarre à
+  // chaque nouvelle réponse de base (changement de filtres/page desktop).
+  useEffect(() => {
+    if (!discoverData) return;
+    setMobileOthers(discoverData.otherPage);
+    setMobileOthersPage(1);
+  }, [discoverData]);
 
   const loadMoreMobileOthers = async () => {
     if (isMobileLoadingMore || mobileOthers.length >= otherProfilesTotalCount) return;
@@ -188,11 +181,6 @@ function DiscoverPageContent() {
     setOtherProfilesPage(1);
   }, [filters]);
 
-  useEffect(() => {
-    fetchProfiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, otherProfilesPage]);
-
   // Popup Premium à CHAQUE chargement de Découvrir (premier affichage,
   // pagination "Autres profils", changement de filtre) — décision du
   // fondateur : aucun plafond ici, contrairement au popup de bienvenue
@@ -204,11 +192,13 @@ function DiscoverPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, otherProfilesPage]);
 
-  /** Un profil "recommandé" ou de la page courante peut être basculé favori/liké — jamais les deux listes à la fois pour un même id, mais on ne sait pas laquelle sans chercher. */
+  /** Un profil "recommandé" ou de la page courante peut être basculé favori/liké — jamais les deux listes à la fois pour un même id, mais on ne sait pas laquelle sans chercher. recommended/otherPage vivent dans le cache React Query (partagé, survit à la navigation) : on les corrige là, pas dans un state local. */
   const updateProfileInLists = (profileId: string, updater: (item: RecommendedProfileItem) => RecommendedProfileItem) => {
-    setRecommendedProfiles((prev) => prev.map((item) => (item.profile.id === profileId ? updater(item) : item)));
-    setOtherProfilesPageItems((prev) => prev.map((item) => (item.profile.id === profileId ? updater(item) : item)));
-    setMobileOthers((prev) => prev.map((item) => (item.profile.id === profileId ? updater(item) : item)));
+    const patch = (list: RecommendedProfileItem[]) => list.map((item) => (item.profile.id === profileId ? updater(item) : item));
+    queryClient.setQueryData<DiscoverPageResult>(discoverQueryKey, (prev) =>
+      prev ? { ...prev, recommended: patch(prev.recommended), otherPage: patch(prev.otherPage) } : prev
+    );
+    setMobileOthers((prev) => patch(prev));
   };
 
   const handleToggleFavorite = async (profileId: string) => {
@@ -373,7 +363,7 @@ function DiscoverPageContent() {
           title="Impossible de charger les profils"
           description="Une erreur est survenue lors du chargement de la découverte."
           action={
-            <Button variant="outline" size="sm" onClick={fetchProfiles}>
+            <Button variant="outline" size="sm" onClick={() => refetchDiscover()}>
               <RefreshCw size={14} className="mr-1.5" /> Réessayer
             </Button>
           }

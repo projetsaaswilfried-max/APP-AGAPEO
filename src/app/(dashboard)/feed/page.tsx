@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FeedPublication, FeedCategory } from "@/domain/types/feed";
 import { feedService } from "@/domain/services/feed.service";
 import { PublicationCard } from "@/components/features/feed/publication-card";
@@ -12,7 +12,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/core/providers/session-provider";
-import { readPageCache, writePageCache } from "@/core/cache/page-cache";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { queryKeys } from "@/core/query-keys";
 import { TRANSITION_EASE } from "@/core/animations/variants";
 
 // Nombre de publications "récentes" (hors épinglées) renvoyées par chaque
@@ -34,14 +35,13 @@ const CHIP_ARROW_ZONE_PX = 64;
 
 export default function HomePage() {
   const { profile } = useSession();
-  const feedCacheKey = (category: FeedCategory) => `feed:${profile.id}:${category}`;
+  const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState<FeedCategory>("ALL");
   // Rubrique dont le contenu est réellement affiché : ne change qu'une fois
   // ses publications chargées, et c'est ce changement qui déclenche le
   // glissement vers la gauche (l'ancien contenu reste en place, atténué,
   // pendant le chargement — plus de squelette qui « mange » l'animation).
   const [displayedCategory, setDisplayedCategory] = useState<FeedCategory>("ALL");
-  const latestRequestRef = useRef<FeedCategory>("ALL");
   const selectCategory = (id: FeedCategory) => {
     if (id === activeCategory) return;
     setActiveCategory(id);
@@ -80,10 +80,33 @@ export default function HomePage() {
     const next = CATEGORY_TABS[index + (dx < 0 ? 1 : -1)];
     if (next) selectCategory(next.id as FeedCategory);
   };
-  // Retour sur le fil : la dernière liste vue s'affiche tout de suite (rafraîchie ensuite).
-  const [publications, setPublications] = useState<FeedPublication[]>(() => readPageCache<FeedPublication[]>(feedCacheKey("ALL")) ?? []);
-  const [isLoading, setIsLoading] = useState(() => !readPageCache(feedCacheKey("ALL")));
-  const [isError, setIsError] = useState(false);
+  const feedQueryKey = queryKeys.feed(profile.id, activeCategory);
+  // Retour sur le fil : la dernière liste vue de cette rubrique s'affiche
+  // tout de suite (cache React Query), rafraîchie ensuite. keepPreviousData
+  // garde l'ancien contenu affiché pendant le changement de rubrique (c'est
+  // justement ce qui pilote l'animation de glissement plus bas) au lieu de
+  // vider l'écran le temps du nouveau chargement — React Query gère aussi
+  // tout seul "seule la dernière rubrique demandée s'affiche" en cas de clics
+  // rapides, plus besoin de le suivre à la main.
+  const {
+    data: publications = [],
+    isLoading,
+    isError,
+    isFetching,
+    refetch: refetchFeed
+  } = useQuery({
+    queryKey: feedQueryKey,
+    queryFn: () => feedService.getPublications(activeCategory),
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 1000
+  });
+  const setPublications = useCallback(
+    (updater: (prev: FeedPublication[]) => FeedPublication[]) => {
+      queryClient.setQueryData<FeedPublication[]>(feedQueryKey, (prev) => updater(prev ?? []));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, profile.id, activeCategory]
+  );
   // Défilement infini mobile uniquement (format app native : feed_body.dart
   // charge la suite en approchant du bas) — desktop reste plafonné à 30
   // publications récentes comme aujourd'hui, aucun changement là-bas.
@@ -92,32 +115,21 @@ export default function HomePage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const mobileSentinelRef = useRef<HTMLDivElement>(null);
 
-  const fetchPublications = async (category: FeedCategory) => {
-    latestRequestRef.current = category;
-    const cached = readPageCache<FeedPublication[]>(feedCacheKey(category));
-    if (cached) {
-      setPublications(cached);
-      setDisplayedCategory(category);
-      setRecentOffset(RECENT_PAGE_SIZE);
-      setHasMoreRecent(true);
-    }
-    setIsLoading(!cached);
-    setIsError(false);
-    try {
-      const data = await feedService.getPublications(category);
-      writePageCache(feedCacheKey(category), data);
-      // Clics rapides d'une rubrique à l'autre : seule la dernière demandée s'affiche.
-      if (latestRequestRef.current !== category) return;
-      setPublications(data);
-      setDisplayedCategory(category);
-      setRecentOffset(RECENT_PAGE_SIZE);
-      setHasMoreRecent(true);
-    } catch {
-      if (latestRequestRef.current === category) setIsError(true);
-    } finally {
-      if (latestRequestRef.current === category) setIsLoading(false);
-    }
-  };
+  // Changement de rubrique : la fenêtre de pagination "récentes" repart de
+  // zéro tout de suite (pas besoin d'attendre la réponse, corrigée au
+  // premier vrai `loadMoreRecent` de toute façon) — jamais sur un simple
+  // rafraîchissement arrière-plan de la rubrique déjà affichée, qui casserait
+  // sinon la position de défilement infini déjà accumulée.
+  useEffect(() => {
+    setRecentOffset(RECENT_PAGE_SIZE);
+    setHasMoreRecent(true);
+  }, [activeCategory]);
+
+  // Le glissement visuel n'intervient qu'une fois le contenu de la nouvelle
+  // rubrique réellement prêt (cache ou réseau) — jamais pendant le chargement.
+  useEffect(() => {
+    if (!isFetching) setDisplayedCategory(activeCategory);
+  }, [activeCategory, isFetching]);
   // Squelette seulement au tout premier chargement ; ensuite l'ancien contenu reste affiché.
   const isFirstLoad = isLoading && publications.length === 0;
 
@@ -141,12 +153,6 @@ export default function HomePage() {
       setIsLoadingMore(false);
     }
   };
-
-  useEffect(() => {
-    fetchPublications(activeCategory);
-    // Relancé uniquement au changement de rubrique (le membre connecté ne change pas sur cette page).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory]);
 
   useEffect(() => {
     const sentinel = mobileSentinelRef.current;
@@ -184,7 +190,7 @@ export default function HomePage() {
       });
     });
     return unsubscribe;
-  }, [activeCategory]);
+  }, [activeCategory, setPublications]);
 
   const handleLikeToggle = async (id: string) => {
     // Optimistic UI update
@@ -369,7 +375,7 @@ export default function HomePage() {
         <motion.div
           key={displayedCategory}
           initial={{ opacity: 0, x: 56 }}
-          animate={{ opacity: isLoading && !isFirstLoad ? 0.55 : 1, x: 0 }}
+          animate={{ opacity: isFetching && !isFirstLoad ? 0.55 : 1, x: 0 }}
           exit={{ opacity: 0, x: -56 }}
           transition={{ duration: 0.26, ease: TRANSITION_EASE }}
           className="space-y-6"
@@ -381,7 +387,7 @@ export default function HomePage() {
               title="Impossible de charger le fil d'actualité"
               description="Une erreur de connexion est survenue lors de la récupération des publications."
               action={
-                <Button variant="outline" size="sm" onClick={() => fetchPublications(activeCategory)}>
+                <Button variant="outline" size="sm" onClick={() => refetchFeed()}>
                   <RefreshCw size={14} className="mr-1.5" /> Réessayer
                 </Button>
               }
