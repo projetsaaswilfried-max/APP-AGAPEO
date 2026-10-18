@@ -3,6 +3,7 @@ import "./globals.css";
 import { AppProvider } from "@/core/providers/app-provider";
 import { SITE_CONFIG } from "@/config/site";
 import { MetaPixel } from "@/components/analytics/meta-pixel";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_CONFIG.url),
@@ -82,6 +83,7 @@ export default function RootLayout({
       */}
       <body className="min-h-dvh bg-background text-foreground font-sans">
         <MetaPixel />
+        <SpeedInsights />
         <AppProvider>
           {children}
         </AppProvider>
