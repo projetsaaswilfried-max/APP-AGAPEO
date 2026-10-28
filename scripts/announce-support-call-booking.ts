@@ -1,6 +1,7 @@
 /**
  * Annonce unique (email + message intégré Agapeo) à TOUS les membres réels
- * du nouveau canal "réserver un appel avec l'équipe" (/support#reserver-un-appel)
+ * du nouveau canal "réserver un appel avec l'équipe" (/reserver-un-appel,
+ * page publique, pour que le lien envoyé par email fonctionne sans connexion)
  * — pour tout problème rencontré sur la plateforme (abonnement, compte,
  * soumission de profil...), pas seulement un cas précis. Comptes de test et
  * équipe exclus, comme toutes les campagnes de ce type.
@@ -36,7 +37,16 @@ const FROM_EMAIL = "Agapeo <support@agapeo.love>";
 // cf. feedback_hardcode_prod_url_in_scripts, incident déjà vécu. Ce script
 // écrit de vrais liens dans de vrais emails à des milliers de destinataires.
 const SITE_URL = "https://www.agapeo.love";
-const BOOKING_PATH = "/support#reserver-un-appel";
+// Page publique dédiée (hors de l'espace connecté) : le lien envoyé par
+// email doit amener directement au calendrier sans obliger à se connecter
+// d'abord — le souci qui amène quelqu'un ici peut justement être qu'il
+// n'arrive plus à se connecter ou à soumettre son profil.
+const BOOKING_PATH = "/reserver-un-appel";
+// Contenu de la toute première version (lien /support#... exigeant une
+// connexion) déjà envoyée à 224 personnes avant correction — sert à ne
+// jamais les renvoyer en double lors de la reprise.
+const PREVIOUS_MESSAGE_CONTENT =
+  "Un souci avec ton abonnement, ton compte, ta soumission de profil... quel que soit le problème que tu rencontres sur Agapeo, tu peux maintenant réserver un appel avec notre équipe, au créneau qui t'arrange, et on le règle ensemble en direct.";
 
 const AGAPEO_SYSTEM_PROFILE_ID = "8d736a66-2597-4f48-b70b-08e6f7059c89";
 
@@ -196,11 +206,44 @@ async function fetchAllCandidates(): Promise<Candidate[]> {
   return candidates;
 }
 
+/**
+ * Reprise après correction du lien (224 personnes déjà touchées par la
+ * toute première version) : quiconque a déjà reçu l'ancienne OU la nouvelle
+ * version du message est ignoré, jamais renvoyé en double.
+ */
+async function fetchAlreadyAnnouncedIds(): Promise<Set<string>> {
+  const { data: msgs, error } = await admin
+    .from("messages")
+    .select("conversation_id")
+    .eq("sender_id", AGAPEO_SYSTEM_PROFILE_ID)
+    .in("content", [PREVIOUS_MESSAGE_CONTENT, buildInAppMessage()]);
+  if (error) throw error;
+  const conversationIds = [...new Set((msgs ?? []).map((m) => m.conversation_id as string))];
+  if (conversationIds.length === 0) return new Set();
+
+  const ids = new Set<string>();
+  const pageSize = 1000;
+  for (let i = 0; i < conversationIds.length; i += pageSize) {
+    const batch = conversationIds.slice(i, i + pageSize);
+    const { data: participants, error: pErr } = await admin
+      .from("conversation_participants")
+      .select("user_id")
+      .in("conversation_id", batch)
+      .neq("user_id", AGAPEO_SYSTEM_PROFILE_ID);
+    if (pErr) throw pErr;
+    for (const p of participants ?? []) ids.add(p.user_id as string);
+  }
+  return ids;
+}
+
 async function main() {
   console.log(EXECUTE ? "--- EXÉCUTION RÉELLE ---" : "--- DRY RUN (ajoute --execute pour envoyer réellement) ---");
 
-  const candidates = await fetchAllCandidates();
-  console.log(`Destinataires (hors test/équipe) : ${candidates.length}`);
+  const allCandidates = await fetchAllCandidates();
+  const alreadyAnnounced = EXECUTE ? await fetchAlreadyAnnouncedIds() : new Set<string>();
+  const candidates = allCandidates.filter((c) => !alreadyAnnounced.has(c.id));
+  console.log(`Destinataires (hors test/équipe) : ${allCandidates.length}`);
+  if (alreadyAnnounced.size > 0) console.log(`Déjà annoncés (ignorés, reprise) : ${alreadyAnnounced.size} — restants : ${candidates.length}`);
 
   if (!EXECUTE) {
     console.log("Aucun envoi effectué (dry-run). Exemple de contenu email pour le premier destinataire :");
