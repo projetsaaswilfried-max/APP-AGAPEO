@@ -55,16 +55,23 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const RESEND_DELAY_MS = 150;
 
-type Segment = "PAYMENT_FAILED" | "SUBSCRIPTION_EXPIRED" | "VERIFICATION_REJECTED" | "VERIFICATION_STUCK";
+type Segment = "PAYMENT_FAILED" | "SUBSCRIPTION_EXPIRED" | "VERIFICATION_REJECTED" | "VERIFICATION_STUCK" | "GENERAL";
 
-/** Ordre de priorité : une personne dans plusieurs segments n'est contactée que sur le premier. */
-const SEGMENT_PRIORITY: Segment[] = ["PAYMENT_FAILED", "SUBSCRIPTION_EXPIRED", "VERIFICATION_REJECTED", "VERIFICATION_STUCK"];
+/**
+ * Ordre de priorité : une personne dans plusieurs segments n'est contactée
+ * que sur le premier. GENERAL ferme la marche — il ne capte que les membres
+ * sans blocage identifié, donc jamais quelqu'un déjà visé par un segment
+ * spécifique (les deux campagnes restent ainsi strictement disjointes même
+ * lancées l'une après l'autre).
+ */
+const SEGMENT_PRIORITY: Segment[] = ["PAYMENT_FAILED", "SUBSCRIPTION_EXPIRED", "VERIFICATION_REJECTED", "VERIFICATION_STUCK", "GENERAL"];
 
 const TOPIC_MESSAGES: Record<Segment, string> = {
   PAYMENT_FAILED: "Bonjour, mon paiement n'est pas passé sur Agapeo et je n'ai pas eu accès à l'abonnement.",
   SUBSCRIPTION_EXPIRED: "Bonjour, j'ai une question sur mon abonnement Agapeo.",
   VERIFICATION_REJECTED: "Bonjour, ma vérification de profil a été refusée sur Agapeo et j'aimerais comprendre pourquoi.",
-  VERIFICATION_STUCK: "Bonjour, je n'arrive pas à soumettre mon profil pour vérification sur Agapeo."
+  VERIFICATION_STUCK: "Bonjour, je n'arrive pas à soumettre mon profil pour vérification sur Agapeo.",
+  GENERAL: "Bonjour, j'ai besoin d'aide sur Agapeo."
 };
 
 function whatsappUrl(segment: Segment): string {
@@ -103,6 +110,14 @@ const COPY: Record<Segment, { subject: string; headline: string; eyebrow: string
     body: "Ton profil n'a pas encore été soumis pour vérification : tant qu'il ne l'est pas, il reste invisible dans Découvrir et personne ne peut te contacter. Si quelque chose bloque (le selfie qui ne passe pas, une étape qui ne se valide pas, une photo refusée...), écris-nous : on débloque ça ensemble.",
     inApp:
       "Ton profil n'est pas encore soumis pour vérification, il reste donc invisible dans Découvrir. Si quelque chose bloque (selfie, photos, une étape qui ne passe pas), écris-nous sur WhatsApp : on débloque ça ensemble."
+  },
+  GENERAL: {
+    subject: "Écris-nous sur WhatsApp si tu as un problème",
+    eyebrow: "AIDE",
+    headline: "Un problème ? Écris-nous sur WhatsApp",
+    body: "Si tu rencontres quoi que ce soit sur Agapeo — un souci d'abonnement ou de paiement, un blocage sur ton profil ou ta vérification, une question sur ton compte — tu peux nous écrire directement sur WhatsApp. On lit ton message et on règle ça avec toi, sans formulaire ni attente.",
+    inApp:
+      "Un problème sur Agapeo ? Abonnement, paiement, vérification de profil, compte bloqué... quel que soit ton souci, écris-nous directement sur WhatsApp : on lit ton message et on règle ça avec toi."
   }
 };
 
@@ -288,6 +303,7 @@ async function buildCandidates(): Promise<Candidate[]> {
     else if (subStatus === "EXPIRED") segment = "SUBSCRIPTION_EXPIRED";
     else if (p.photo_verification_status === "REJECTED") segment = "VERIFICATION_REJECTED";
     else if (p.photo_verification_status === "UNVERIFIED" && p.onboarding_completed) segment = "VERIFICATION_STUCK";
+    else segment = "GENERAL";
 
     if (!segment) continue;
     if (SEGMENT_FILTER && segment !== SEGMENT_FILTER) continue;
