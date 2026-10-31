@@ -17,6 +17,8 @@
  *   npx tsx scripts/announce-whatsapp-support.ts                      (dry-run)
  *   npx tsx scripts/announce-whatsapp-support.ts --execute
  *   npx tsx scripts/announce-whatsapp-support.ts --execute --segment=PAYMENT_FAILED
+ *   npx tsx scripts/announce-whatsapp-support.ts --execute --ids=<uuid,uuid>
+ *   npx tsx scripts/announce-whatsapp-support.ts --execute --email-only --ids=<uuid>
  */
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
@@ -47,6 +49,26 @@ const WHATSAPP_DISPLAY = "+1 (873) 300-7552";
 
 const EXECUTE = process.argv.includes("--execute");
 const SEGMENT_FILTER = process.argv.find((a) => a.startsWith("--segment="))?.split("=")[1];
+
+/**
+ * Rattrapage des échecs réseau d'une campagne déjà passée.
+ * `--ids=<uuid,uuid,…>` limite l'envoi à ces membres (chacun garde le segment
+ * que son dossier lui vaut au moment du rattrapage) ; `--email-only` n'envoie
+ * QUE l'email, pour les membres dont le message intégré est bien arrivé mais
+ * dont l'email a échoué — le garde-fou anti-doublon portant sur le message,
+ * il les ignorerait sinon à jamais. Comme ce mode saute ce garde-fou, il exige
+ * `--ids` : jamais de ré-expédition de masse par accident.
+ */
+const ID_FILTER = (() => {
+  const raw = process.argv.find((a) => a.startsWith("--ids="))?.split("=")[1];
+  return raw ? new Set(raw.split(",").map((s) => s.trim()).filter(Boolean)) : null;
+})();
+const EMAIL_ONLY = process.argv.includes("--email-only");
+
+if (EMAIL_ONLY && !ID_FILTER) {
+  console.error("--email-only exige --ids=<uuid,…> : ce mode saute le garde-fou anti-doublon.");
+  process.exit(1);
+}
 
 const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false }
@@ -307,6 +329,7 @@ async function buildCandidates(): Promise<Candidate[]> {
 
     if (!segment) continue;
     if (SEGMENT_FILTER && segment !== SEGMENT_FILTER) continue;
+    if (ID_FILTER && !ID_FILTER.has(p.id)) continue;
     candidates.push({ id: p.id, first_name: p.first_name ?? "", email, segment });
   }
 
@@ -319,6 +342,8 @@ async function buildCandidates(): Promise<Candidate[]> {
 async function main() {
   console.log(EXECUTE ? "--- EXÉCUTION RÉELLE ---" : "--- DRY RUN (ajoute --execute pour envoyer réellement) ---");
   if (SEGMENT_FILTER) console.log(`Filtre de segment : ${SEGMENT_FILTER}`);
+  if (ID_FILTER) console.log(`Filtre d'identifiants : ${ID_FILTER.size} membre(s) visé(s)`);
+  if (EMAIL_ONLY) console.log("Mode email seul : aucun message intégré ne sera envoyé.");
 
   const candidates = await buildCandidates();
   const bySegment = new Map<Segment, number>();
@@ -343,18 +368,20 @@ async function main() {
   let emailFail = 0;
 
   for (const candidate of candidates) {
-    let conversationId: string;
-    try {
-      conversationId = await getOrCreateBroadcastConversation(candidate.id);
-      if (await alreadyContacted(conversationId)) {
-        skipped++;
+    if (!EMAIL_ONLY) {
+      let conversationId: string;
+      try {
+        conversationId = await getOrCreateBroadcastConversation(candidate.id);
+        if (await alreadyContacted(conversationId)) {
+          skipped++;
+          continue;
+        }
+        await sendInAppMessage(conversationId, candidate.id, candidate.segment);
+      } catch (err) {
+        messageFail++;
+        console.error(`[message] ${candidate.id} (${candidate.segment}) : ${err instanceof Error ? err.message : err}`);
         continue;
       }
-      await sendInAppMessage(conversationId, candidate.id, candidate.segment);
-    } catch (err) {
-      messageFail++;
-      console.error(`[message] ${candidate.id} (${candidate.segment}) : ${err instanceof Error ? err.message : err}`);
-      continue;
     }
 
     try {
