@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/layout/app-shell";
 import { SessionProvider } from "@/core/providers/session-provider";
+import { SessionFreshnessWatcher } from "@/core/providers/session-freshness-watcher";
 import { requireMemberViewSession } from "@/lib/supabase/session";
 
 // Espace membre connecté : jamais indexé (contenu privé, profils, messages).
@@ -26,6 +27,14 @@ export default async function DashboardLayout({
 
   return (
     <SessionProvider user={user} profile={profile} realProfile={realProfile} previewMode={previewMode}>
+      {/* Les droits comparés sont ceux du VRAI compte : en mode aperçu, le
+          profil affiché est réécrit et diverge volontairement de la base. */}
+      <SessionFreshnessWatcher
+        userId={user.id}
+        subscriptionStatus={realProfile.subscription_status}
+        photoVerificationStatus={realProfile.photo_verification_status}
+        disabled={previewMode !== null}
+      />
       <AppShell>{children}</AppShell>
     </SessionProvider>
   );

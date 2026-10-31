@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/supabase/session";
+import { SessionFreshnessWatcher } from "@/core/providers/session-freshness-watcher";
 import { PaymentRequiredView } from "./payment-required-view";
 
 export const metadata: Metadata = {
@@ -22,5 +23,19 @@ export default async function PaymentRequiredPage() {
     redirect(profile.onboarding_completed ? "/accueil" : "/onboarding");
   }
 
-  return <PaymentRequiredView />;
+  // Le paiement se règle sur la page hébergée du prestataire : au retour sur
+  // cet onglet resté ouvert, rien ne re-rendait cette page côté serveur et le
+  // membre restait bloqué sur « Achat d'accès obligatoire » alors qu'il venait
+  // de payer. Le veilleur détecte l'activation et re-rend la page, qui le
+  // redirige alors d'elle-même (garde ci-dessus).
+  return (
+    <>
+      <SessionFreshnessWatcher
+        userId={user.id}
+        subscriptionStatus={profile.subscription_status}
+        photoVerificationStatus={profile.photo_verification_status}
+      />
+      <PaymentRequiredView />
+    </>
+  );
 }

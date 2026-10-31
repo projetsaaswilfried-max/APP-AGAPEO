@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { ReportModal } from "@/components/features/moderation/report-modal";
 import { BlockConfirmModal } from "@/components/features/moderation/block-confirm-modal";
 import { PremiumRequiredModal } from "@/components/features/premium/premium-required-modal";
+import { VerificationRequiredModal } from "@/components/features/discover/verification-required-modal";
 import { AccessExpiredState } from "@/components/features/premium/access-expired-state";
 import { PremiumRequiredError } from "@/domain/errors";
 import { isProfileComplete } from "@/domain/profile-completeness";
@@ -63,6 +64,14 @@ function MessagesPageContent() {
   const router = useRouter();
   const { user, profile } = useSession();
   const canSendMessages = profile.subscription_status === "ACTIVE" || profile.role !== "USER";
+  // La RLS exige EN PLUS un profil vérifié pour écrire (messages_insert,
+  // conversations_insert). Sans ce garde, un membre Premium non vérifié
+  // pouvait composer puis envoyer et ne récoltait qu'un « L'envoi a échoué »
+  // opaque : il payait sans jamais comprendre ce qui le bloquait. Même
+  // idiome que les favoris (account-favorites.tsx) et « qui s'intéresse à
+  // toi » (account-who-likes-me.tsx), qui distinguent déjà consultation
+  // (Premium) et interaction (Premium + vérification).
+  const canInteract = profile.photo_verification_status === "VERIFIED" || profile.is_staff;
   const queryClient = useQueryClient();
   const conversationsQueryKey = queryKeys.conversations(user.id);
   // Retour sur Messages : la dernière liste s'affiche tout de suite (cache
@@ -99,6 +108,7 @@ function MessagesPageContent() {
   const [isDeleteConvOpen, setIsDeleteConvOpen] = useState(false);
   const [isDeletingConv, setIsDeletingConv] = useState(false);
   const [isPremiumRequiredOpen, setIsPremiumRequiredOpen] = useState(false);
+  const [isVerificationRequiredOpen, setIsVerificationRequiredOpen] = useState(false);
   const [isInviteBusy, setIsInviteBusy] = useState(false);
   const [activeMatch, setActiveMatch] = useState<MatchRow | null>(null);
   const [isMatchBusy, setIsMatchBusy] = useState(false);
@@ -411,6 +421,10 @@ function MessagesPageContent() {
 
   const runSend = async (action: () => Promise<ChatMessage>) => {
     if (!activeConvId) return;
+    if (!canInteract) {
+      setIsVerificationRequiredOpen(true);
+      return;
+    }
     setSendError(null);
     try {
       const newMsg = await action();
@@ -431,6 +445,14 @@ function MessagesPageContent() {
   const handleSendVoiceMessage = async (payload: PendingVoicePayload) => {
     const targetId = pendingVoicesRef.current[0]?.conversationId ?? activeConvId;
     if (!targetId) return;
+    // On retire la note en attente ici : en sortant avant le try, le finally
+    // qui s'en charge normalement ne passe pas, et elle resterait affichée
+    // indéfiniment « en cours d'envoi ».
+    if (!canInteract) {
+      setIsVerificationRequiredOpen(true);
+      updatePendingVoices((prev) => prev.slice(1));
+      return;
+    }
     try {
       const newMsg = await messageService.sendVoiceMessage(targetId, payload.blob, payload.mimeType, payload.durationSeconds);
       if (activeConvIdRef.current === targetId) {
@@ -822,6 +844,19 @@ function MessagesPageContent() {
                         </div>
                       )}
 
+                      {canSendMessages && !canInteract && (
+                        <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-[14px] bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
+                          <span>Ton abonnement est bien actif : il ne manque que la validation de ta photo pour écrire.</span>
+                          <button
+                            type="button"
+                            onClick={() => setIsVerificationRequiredOpen(true)}
+                            className="shrink-0 text-xs font-semibold text-primary hover:underline"
+                          >
+                            Valider
+                          </button>
+                        </div>
+                      )}
+
                       <ChatInputBar
                         onSendMessage={handleSendMessage}
                         onSendFileAttachment={handleSendFileAttachment}
@@ -1003,6 +1038,11 @@ function MessagesPageContent() {
         isOpen={isPremiumRequiredOpen}
         onClose={() => setIsPremiumRequiredOpen(false)}
         reason="répondre à ce message"
+      />
+      <VerificationRequiredModal
+        isOpen={isVerificationRequiredOpen}
+        onClose={() => setIsVerificationRequiredOpen(false)}
+        reason="envoyer des messages"
       />
     </div>
   );
