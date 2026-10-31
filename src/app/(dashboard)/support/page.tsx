@@ -1,47 +1,63 @@
 "use client";
 
-import { useSession } from "@/core/providers/session-provider";
+import { buildSupportWhatsAppUrl, SUPPORT_WHATSAPP_DISPLAY } from "@/config/support";
 import { SupportPageClient } from "@/components/features/support/support-page-client";
-import { CalendlyBookingWidget } from "@/components/features/support/calendly-booking-widget";
-import { AccessExpiredState } from "@/components/features/premium/access-expired-state";
-import { PhoneCall } from "lucide-react";
+import { MessageCircle, Clock, ShieldCheck } from "lucide-react";
 
+/**
+ * Canal unique : WhatsApp. Les dossiers écrits et la réservation d'appel
+ * Calendly ont été retirés (peu ou pas utilisés, cf. décision du fondateur) —
+ * l'inbox admin reste en place pour consulter les anciens dossiers, mais les
+ * membres n'en ouvrent plus de nouveaux. Aucun garde d'abonnement ici : un
+ * problème de paiement est justement l'une des raisons d'écrire.
+ */
 export default function SupportPage() {
-  const { profile } = useSession();
-  const isExpired = profile.subscription_status === "EXPIRED" && !profile.is_staff;
+  const whatsappUrl = buildSupportWhatsAppUrl("GENERAL");
 
   return (
-    <div className="space-y-4 w-full h-full flex flex-col pb-4">
+    <div className="space-y-4 w-full pb-16 select-none">
       <div className="border-b border-border/60 pb-3">
-        <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Support</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Une question, un souci ? Ouvre un dossier, l&apos;équipe Agapeo te répond directement dedans.</p>
+        <h1 className="text-2xl font-display font-semibold tracking-tight text-foreground">Aide</h1>
+        <p className="text-xs text-muted-foreground mt-0.5">Un souci ? Écris-nous sur WhatsApp, on te répond directement.</p>
       </div>
 
-      {/* Mis en avant au-dessus des dossiers texte, et jamais derrière le
-          paywall EXPIRED ci-dessous : un problème d'abonnement (accès payé
-          non activé, etc.) est justement l'un des cas visés en premier —
-          restreindre ce canal aux mêmes comptes qui en ont besoin n'aurait
-          aucun sens. Ancre #reserver-un-appel visée par le message interne
-          et l'email annonçant ce nouveau canal. */}
-      <div id="reserver-un-appel" className="rounded-2xl border border-border/60 bg-card p-4 space-y-3 scroll-mt-20">
-        <div className="flex items-start gap-3">
-          <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <PhoneCall size={17} />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">Réserve un appel avec notre équipe</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Un souci avec ton abonnement, ton compte, ta soumission de profil... quel que soit le problème, choisis un créneau qui t&apos;arrange et on le règle ensemble, en direct.
-            </p>
-          </div>
+      <div className="rounded-2xl border border-border/60 bg-card p-6 text-center space-y-5 max-w-lg mx-auto">
+        <div className="h-14 w-14 rounded-full bg-[#25D366]/10 text-[#25D366] flex items-center justify-center mx-auto">
+          <MessageCircle size={26} />
         </div>
-        <CalendlyBookingWidget />
+
+        <div className="space-y-1.5">
+          <h2 className="text-base font-semibold text-foreground">Écris-nous sur WhatsApp</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Abonnement, paiement, vérification de profil, compte bloqué... quel que soit ton problème, explique-le nous en message et on le règle
+            avec toi.
+          </p>
+        </div>
+
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-full bg-[#25D366] text-white text-sm font-semibold hover:opacity-90 transition-opacity w-full sm:w-auto"
+        >
+          <MessageCircle size={17} /> Ouvrir la conversation
+        </a>
+
+        <p className="text-[11px] text-muted-foreground">{SUPPORT_WHATSAPP_DISPLAY}</p>
+
+        <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
+          <span className="flex items-center justify-center gap-1.5 flex-1">
+            <Clock size={13} className="shrink-0" /> Réponse rapide
+          </span>
+          <span className="flex items-center justify-center gap-1.5 flex-1">
+            <ShieldCheck size={13} className="shrink-0" /> Équipe Agapeo officielle
+          </span>
+        </div>
       </div>
 
-      <div className="flex-1 min-h-[70dvh]">
-        {/* Restriction paywall (compte EXPIRED, jamais FREE) — cf. plan paywall §6. */}
-        {isExpired ? <AccessExpiredState feature="support" /> : <SupportPageClient />}
-      </div>
+      {/* Ne s'affiche que pour les membres ayant encore un dossier ouvert (dont
+          ceux ouverts par l'équipe suite à un signalement) — invisible pour tous les autres. */}
+      <SupportPageClient />
     </div>
   );
 }

@@ -9,11 +9,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
+import { buildSupportWhatsAppEmailBlock } from "../_shared/support.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@agapeo.love>";
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
-const SUPPORT_EMAIL = "support@agapeo.love";
 // Même compte que les publications officielles et les messages système —
 // cf. src/domain/system-account.ts (dupliqué ici, `@/...` n'existe pas côté Edge Function).
 const AGAPEO_SYSTEM_PROFILE_ID = "8d736a66-2597-4f48-b70b-08e6f7059c89";
@@ -75,6 +75,7 @@ async function sendFailedPaymentReminderEmail(to: string, firstName: string, pla
           parfois (carte refusée, session expirée, coupure de connexion...).
         </p>
         <p style="margin:0;">Tu peux réessayer dès maintenant, ça ne prend qu'une minute.</p>
+        ${buildSupportWhatsAppEmailBlock("PAYMENT_FAILED", "Déjà débité malgré l'échec, ou blocage au paiement ?")}
       `
     },
     {
@@ -85,10 +86,8 @@ async function sendFailedPaymentReminderEmail(to: string, firstName: string, pla
           Hier, ta tentative de paiement pour l'offre <strong>${planLabel}</strong> n'a pas abouti : ton accès Premium
           n'a donc pas pu être activé.
         </p>
-        <p style="margin:0;">
-          Si c'était un souci passager, réessaie dès maintenant. Et si le problème persiste, écris-nous à
-          <a href="mailto:${SUPPORT_EMAIL}" style="color:#FE70B2;">${SUPPORT_EMAIL}</a>, on t'aidera à le résoudre.
-        </p>
+        <p style="margin:0;">Si c'était un souci passager, réessaie dès maintenant.</p>
+        ${buildSupportWhatsAppEmailBlock("PAYMENT_FAILED", "Le problème persiste ?")}
       `
     },
     {
@@ -99,11 +98,8 @@ async function sendFailedPaymentReminderEmail(to: string, firstName: string, pla
           Depuis 3 jours, ta tentative de paiement pour l'offre <strong>${planLabel}</strong> n'a pas abouti : voici
           notre dernier rappel automatique à ce sujet.
         </p>
-        <p style="margin:0;">
-          Si le problème persiste malgré une nouvelle tentative, contacte-nous directement à
-          <a href="mailto:${SUPPORT_EMAIL}" style="color:#FE70B2;">${SUPPORT_EMAIL}</a> : on se chargera de finaliser
-          ton abonnement avec toi.
-        </p>
+        <p style="margin:0;">Si le problème persiste malgré une nouvelle tentative, on finalise ton abonnement avec toi.</p>
+        ${buildSupportWhatsAppEmailBlock("PAYMENT_FAILED", "On s'en occupe ensemble :")}
       `
     }
   ];

@@ -1,6 +1,7 @@
 import "server-only";
 import { getResendApiKey, env } from "@/config/env";
 import { buildAgapeoEmailHtml } from "@/lib/email-template";
+import { buildSupportWhatsAppEmailBlock } from "@/config/support";
 
 /** Best-effort — jamais bloquant : l'état de l'abonnement en base est déjà à jour, que l'email parte ou non. */
 async function sendResendEmail(to: string, subject: string, html: string) {
@@ -55,8 +56,8 @@ export async function sendPremiumActivatedEmail(
 export async function sendPremiumRemovedEmail(to: string, firstName: string, reason: "expired" | "admin") {
   const contentHtml =
     reason === "expired"
-      ? `<p style="margin:0 0 12px 0;">Ton abonnement Premium Agapeo est arrivé à échéance et n'a pas été renouvelé à temps : ton compte est repassé en version gratuite.</p><p style="margin:0;">Tu peux te réabonner à tout moment pour retrouver tous tes avantages : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>`
-      : `<p style="margin:0 0 12px 0;">Ton accès Premium Agapeo a été retiré par notre équipe.</p><p style="margin:0;">Si tu penses qu'il s'agit d'une erreur, contacte-nous depuis l'espace Support de l'application.</p>`;
+      ? `<p style="margin:0 0 12px 0;">Ton abonnement Premium Agapeo est arrivé à échéance et n'a pas été renouvelé à temps : ton compte est repassé en version gratuite.</p><p style="margin:0;">Tu peux te réabonner à tout moment pour retrouver tous tes avantages : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>${buildSupportWhatsAppEmailBlock("SUBSCRIPTION_EXPIRED", "Tu as payé mais l'accès n'est pas revenu ?")}`
+      : `<p style="margin:0 0 12px 0;">Ton accès Premium Agapeo a été retiré par notre équipe.</p>${buildSupportWhatsAppEmailBlock("SUBSCRIPTION_EXPIRED", "Tu penses qu'il s'agit d'une erreur ?")}`;
 
   await sendResendEmail(
     to,

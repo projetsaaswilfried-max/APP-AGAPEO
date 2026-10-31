@@ -196,20 +196,29 @@ export function MessageBubble({
             </p>
           )}
 
-          {/* Bouton d'action — réservé aux messages système (relances Premium, etc.). */}
-          {message.ctaText && message.ctaUrl && (
-            <Link
-              href={message.ctaUrl}
-              className={cn(
+          {/* Bouton d'action — réservé aux messages système (relances Premium,
+              support WhatsApp, etc.). Une URL absolue (wa.me...) sort de l'app :
+              ancre classique en nouvel onglet, jamais le routeur Next qui
+              tenterait une navigation interne. */}
+          {message.ctaText &&
+            message.ctaUrl &&
+            (() => {
+              const ctaClass = cn(
                 "block text-center text-xs font-semibold py-2 px-4 rounded-full transition-colors",
                 isCurrentUser
                   ? "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                   : "bg-primary text-primary-foreground hover:bg-primary/90"
-              )}
-            >
-              {message.ctaText}
-            </Link>
-          )}
+              );
+              return /^https?:\/\//.test(message.ctaUrl) ? (
+                <a href={message.ctaUrl} target="_blank" rel="noopener noreferrer" className={ctaClass}>
+                  {message.ctaText}
+                </a>
+              ) : (
+                <Link href={message.ctaUrl} className={ctaClass}>
+                  {message.ctaText}
+                </Link>
+              );
+            })()}
 
           {/* Heure et Ticks d'état (✓✓) — au bout de la dernière ligne pour un texte simple, sinon en dessous. */}
           <div

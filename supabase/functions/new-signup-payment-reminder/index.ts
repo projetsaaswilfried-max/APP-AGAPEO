@@ -17,6 +17,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
+import { buildSupportWhatsAppEmailBlock } from "../_shared/support.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@agapeo.love>";
@@ -128,10 +129,8 @@ async function sendAccessPaymentReminderEmail(to: string, firstName: string, sta
           Voici notre dernier rappel automatique : ton compte Agapeo est créé depuis 5 jours mais ton accès
           (${PRICE_LABEL} / 30 jours) n'a toujours pas été débloqué.
         </p>
-        <p style="margin:0;">
-          Si tu rencontres un souci pour finaliser, écris-nous à
-          <a href="mailto:support@agapeo.love" style="color:#FE70B2;">support@agapeo.love</a>, on t'aidera avec plaisir.
-        </p>
+        <p style="margin:0;">Si tu rencontres un souci pour finaliser, on s'en occupe avec toi.</p>
+        ${buildSupportWhatsAppEmailBlock("PAYMENT_FAILED", "Un blocage au paiement ?")}
       `
     }
   ];

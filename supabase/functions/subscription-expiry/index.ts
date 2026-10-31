@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
+import { buildSupportWhatsAppEmailBlock } from "../_shared/support.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@agapeo.love>";
@@ -92,6 +93,7 @@ async function sendExpiredEmail(to: string, firstName: string) {
       contentHtml: `
         <p style="margin:0 0 12px 0;">Ton abonnement Premium Agapeo est arrivé à échéance et n'a pas été renouvelé à temps : ton compte est repassé en version gratuite.</p>
         <p style="margin:0;">Tu peux te réabonner à tout moment pour retrouver tous tes avantages : contact en priorité, favoris, qui s'intéresse à toi, filtres avancés et consultation illimitée.</p>
+        ${buildSupportWhatsAppEmailBlock("SUBSCRIPTION_EXPIRED", "Tu as payé mais l'accès n'est pas revenu ?")}
       `,
       ctaText: "Se réabonner",
       ctaUrl: `${SITE_URL}/premium`

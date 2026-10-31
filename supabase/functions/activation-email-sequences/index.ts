@@ -15,6 +15,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildAgapeoEmailHtml } from "../_shared/email-template.ts";
 import { requireServiceRole } from "../_shared/auth-guard.ts";
+import { buildSupportWhatsAppEmailBlock } from "../_shared/support.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM_EMAIL = Deno.env.get("DIGEST_FROM_EMAIL") ?? "Agapeo <support@agapeo.love>";
@@ -80,6 +81,7 @@ async function sendOnboardingEmail(to: string, firstName: string, day: 1 | 3 | 5
       contentHtml: `
         <p style="margin:0 0 12px 0;">Voici le dernier rappel automatique : ton profil Agapeo est prêt, il ne manque plus que la vérification pour qu'il devienne visible dans Découvrir.</p>
         <p style="margin:0;">Soumets-le dès maintenant : tu peux reprendre exactement là où tu t'étais arrêté(e).</p>
+        ${buildSupportWhatsAppEmailBlock("VERIFICATION_STUCK", "Tu n'arrives pas à soumettre, ou quelque chose bloque ?")}
       `,
       ctaText: "Soumettre mon profil"
     }
@@ -120,6 +122,7 @@ async function sendAlmostDoneEmail(to: string, firstName: string) {
       contentHtml: `
         <p style="margin:0 0 12px 0;">Ton profil Agapeo est déjà complet : photos, confession, vision du mariage, tout y est. Il ne manque plus qu'un selfie en direct (pour confirmer que c'est bien toi) et un clic sur "Soumettre".</p>
         <p style="margin:0;">Ça prend littéralement 2 minutes, et notre équipe l'examine généralement sous 48h.</p>
+        ${buildSupportWhatsAppEmailBlock("VERIFICATION_STUCK", "Le selfie ne passe pas, ou tu es bloqué(e) à cette étape ?")}
       `,
       ctaText: "Finaliser mon profil",
       ctaUrl: SUBMIT_PROFILE_URL
