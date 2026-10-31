@@ -625,6 +625,7 @@ export interface Database {
       create_conversation_with_participant: { Args: { other_user_id: string }; Returns: string };
       get_my_blocked_profiles: { Args: Record<string, never>; Returns: { id: string; first_name: string; avatar_url: string | null }[] };
       is_blocked: { Args: { a: string; b: string }; Returns: boolean };
+      who_is_interested_count: { Args: Record<string, never>; Returns: number };
       register_device_token: { Args: { p_token: string; p_platform: "ios" | "android" }; Returns: void };
     };
   };

@@ -201,8 +201,11 @@ class DiscoverServiceSupabase implements IDiscoverService {
    * Membres ayant consulté, mis en favori, ou liké mon profil — fonctionnalité
    * Premium. Le détail (identité, photo) n'est renvoyé qu'aux membres
    * Premium/équipe ; un membre gratuit doit passer par `getWhoLikesMeCount()`
-   * pour le nombre seul. Contrôle fait ici côté serveur (pas seulement
-   * masqué dans l'UI) pour qu'un appel direct ne puisse pas contourner Premium.
+   * pour le nombre seul. Ce garde-ci tourne dans le NAVIGATEUR et ne sert qu'à
+   * éviter des requêtes inutiles : la protection réelle est en base, dans les
+   * politiques de lecture de favorites/profile_likes/profile_views (cf.
+   * migration gate_who_is_interested_behind_premium) — seules opposables à un
+   * appel direct ou au client mobile, qui interroge Supabase sans passer ici.
    */
   async getWhoLikesMe(): Promise<RecommendedProfileItem[]> {
     const supabase = createClient();
@@ -281,44 +284,24 @@ class DiscoverServiceSupabase implements IDiscoverService {
       .sort((a, b) => b.compatibilityPercentage - a.compatibilityPercentage);
   }
 
-  /** Nombre de personnes intéressées, sans exposer leur identité — accessible à tous, y compris en gratuit. */
+  /**
+   * Nombre de personnes intéressées, sans exposer leur identité — accessible à
+   * tous, y compris en gratuit. Calculé en base par who_is_interested_count(),
+   * qui applique la même liste blanche que getWhoLikesMe() (genre opposé, hors
+   * équipe, profil vérifié) pour que le compte annoncé corresponde toujours au
+   * détail réellement affiché après abonnement.
+   *
+   * Ce compte se déduisait auparavant des identités lues ici, depuis le
+   * navigateur : il fallait donc laisser favorites/profile_likes/profile_views
+   * lisibles aux non-abonnés, ce qui livrait gratuitement — et surtout au
+   * client mobile, qui interroge Supabase en direct — le détail même que
+   * Premium débloque. Cf. migration gate_who_is_interested_behind_premium.
+   */
   async getWhoLikesMeCount(): Promise<number> {
     const supabase = createClient();
-    const {
-      data: { user }
-    } = await getSessionUser(supabase);
-    if (!user) return 0;
-
-    const { data: viewerRow } = await supabase.from("profiles").select("gender").eq("id", user.id).single();
-    if (!viewerRow) return 0;
-    const targetGender = viewerRow.gender === "MALE" ? "FEMALE" : "MALE";
-
-    const [{ data: favoritedByRows }, { data: viewedByRows }, { data: likedByRows }] = await Promise.all([
-      supabase.from("favorites").select("user_id").eq("favorite_profile_id", user.id),
-      supabase.from("profile_views").select("viewer_id").eq("viewed_profile_id", user.id),
-      supabase.from("profile_likes").select("user_id").eq("liked_profile_id", user.id)
-    ]);
-
-    const candidateIds = [
-      ...new Set([
-        ...(favoritedByRows ?? []).map((r) => r.user_id),
-        ...(viewedByRows ?? []).map((r) => r.viewer_id),
-        ...(likedByRows ?? []).map((r) => r.user_id)
-      ])
-    ];
-    if (candidateIds.length === 0) return 0;
-
-    // Même liste blanche que getWhoLikesMe() : le compte doit correspondre à
-    // ce qui sera effectivement affiché en détail (VERIFIED + bon genre).
-    const { data: visibleCandidates } = await supabase
-      .from("profiles")
-      .select("id")
-      .in("id", candidateIds)
-      .eq("gender", targetGender)
-      .eq("is_staff", false)
-      .eq("photo_verification_status", "VERIFIED");
-
-    return visibleCandidates?.length ?? 0;
+    const { data, error } = await supabase.rpc("who_is_interested_count");
+    if (error) return 0;
+    return data ?? 0;
   }
 
   async toggleFavorite(profileId: string): Promise<boolean> {
