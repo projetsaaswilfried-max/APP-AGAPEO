@@ -254,6 +254,13 @@ export function MobileMoneyCheckoutModal({ plan, onClose }: MobileMoneyCheckoutM
           <CheckCircle2 size={40} className="text-emerald-600 mx-auto" />
           <p className="text-sm font-semibold text-foreground">Paiement confirmé !</p>
           <p className="text-xs text-muted-foreground">Ton abonnement Premium est actif.</p>
+          {/* Un membre venu de l'app mobile paie ici dans le navigateur externe
+              (cf. passerelle mobile-payment-handoff) : l'app, elle, doit relire
+              son abonnement pour s'en apercevoir. */}
+          <p className="text-[11px] text-muted-foreground/80">
+            Tu utilises l&apos;application Agapeo ? Si ton accès n&apos;y apparaît pas tout de suite, ferme-la complètement et
+            rouvre-la.
+          </p>
           <Button type="button" variant="primary" className="w-full" onClick={() => (window.location.href = "/premium")}>
             Continuer
           </Button>
