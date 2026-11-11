@@ -10,14 +10,17 @@ import { PREMIUM_PLANS } from "@/domain/premium-plans";
 import { cn } from "@/lib/utils";
 
 function PremiumUpsellBannerContent() {
-  const { profile } = useSession();
+  const { profile, rightsVerified } = useSession();
   const pathname = usePathname();
 
   // On laisse la priorité au bandeau "profil incomplet"/"à soumettre" — pas
   // deux bandeaux à la fois (cf. incomplete-profile-banner.tsx). Jamais sur la
   // page de paiement elle-même : le membre y est déjà.
+  // `!rightsVerified` : ce bandeau s'affiche tout seul, il ne doit donc pas
+  // s'appuyer sur un instantané antérieur à un paiement qui vient d'aboutir.
   const pendingSubmission = !profile.is_staff && needsVerificationSubmission(profile);
   if (
+    !rightsVerified ||
     !isProfileComplete(profile) ||
     pendingSubmission ||
     profile.subscription_status === "ACTIVE" ||

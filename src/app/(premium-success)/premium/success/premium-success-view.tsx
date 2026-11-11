@@ -9,9 +9,19 @@ import { CheckCircle2, Loader2, Crown, UserCog } from "lucide-react";
 import { trackMetaEventOnce } from "@/lib/meta-pixel";
 import { PREMIUM_PLANS, planKeyFromDbValue } from "@/domain/premium-plans";
 import { getSessionUser } from "@/lib/supabase/session-user";
+import { clearPaymentPending, markPaymentPending } from "@/domain/payment-intent";
 
-const POLL_INTERVAL_MS = 2000;
-const MAX_ATTEMPTS = 10;
+const POLL_INTERVAL_MS = 3000;
+/**
+ * Trois minutes d'attente. L'ancienne limite — 10 essais de 2 s, soit 20 s —
+ * était PLUS COURTE que le délai d'activation réel : mesuré le 2026-11-11 sur
+ * les 762 paiements SasPay (Mobile Money) des 60 derniers jours, la médiane
+ * est de 46 s et le 9e décile de 106 s. La majorité des payeurs voyaient donc
+ * « contacte le support » alors que leur accès arrivait quelques secondes plus
+ * tard. (Chariow, lui, active en moins d'une seconde : cette attente ne le
+ * concerne pas.)
+ */
+const MAX_ATTEMPTS = 60;
 /** Adresse de contact PUBLIQUE affichée aux membres — cf. (auth)/suspended/page.tsx. */
 const SUPPORT_EMAIL = "support@agapeo.love";
 
@@ -23,6 +33,12 @@ export function PremiumSuccessView({ onboardingCompleted }: PremiumSuccessViewPr
   const [status, setStatus] = useState<"waiting" | "active" | "timeout">("waiting");
 
   useEffect(() => {
+    // Le membre attend une activation : tant qu'elle n'est pas arrivée, tout
+    // l'espace membre relit ses droits toutes les 3 s au lieu d'une fois par
+    // minute (cf. useRightsFreshness), y compris s'il quitte cette page avant
+    // la fin de l'attente.
+    markPaymentPending();
+
     let cancelled = false;
     let attempts = 0;
 
@@ -42,6 +58,7 @@ export function PremiumSuccessView({ onboardingCompleted }: PremiumSuccessViewPr
 
       if (data?.subscription_status === "ACTIVE") {
         setStatus("active");
+        clearPaymentPending();
         // Déduplication sur user + échéance de la période payée : un même
         // achat garde la même date de fin, donc revisiter cette page (retour
         // arrière, favori) sans nouveau paiement ne redéclenche jamais
@@ -106,6 +123,13 @@ export function PremiumSuccessView({ onboardingCompleted }: PremiumSuccessViewPr
                     ? "Ton accès Premium Agapeo est actif. Profite de tous tes nouveaux avantages dès maintenant."
                     : "Ton accès est actif. Complète maintenant ton profil pour commencer ta recherche."}
                 </p>
+                {/* Le paiement depuis l'app mobile se règle dans le navigateur
+                    externe (cf. passerelle mobile-payment-handoff) : l'app,
+                    elle, doit relire l'abonnement pour s'en apercevoir. */}
+                <p className="text-[11px] text-muted-foreground/80 mt-2 max-w-xs">
+                  Tu utilises l&apos;application Agapeo ? Si ton accès n&apos;y apparaît pas tout de suite, ferme-la complètement
+                  et rouvre-la.
+                </p>
               </div>
               {onboardingCompleted ? (
                 <Link href="/discover">
@@ -131,8 +155,9 @@ export function PremiumSuccessView({ onboardingCompleted }: PremiumSuccessViewPr
               <div>
                 <h1 className="text-base font-display font-semibold text-foreground">Activation en cours</h1>
                 <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                  Ton paiement a été reçu et ton accès s&apos;active généralement en quelques instants. Si ce n&apos;est pas encore
-                  le cas depuis ton profil, contacte le support.
+                  Ton paiement a bien été reçu. Pour un paiement Mobile Money, l&apos;activation peut prendre quelques minutes
+                  de plus : laisse cette page ouverte ou reviens dans un instant, ton accès s&apos;ouvrira tout seul. S&apos;il
+                  n&apos;est toujours pas là d&apos;ici une dizaine de minutes, écris-nous.
                 </p>
               </div>
               {onboardingCompleted ? (

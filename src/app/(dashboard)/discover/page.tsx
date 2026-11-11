@@ -78,7 +78,7 @@ function getVerificationBannerContent(
 function DiscoverPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { profile } = useSession();
+  const { profile, rightsVerified } = useSession();
   const scoringGaps = getScoringGaps(profile);
   // Faux tant que le profil n'est pas vérifié : Découvrir reste consultable
   // (aperçu flouté), seules les interactions réelles (contacter, favori,
@@ -122,7 +122,12 @@ function DiscoverPageContent() {
   // de condition de profil complet/vérifié, contrairement à PremiumUpsellBanner :
   // un compte gratuit fraîchement créé (donc pas encore vérifié) doit voir ce
   // popup autant que les autres, c'est justement lui la cible.
-  const isPremiumOfferEligible = !profile.is_staff && profile.subscription_status !== "ACTIVE";
+  // `rightsVerified` : ce popup s'ouvre TOUT SEUL, et l'instantané serveur
+  // peut dater d'avant un paiement qui vient d'aboutir (activation Mobile
+  // Money : 46 s de médiane en production). Proposer de payer à quelqu'un qui
+  // vient de payer est exactement la plainte remontée par les membres — on
+  // attend donc la confirmation des droits en base, qui arrive en une seconde.
+  const isPremiumOfferEligible = rightsVerified && !profile.is_staff && profile.subscription_status !== "ACTIVE";
 
   const handleRequireVerification = (reason: string) => {
     setVerificationReason(reason);

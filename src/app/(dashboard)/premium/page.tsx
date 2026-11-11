@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "@/core/providers/session-provider";
 import { startPremiumCheckoutAction, type PremiumCheckoutState } from "@/lib/actions/premium.actions";
 import { getActivePaymentProviderAction } from "@/lib/actions/payment-settings.actions";
+import { markPaymentPending } from "@/domain/payment-intent";
 import { MobileMoneyCheckoutModal } from "@/components/features/premium/mobile-money-checkout-modal";
 import type { PaymentProvider } from "@/domain/payment-provider";
 import { PHONE_COUNTRY_CODES } from "@/config/phone-country-codes";
@@ -315,6 +316,7 @@ export default function PremiumPage() {
   }, []);
 
   const handleChooseMobileMoney = () => {
+    markPaymentPending();
     if (mobileMoneyProvider === "saspay") {
       setPaymentMethodModalPlan(null);
       setNativeMobileMoneyPlan(selectedPlan);
@@ -388,7 +390,7 @@ export default function PremiumPage() {
       >
         Mobile Money : Moov, Wave, MTN, Celtiis...
       </Button>
-      <form action={action} onSubmit={() => setSelectedPaymentMethod("CARD")}>
+      <form action={action} onSubmit={() => { setSelectedPaymentMethod("CARD"); markPaymentPending(); }}>
         <input type="hidden" name="plan" value={paymentMethodModalPlan ?? ""} />
         <input type="hidden" name="paymentMethod" value="CARD" />
         <Button type="submit" variant="outline" className="w-full justify-start" isLoading={pending} leftIcon={<CreditCard size={16} />}>
@@ -399,7 +401,7 @@ export default function PremiumPage() {
   );
 
   const phoneFormContent = (
-    <form action={action} className="space-y-3">
+    <form action={action} className="space-y-3" onSubmit={markPaymentPending}>
       <input type="hidden" name="plan" value={selectedPlan} />
       <input type="hidden" name="paymentMethod" value={selectedPaymentMethod} />
       <p className="text-xs text-muted-foreground">
@@ -562,7 +564,7 @@ export default function PremiumPage() {
               >
                 Payer par Mobile Money
               </Button>
-              <form action={action} onSubmit={() => setSelectedPaymentMethod("CARD")}>
+              <form action={action} onSubmit={() => { setSelectedPaymentMethod("CARD"); markPaymentPending(); }}>
                 <input type="hidden" name="plan" value={selectedPlan} />
                 <input type="hidden" name="paymentMethod" value="CARD" />
                 <Button type="submit" variant="outline" className="w-full h-12" isLoading={pending} leftIcon={<CreditCard size={17} />}>

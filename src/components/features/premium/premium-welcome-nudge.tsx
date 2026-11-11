@@ -19,12 +19,15 @@ const STORAGE_KEY = "agapeo:premium-welcome-nudge-shown";
  * discover/page.tsx) reste le seul endroit sans aucune limite.
  */
 export function PremiumWelcomeNudge() {
-  const { profile } = useSession();
+  const { profile, rightsVerified } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
-  const eligible = !profile.is_staff && profile.subscription_status !== "ACTIVE";
+  // `rightsVerified` : jamais proposer de payer sur la foi de l'instantané
+  // serveur seul — il peut précéder l'activation d'un paiement tout juste
+  // réglé (cf. useRightsFreshness).
+  const eligible = rightsVerified && !profile.is_staff && profile.subscription_status !== "ACTIVE";
 
   // "/" en plus de "/accueil" : selon comment la personne arrive (connexion
   // sans redirectTo précis, ouverture directe de l'app...), l'accueil peut
