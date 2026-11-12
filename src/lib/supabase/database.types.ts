@@ -173,6 +173,14 @@ export interface ProfileRestrictedRow {
   subscription_status: SubscriptionStatus;
   subscription_plan: string | null;
   subscription_current_period_end: string | null;
+  /**
+   * Jours payés mis en réserve tant que la photo n'est pas validée : le
+   * décompte ne démarre qu'à la validation (cf. migration
+   * hold_subscription_until_photo_verified). null = l'échéance court
+   * normalement. Quand il est renseigné, `subscription_current_period_end`
+   * vaut null et l'abonnement n'expire pas.
+   */
+  subscription_hold_days: number | null;
   /** Palier de relance déjà envoyé sur le cycle en cours : 5, 3 ou 1 (jours avant échéance) — null si aucun. */
   subscription_reminder_stage: number | null;
   /** Horodatage du passage à EXPIRED (retrait automatique pour non-paiement) — null si jamais expiré ou déjà réabonné. */

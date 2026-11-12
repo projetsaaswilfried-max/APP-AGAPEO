@@ -17,22 +17,43 @@ async function sendResendEmail(to: string, subject: string, html: string) {
   }
 }
 
+/**
+ * `holdDays` : jours mis en réserve parce que le profil n'est pas encore
+ * validé (cf. migration hold_subscription_until_photo_verified). Dans ce cas
+ * aucune échéance ne court, et annoncer une date de fin serait faux —
+ * l'email dit alors que le décompte démarrera à la validation.
+ */
 export async function sendPremiumActivatedEmail(
   to: string,
   firstName: string,
   amount: { value: number; currency: string },
-  periodEnd: Date,
-  periodDays: number
+  periodEnd: Date | null,
+  periodDays: number,
+  holdDays?: number | null
 ) {
+  const onHold = holdDays != null && holdDays > 0;
+  const heldDayLabel = onHold ? `${Math.ceil(holdDays)} jour${Math.ceil(holdDays) > 1 ? "s" : ""}` : "";
+
   await sendResendEmail(
     to,
     "Bienvenue dans Agapeo Premium !",
     buildAgapeoEmailHtml({
       title: "Bienvenue dans Agapeo Premium",
       eyebrow: "PREMIUM",
-      headline: "Félicitations, ton abonnement est actif !",
+      headline: onHold ? "Ton paiement est bien reçu !" : "Félicitations, ton abonnement est actif !",
       recipientFirstName: firstName,
-      contentHtml: `
+      contentHtml: onHold
+        ? `
+        <p style="margin:0 0 12px 0;">
+          Merci pour ta confiance : ton paiement a bien été reçu. Il ne manque plus que la validation de ta photo par
+          notre équipe pour que tu puisses écrire aux membres qui t'intéressent.
+        </p>
+        <p style="margin:0 0 12px 0;">
+          <strong>Tes ${heldDayLabel} sont mis de côté et ne s'écoulent pas</strong> : le décompte ne démarrera qu'à la
+          validation de ton profil, pour que tu profites de ton abonnement en entier.
+        </p>
+      `
+        : `
         <p style="margin:0 0 12px 0;">
           Merci pour ta confiance : ton paiement a bien été reçu et ton accès Premium est actif dès maintenant.
           Tu peux désormais contacter en priorité, voir qui s'intéresse à toi, utiliser les filtres avancés et
@@ -44,10 +65,19 @@ export async function sendPremiumActivatedEmail(
       `,
       infoRows: [
         { label: "Montant", value: `${amount.value} ${amount.currency}` },
-        { label: "Valable jusqu'au", value: periodEnd.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) }
+        onHold
+          ? { label: "Décompte", value: `${heldDayLabel}, dès la validation de ta photo` }
+          : {
+              label: "Valable jusqu'au",
+              value: (periodEnd ?? new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000)).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+              })
+            }
       ],
-      ctaText: "Découvrir Premium",
-      ctaUrl: `${env.siteUrl}/premium`
+      ctaText: onHold ? "Faire valider ma photo" : "Découvrir Premium",
+      ctaUrl: onHold ? `${env.siteUrl}/profile?tab=account` : `${env.siteUrl}/premium`
     })
   );
 }

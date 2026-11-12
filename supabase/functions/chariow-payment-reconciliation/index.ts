@@ -68,15 +68,41 @@ async function fetchRecentCompletedSales(): Promise<ChariowSale[]> {
   return sales.filter((s) => new Date(s.completed_at as string).getTime() >= cutoff);
 }
 
-async function sendActivationEmail(to: string, firstName: string, amount: number, currency: string, periodEnd: Date, periodDays: number) {
+/**
+ * `holdDays` : jours mis en réserve parce que le profil n'est pas encore
+ * validé (cf. migration hold_subscription_until_photo_verified). Aucune
+ * échéance ne court alors — annoncer une date de fin serait faux.
+ */
+async function sendActivationEmail(
+  to: string,
+  firstName: string,
+  amount: number,
+  currency: string,
+  periodEnd: Date | null,
+  periodDays: number,
+  holdDays: number | null
+) {
   if (!RESEND_API_KEY) return;
+  const onHold = holdDays != null && holdDays > 0;
+  const heldDayLabel = onHold ? `${Math.ceil(holdDays)} jour${Math.ceil(holdDays) > 1 ? "s" : ""}` : "";
   try {
     const html = buildAgapeoEmailHtml({
       title: "Bienvenue dans Agapeo Premium",
       eyebrow: "PREMIUM",
-      headline: "Félicitations, ton abonnement est actif !",
+      headline: onHold ? "Ton paiement est bien reçu !" : "Félicitations, ton abonnement est actif !",
       recipientFirstName: firstName,
-      contentHtml: `
+      contentHtml: onHold
+        ? `
+        <p style="margin:0 0 12px 0;">
+          Merci pour ta confiance : ton paiement a bien été reçu. Il ne manque plus que la validation de ta photo par
+          notre équipe pour que tu puisses écrire aux membres qui t'intéressent.
+        </p>
+        <p style="margin:0 0 12px 0;">
+          <strong>Tes ${heldDayLabel} sont mis de côté et ne s'écoulent pas</strong> : le décompte ne démarrera qu'à la
+          validation de ton profil, pour que tu profites de ton abonnement en entier.
+        </p>
+      `
+        : `
         <p style="margin:0 0 12px 0;">
           Merci pour ta confiance : ton paiement a bien été reçu et ton accès Premium est actif dès maintenant.
           Tu peux désormais contacter en priorité, voir qui s'intéresse à toi, utiliser les filtres avancés et
@@ -88,10 +114,19 @@ async function sendActivationEmail(to: string, firstName: string, amount: number
       `,
       infoRows: [
         { label: "Montant", value: `${amount} ${currency}` },
-        { label: "Valable jusqu'au", value: periodEnd.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) }
+        onHold
+          ? { label: "Décompte", value: `${heldDayLabel}, dès la validation de ta photo` }
+          : {
+              label: "Valable jusqu'au",
+              value: (periodEnd ?? new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000)).toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+              })
+            }
       ],
-      ctaText: "Découvrir Premium",
-      ctaUrl: `${SITE_URL}/premium`
+      ctaText: onHold ? "Faire valider ma photo" : "Découvrir Premium",
+      ctaUrl: onHold ? `${SITE_URL}/profile?tab=account` : `${SITE_URL}/premium`
     });
     await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -214,9 +249,28 @@ Deno.serve(async (req) => {
         continue;
       }
 
+  // Relu après écriture : si la photo n'est pas encore validée, le déclencheur
+  // de mise en réserve a ramené l'échéance à NULL et reporté les jours (cf.
+  // migration hold_subscription_until_photo_verified).
+  const { data: activated } = await admin
+    .from("profile_restricted")
+    .select("subscription_current_period_end, subscription_hold_days")
+    .eq("id", userId)
+    .maybeSingle();
+  const heldDays = activated?.subscription_hold_days ?? null;
+  const effectivePeriodEnd = activated?.subscription_current_period_end ? new Date(activated.subscription_current_period_end) : null;
+
       const { data: profile } = await admin.from("profiles").select("first_name").eq("id", userId).maybeSingle();
       if (profile) {
-        await sendActivationEmail(sale.customer.email, profile.first_name, sale.amount.value, sale.amount.currency, newPeriodEnd, plan.periodDays);
+        await sendActivationEmail(
+          sale.customer.email,
+          profile.first_name,
+          sale.amount.value,
+          sale.amount.currency,
+          effectivePeriodEnd,
+          plan.periodDays,
+          heldDays
+        );
       }
 
       results.push({ saleId: sale.id, email: sale.customer.email, outcome: `ACTIVÉ (${plan.dbValue} jusqu'au ${newPeriodEnd.toISOString()})` });

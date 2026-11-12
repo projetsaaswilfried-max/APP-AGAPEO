@@ -846,7 +846,10 @@ function MessagesPageContent() {
 
                       {canSendMessages && !canInteract && (
                         <div className="mx-4 mb-2 flex items-center justify-between gap-3 p-3 rounded-[14px] bg-accent-subtle/60 border border-accent/20 text-xs text-foreground">
-                          <span>Ton abonnement est bien actif : il ne manque que la validation de ta photo pour écrire.</span>
+                          <span>
+                            Ton abonnement est bien actif : il ne manque que la validation de ta photo pour écrire. Tes jours ne
+                            s&apos;écoulent pas en attendant.
+                          </span>
                           <button
                             type="button"
                             onClick={() => setIsVerificationRequiredOpen(true)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "@/core/providers/session-provider";
 import { startPremiumCheckoutAction, type PremiumCheckoutState } from "@/lib/actions/premium.actions";
@@ -17,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { PageHeader } from "@/components/ui/page-header";
-import { Check, X, Crown, AlertCircle, Smartphone, CreditCard, ChevronRight, Heart, ShieldCheck } from "lucide-react";
+import { Check, X, Crown, AlertCircle, Smartphone, CreditCard, ChevronRight, Heart, ShieldCheck, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const initialState: PremiumCheckoutState = undefined;
@@ -334,6 +335,10 @@ export default function PremiumPage() {
   const daysUntilExpiry = profile.subscription_current_period_end
     ? Math.ceil((new Date(profile.subscription_current_period_end).getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000))
     : null;
+  // Jours payés mis en réserve tant que la photo n'est pas validée : le
+  // décompte ne démarre qu'à la validation, et aucune échéance ne court
+  // entre-temps (cf. migration hold_subscription_until_photo_verified).
+  const holdDays = profile.subscription_hold_days !== null ? Math.ceil(Number(profile.subscription_hold_days)) : null;
   // "5 jours avant jusqu'au jour J" — daysUntilExpiry peut être 0 (jour J) ou négatif si le cron n'est pas encore passé.
   const isExpiringSoon = isPremium && daysUntilExpiry !== null && daysUntilExpiry <= 5;
   // Carte "Gratuit" : un membre déjà présent avant le pivot garde l'ancien
@@ -479,13 +484,31 @@ export default function PremiumPage() {
       <PageHeader
         title={isPremium ? "Mon Plan" : "Premium"}
         description={
-          isPremium && periodEndLabel
+          isPremium && holdDays !== null
+            ? "Tes jours sont mis de côté : le décompte démarrera à la validation de ta photo."
+            : isPremium && periodEndLabel
             ? `Ton accès est actif jusqu'au ${periodEndLabel}.`
             : isExpired
               ? "Ton accès a expiré : réactive-le pour reprendre tes conversations."
               : "Donne toutes ses chances à ta rencontre."
         }
       />
+
+      {holdDays !== null && (
+        <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-accent-subtle border border-border/40">
+          <Hourglass size={16} className="shrink-0 mt-0.5 text-primary" />
+          <div className="text-xs text-foreground/90">
+            <p className="font-semibold text-foreground">Ton abonnement n&apos;a pas encore commencé à s&apos;écouler.</p>
+            <p className="mt-0.5">
+              Tes {holdDays} jour{holdDays > 1 ? "s" : ""} sont mis de côté : le décompte démarrera le jour où ta photo sera validée, pour
+              que tu n&apos;en perdes aucun.{" "}
+              <Link href="/profile?tab=account" className="font-semibold text-primary underline-offset-2 hover:underline">
+                Valider ma photo
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
 
       {state?.message && (
         <div className="flex items-center gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive">

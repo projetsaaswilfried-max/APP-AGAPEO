@@ -165,7 +165,11 @@ export async function handleChariowWebhook(request: Request, planKey: ChariowPla
     const base = currentEnd && currentEnd > new Date() ? currentEnd : new Date();
     const newPeriodEnd = new Date(base.getTime() + plan.periodDays * 24 * 60 * 60 * 1000);
 
-    const { error: subError } = await admin
+    // Relu après écriture : si la photo n'est pas encore validée, le
+    // déclencheur de mise en réserve a ramené l'échéance à NULL et reporté les
+    // jours (cf. migration hold_subscription_until_photo_verified). L'email
+    // doit annoncer ce qui est réellement en base, pas la date calculée ici.
+    const { data: activated, error: subError } = await admin
       .from("profile_restricted")
       .update({
         subscription_status: "ACTIVE",
@@ -175,7 +179,9 @@ export async function handleChariowWebhook(request: Request, planKey: ChariowPla
         subscription_expired_at: null,
         subscription_expiry_followup_sent: false
       })
-      .eq("id", userId);
+      .eq("id", userId)
+      .select("subscription_current_period_end, subscription_hold_days")
+      .maybeSingle();
 
     if (subError) {
       console.error(`Transaction ${sale.id} enregistrée mais activation de l'abonnement échouée pour ${userId} :`, subError.message);
@@ -187,7 +193,14 @@ export async function handleChariowWebhook(request: Request, planKey: ChariowPla
       admin.auth.admin.getUserById(userId)
     ]);
     if (memberProfile && authUser?.user?.email) {
-      await sendPremiumActivatedEmail(authUser.user.email, memberProfile.first_name, sale.amount, newPeriodEnd, plan.periodDays);
+      await sendPremiumActivatedEmail(
+        authUser.user.email,
+        memberProfile.first_name,
+        sale.amount,
+        activated?.subscription_current_period_end ? new Date(activated.subscription_current_period_end) : null,
+        plan.periodDays,
+        activated?.subscription_hold_days ?? null
+      );
       // eventId dérivé de la même façon côté client (/premium/success) —
       // secondes epoch plutôt que la chaîne ISO brute, insensible aux
       // différences de sérialisation (précision, format) entre ce que ce

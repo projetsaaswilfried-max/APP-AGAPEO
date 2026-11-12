@@ -125,7 +125,11 @@ export async function activateSasPayTransaction(tx: PendingSasPayTransaction, re
   const base = currentEnd && currentEnd > new Date() ? currentEnd : new Date();
   const newPeriodEnd = new Date(base.getTime() + plan.periodDays * 24 * 60 * 60 * 1000);
 
-  await admin
+  // Relu après écriture : si la photo n'est pas encore validée, le déclencheur
+  // de mise en réserve a ramené l'échéance à NULL et reporté les jours (cf.
+  // migration hold_subscription_until_photo_verified). L'email doit annoncer
+  // ce qui est réellement en base, pas la date calculée ici.
+  const { data: activated } = await admin
     .from("profile_restricted")
     .update({
       subscription_status: "ACTIVE",
@@ -135,7 +139,11 @@ export async function activateSasPayTransaction(tx: PendingSasPayTransaction, re
       subscription_expired_at: null,
       subscription_expiry_followup_sent: false
     })
-    .eq("id", tx.user_id);
+    .eq("id", tx.user_id)
+    .select("subscription_current_period_end, subscription_hold_days")
+    .maybeSingle();
+  const heldDays = activated?.subscription_hold_days ?? null;
+  const effectivePeriodEnd = activated?.subscription_current_period_end ? new Date(activated.subscription_current_period_end) : null;
 
   const [{ data: memberProfile }, { data: authUser }] = await Promise.all([
     admin.from("profiles").select("first_name").eq("id", tx.user_id).maybeSingle(),
@@ -146,8 +154,9 @@ export async function activateSasPayTransaction(tx: PendingSasPayTransaction, re
       authUser.user.email,
       memberProfile.first_name,
       { value: tx.amount_cents / 100, currency: tx.currency },
-      newPeriodEnd,
-      plan.periodDays
+      effectivePeriodEnd,
+      plan.periodDays,
+      heldDays
     );
     // value en USD (pas XOF) pour rester cohérent avec le suivi Meta déjà en
     // place côté Chariow — l'attribution ROAS raisonne dans une seule devise.
