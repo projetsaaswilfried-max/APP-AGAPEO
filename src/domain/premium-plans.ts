@@ -7,6 +7,16 @@
  */
 export type PremiumPlanKey = "WEEKLY" | "HALF_MONTH" | "MONTHLY" | "QUARTERLY" | "ACCESS";
 
+/**
+ * Plafond de la mise en réserve : un membre qui paie sans profil validé voit
+ * ses jours gelés (cf. migration hold_subscription_until_photo_verified), mais
+ * au maximum ce nombre de jours. Passé ce délai, le décompte démarre de
+ * lui-même et il garde l'intégralité des jours payés — rien n'est perdu.
+ * Resynchroniser la valeur dans cap_subscription_hold_at_30_days.sql et dans
+ * les fonctions Edge de réconciliation si elle change.
+ */
+export const SUBSCRIPTION_HOLD_MAX_DAYS = 30;
+
 export interface PremiumPlanConfig {
   /** Valeur stockée en base (`subscription_plan`, `transactions.plan`). */
   dbValue: string;

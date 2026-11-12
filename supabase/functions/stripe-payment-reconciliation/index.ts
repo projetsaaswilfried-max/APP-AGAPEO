@@ -14,6 +14,10 @@ const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 const STRIPE_API_BASE = "https://api.stripe.com/v1";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SITE_URL = Deno.env.get("SITE_URL") ?? "http://localhost:3000";
+// Source de vérité : SUBSCRIPTION_HOLD_MAX_DAYS dans src/domain/premium-plans.ts
+// (et la migration cap_subscription_hold_at_30_days) — Deno et Node ne peuvent
+// pas partager ce module, resynchroniser ici si la valeur change.
+const SUBSCRIPTION_HOLD_MAX_DAYS = 30;
 const META_PIXEL_ID = Deno.env.get("META_PIXEL_ID");
 const META_CONVERSIONS_API_TOKEN = Deno.env.get("META_CONVERSIONS_API_TOKEN");
 
@@ -107,7 +111,8 @@ async function sendActivationEmail(
         </p>
         <p style="margin:0 0 12px 0;">
           <strong>Tes ${heldDayLabel} sont mis de côté et ne s'écoulent pas</strong> : le décompte ne démarrera qu'à la
-          validation de ton profil, pour que tu profites de ton abonnement en entier.
+          validation de ton profil, pour que tu profites de ton abonnement en entier. Passé ${SUBSCRIPTION_HOLD_MAX_DAYS}
+          jours sans validation, il démarrera tout seul — tu ne perds aucun jour dans tous les cas.
         </p>
       `
         : `

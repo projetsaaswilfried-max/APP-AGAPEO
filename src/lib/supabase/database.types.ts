@@ -181,6 +181,8 @@ export interface ProfileRestrictedRow {
    * vaut null et l'abonnement n'expire pas.
    */
   subscription_hold_days: number | null;
+  /** Début de la mise en réserve : le décompte démarre seul 30 jours après (cf. SUBSCRIPTION_HOLD_MAX_DAYS). */
+  subscription_hold_started_at: string | null;
   /** Palier de relance déjà envoyé sur le cycle en cours : 5, 3 ou 1 (jours avant échéance) — null si aucun. */
   subscription_reminder_stage: number | null;
   /** Horodatage du passage à EXPIRED (retrait automatique pour non-paiement) — null si jamais expiré ou déjà réabonné. */

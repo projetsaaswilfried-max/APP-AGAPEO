@@ -2,6 +2,7 @@ import "server-only";
 import { getResendApiKey, env } from "@/config/env";
 import { buildAgapeoEmailHtml } from "@/lib/email-template";
 import { buildSupportWhatsAppEmailBlock } from "@/config/support";
+import { SUBSCRIPTION_HOLD_MAX_DAYS } from "@/domain/premium-plans";
 
 /** Best-effort — jamais bloquant : l'état de l'abonnement en base est déjà à jour, que l'email parte ou non. */
 async function sendResendEmail(to: string, subject: string, html: string) {
@@ -50,7 +51,8 @@ export async function sendPremiumActivatedEmail(
         </p>
         <p style="margin:0 0 12px 0;">
           <strong>Tes ${heldDayLabel} sont mis de côté et ne s'écoulent pas</strong> : le décompte ne démarrera qu'à la
-          validation de ton profil, pour que tu profites de ton abonnement en entier.
+          validation de ton profil, pour que tu profites de ton abonnement en entier. Passé ${SUBSCRIPTION_HOLD_MAX_DAYS}
+          jours sans validation, il démarrera tout seul — tu ne perds aucun jour dans tous les cas.
         </p>
       `
         : `

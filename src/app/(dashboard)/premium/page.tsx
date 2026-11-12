@@ -10,7 +10,7 @@ import { markPaymentPending } from "@/domain/payment-intent";
 import { MobileMoneyCheckoutModal } from "@/components/features/premium/mobile-money-checkout-modal";
 import type { PaymentProvider } from "@/domain/payment-provider";
 import { PHONE_COUNTRY_CODES } from "@/config/phone-country-codes";
-import { PREMIUM_PLANS, PURCHASABLE_PLAN_KEYS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
+import { PREMIUM_PLANS, PURCHASABLE_PLAN_KEYS, SUBSCRIPTION_HOLD_MAX_DAYS, planKeyFromDbValue, type PremiumPlanKey } from "@/domain/premium-plans";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -501,7 +501,7 @@ export default function PremiumPage() {
             <p className="font-semibold text-foreground">Ton abonnement n&apos;a pas encore commencé à s&apos;écouler.</p>
             <p className="mt-0.5">
               Tes {holdDays} jour{holdDays > 1 ? "s" : ""} sont mis de côté : le décompte démarrera le jour où ta photo sera validée, pour
-              que tu n&apos;en perdes aucun.{" "}
+              que tu n&apos;en perdes aucun. Passé {SUBSCRIPTION_HOLD_MAX_DAYS} jours sans validation, il démarrera tout seul.{" "}
               <Link href="/profile?tab=account" className="font-semibold text-primary underline-offset-2 hover:underline">
                 Valider ma photo
               </Link>
