@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/layout/app-shell";
 import { SessionProvider } from "@/core/providers/session-provider";
+import { SupportAgentWidget } from "@/components/features/support/support-agent-widget";
 import { requireMemberViewSession } from "@/lib/supabase/session";
 
 // Espace membre connecté : jamais indexé (contenu privé, profils, messages).
@@ -29,6 +30,8 @@ export default async function DashboardLayout({
     // à jour à tout l'espace membre (cf. useRightsFreshness).
     <SessionProvider user={user} profile={profile} realProfile={realProfile} previewMode={previewMode}>
       <AppShell>{children}</AppShell>
+      {/* Support joignable depuis n'importe quelle page de l'espace membre. */}
+      <SupportAgentWidget />
     </SessionProvider>
   );
 }
