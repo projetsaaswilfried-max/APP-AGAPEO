@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Headset, X, Send, Loader2 } from "lucide-react";
 import { supportService, type SupportMessage } from "@/domain/services/support.service";
 import { useSession } from "@/core/providers/session-provider";
+import { IS_SUPPORT_AGENT_ENABLED } from "@/config/support-agent";
 import { cn } from "@/lib/utils";
 
 /**
@@ -41,7 +42,7 @@ export function SupportAgentWidget() {
 
   // Jamais par-dessus la messagerie : le clavier et la liste y occupent déjà
   // tout l'écran sur mobile. La page d'aide, elle, ouvre ce même panneau.
-  const hidden = profile.is_staff || pathname === "/messages";
+  const hidden = !IS_SUPPORT_AGENT_ENABLED || profile.is_staff || pathname === "/messages";
 
   const toBubble = (m: SupportMessage): Bubble => ({ id: m.id, fromTeam: m.isStaff, content: m.content });
 

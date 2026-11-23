@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runSupportAgent, FALLBACK_REPLY, type SupportAgentTurn } from "@/lib/support-agent/run";
 import { executeSupportTool, SYSTEM_ACCOUNT_ID } from "@/lib/support-agent/tools";
+import { IS_SUPPORT_AGENT_ENABLED } from "@/config/support-agent";
 
 /**
  * Un tour de conversation avec l'assistant de support.
@@ -34,6 +35,10 @@ export const maxDuration = 60;
 const MAX_MESSAGE_LENGTH = 4000;
 
 export async function POST(request: Request) {
+  if (!IS_SUPPORT_AGENT_ENABLED) {
+    return NextResponse.json({ error: "L'assistant n'est pas encore ouvert." }, { status: 503 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user }
